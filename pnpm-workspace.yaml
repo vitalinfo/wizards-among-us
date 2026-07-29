@@ -1,0 +1,11 @@
+# Native dependencies whose install/build scripts we explicitly allow to run.
+# pnpm blocks build scripts by default. `sharp` (next/image optimization) is
+# left disabled — unused for now.
+allowBuilds:
+  esbuild: true
+  "@tailwindcss/oxide": true
+  unrs-resolver: true
+  "@swc/core": true
+  workerd: true
+  "@parcel/watcher": true
+  sharp: false

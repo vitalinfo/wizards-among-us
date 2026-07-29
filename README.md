@@ -111,20 +111,54 @@ External accounts to set up (human task, Phase 0 — see plan §3): domain (`.xy
 
 ## Local setup
 
+Package manager: **pnpm** (v11+). Node 20+.
+
 ```bash
 # 1. Install
-npm install
+pnpm install
 
-# 2. Configure
-cp .env.example .env.local   # fill in values
+# 2. Configure (optional for Phase 0 — the scaffold runs with no env set)
+cp .env.example .env.local   # fill in values as later phases need them
 
-# 3. Database
-npm run db:migrate           # apply Drizzle migrations
-npm run db:seed              # optional: seed a draft campaign
+# 3. Database (Phase 1 onward — no schema yet)
+pnpm db:migrate              # apply Drizzle migrations
+pnpm db:seed                 # optional: seed a draft campaign
 
 # 4. Run
-npm run dev                  # http://localhost:3000
+pnpm dev                     # http://localhost:3000
 ```
+
+### Project layout & scripts (Phase 0)
+
+```
+src/
+  app/                 App Router: layout.tsx, page.tsx, globals.css, api/health/
+  components/          UI components (landing.tsx + colocated *.test.tsx)
+  i18n/request.ts      next-intl request config (locale = uk)
+  db/                  Drizzle client (index.ts), schema.ts (empty until Phase 1), seed.ts
+messages/uk.json       all Ukrainian UI copy (no hardcoded user-facing strings)
+drizzle.config.ts      Drizzle Kit config (reads DATABASE_URL)
+open-next.config.ts + wrangler.jsonc   thin Cloudflare Workers deploy layer
+.github/workflows/     ci.yml (lint/typecheck/test/build) · deploy.yml (manual, Cloudflare)
+```
+
+Quality gates (all green on `main`, enforced by CI): `pnpm typecheck`, `pnpm lint`,
+`pnpm format:check`, `pnpm test`, `pnpm build`.
+
+**Stack notes for this scaffold:** Next.js 16 (App Router, Turbopack) · React 19 ·
+Tailwind v4 · **next-intl** (`uk`, single-locale, no URL prefix — structured to add
+locales later) · Drizzle ORM + **node-postgres** (portable, works on Node hosts and on
+Cloudflare Workers via `nodejs_compat`). Whole app is `noindex` by default; the landing
+page opts back in during Phase 2.
+
+### Deploying to Cloudflare (thin layer)
+
+The app is standard, host-agnostic Next.js; Cloudflare is added via
+[`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (Workers, the successor to
+`next-on-pages` for Next.js). `pnpm cf:preview` builds and previews locally;
+`pnpm cf:deploy` deploys. Auto-deploy on `main` is wired but **disabled** until you set two
+GitHub repo secrets — `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — and flip
+`.github/workflows/deploy.yml` from `workflow_dispatch` to `push`.
 
 ---
 
