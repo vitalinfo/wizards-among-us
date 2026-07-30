@@ -158,10 +158,12 @@ DATABASE_URL=postgresql://wau:wau@localhost:5433/wau
 > Host port is **5433** (not the default 5432) to avoid colliding with any other local
 > Postgres you already run. User / password / db are all `wau` (local dev only — see `compose.yml`).
 
-The Drizzle CLI (`db:generate` / `db:migrate` / `db:seed`) auto-loads `.env.local` via
+The DB scripts (`db:generate` / `db:migrate` / `db:seed`) auto-load `.env.local` via
 `@next/env` — the same files `next dev` reads — so you don't need to export `DATABASE_URL`
-in your shell. (Migrations don't exist until Phase 1 generates them, so `db:migrate` has
-nothing to apply yet.)
+in your shell. No migrations exist until Phase 1 generates them (`pnpm db:generate`), so
+`db:migrate` currently reports "nothing to apply" and exits cleanly. `db:migrate` runs a
+small script (`src/db/migrate.ts`) instead of `drizzle-kit migrate`, which gives real
+errors (e.g. "is Postgres running?") — drizzle-kit swallows them.
 
 **Adminer UI** (optional): `docker compose up -d adminer`, then http://localhost:8080 —
 System: PostgreSQL · Server: `db` · Username / Password: `wau`.
