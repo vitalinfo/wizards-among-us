@@ -48,7 +48,9 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-la
 - **Claims are atomic:** prevent double-claim via a unique constraint + transaction.
 - **Never commit secrets.** Use env vars (see README).
 
-## Confirm before Phase 1 (plan §14)
+## Phase 1 decisions (resolved)
 
-- **Region taxonomy:** fixed oblast/city list vs. free text (drives the volunteer filter + schema).
-- **Gift currency:** single currency (UAH assumed) vs. add a `gift_currency` column.
+- **Region taxonomy:** fixed list = the 24 oblasts + Crimea (slugs in `src/db/enums.ts`, UA labels in `messages/uk.json`); city/town is **free text**. Kyiv-city/Sevastopol are not separate values.
+- **Gift currency:** **UAH only** — no `gift_currency` column (`gift_price numeric(10,2)`).
+- **Enum modeling:** `text` + `CHECK` (not `pgEnum`).
+- **Claims:** plain `UNIQUE(application_id)` — re-claim after release UPDATEs the row.

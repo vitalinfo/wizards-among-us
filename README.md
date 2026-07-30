@@ -172,6 +172,28 @@ System: PostgreSQL · Server: `db` · Username / Password: `wau`.
 keeps your data; only `db:reset` (or `docker compose down -v`) erases it. Postgres is only
 actually *used* from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
 
+### Data layer (Phase 1)
+
+Drizzle schema for all tables lives in `src/db/schema.ts` (hand-written; the source of
+truth). Enum-like columns are stored as readable `text` + a `CHECK` constraint, mapped to TS
+unions in `src/db/enums.ts`. Key invariants are enforced in the DB, not just app code: one
+active campaign (partial unique index), one claim per application, a singleton `settings`
+row (kill switch). Regions are the 24 oblasts + Crimea (slugs in `enums.ts`, Ukrainian labels
+in `messages/uk.json`); city/town is free text; gift price is UAH-only.
+
+Authorization is a set of **pure predicates** in `src/lib/authz.ts` (edit-lock, claim rules,
+sensitive-field access, browse-card redaction) with direct allow/deny tests — the security
+boundary. Session resolution (`getSessionActor`) is wired in Phase 3; these predicates are
+what the guards will call. Shared **zod** schemas live in `src/lib/validation.ts` (server is
+authoritative).
+
+```bash
+pnpm db:up                    # local Postgres (see above)
+pnpm db:generate              # edit schema.ts → regenerate migration SQL (review it!)
+pnpm db:migrate               # apply pending migrations
+pnpm db:seed                  # one draft campaign + settings row (idempotent)
+```
+
 ### Project layout & scripts (Phase 0)
 
 ```
@@ -179,8 +201,10 @@ src/
   app/                 App Router: layout.tsx, page.tsx, globals.css, api/health/
   components/          UI components (landing.tsx) + __tests__/ specs beside them
   i18n/request.ts      next-intl request config (locale = uk)
-  db/                  Drizzle client (index.ts), schema.ts (empty until Phase 1), seed.ts
-messages/uk.json       all Ukrainian UI copy (no hardcoded user-facing strings)
+  db/                  schema.ts (tables) · enums.ts (enum consts) · index.ts (client) · migrate.ts · seed.ts
+  lib/                 authz.ts (authorization predicates) · validation.ts (shared zod) · __tests__/
+messages/uk.json       all Ukrainian UI copy incl. region labels (no hardcoded strings)
+drizzle/               GENERATED migrations (0000_*.sql + meta/) — don't hand-edit meta/
 drizzle.config.ts      Drizzle Kit config (reads DATABASE_URL)
 open-next.config.ts + wrangler.jsonc   thin Cloudflare Workers deploy layer
 .github/workflows/     ci.yml (lint/typecheck/test/build) · deploy.yml (manual, Cloudflare)
