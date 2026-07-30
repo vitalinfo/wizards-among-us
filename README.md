@@ -111,20 +111,97 @@ External accounts to set up (human task, Phase 0 — see plan §3): domain (`.xy
 
 ## Local setup
 
+Package manager: **pnpm** (v11+). Node 20+.
+
 ```bash
-# 1. Install
-npm install
+# 1. Install (also enables git hooks via the "prepare" script)
+pnpm install
 
-# 2. Configure
-cp .env.example .env.local   # fill in values
+# 2. Configure (optional for Phase 0 — the scaffold runs with no env set)
+cp .env.example .env.local   # fill in values as later phases need them
 
-# 3. Database
-npm run db:migrate           # apply Drizzle migrations
-npm run db:seed              # optional: seed a draft campaign
+# 3. Database (Phase 1 onward — no schema yet)
+pnpm db:migrate              # apply Drizzle migrations
+pnpm db:seed                 # optional: seed a draft campaign
 
 # 4. Run
-npm run dev                  # http://localhost:3000
+pnpm dev                     # http://localhost:3000
 ```
+
+### Local services (Docker)
+
+**Only the backing services run in Docker — the app itself does not.** `pnpm dev` runs
+Next.js on your host (fastest HMR; the deploy target is Cloudflare Workers, not a container),
+so there is **no application image to build or rebuild**. `compose.yml` provides just
+**Postgres 17** and an optional **Adminer** web UI. (If we ever need a container-parity build,
+we'll add a Dockerfile then — we don't have one now, on purpose.)
+
+Requires Docker Desktop (or any Docker Engine) running.
+
+| Command | Underlying `docker compose` | What it does |
+|---|---|---|
+| `pnpm db:up` | `up -d db` | Start Postgres in the background |
+| `pnpm db:down` | `down` | Stop & remove the containers (**data is kept** in the volume) |
+| `pnpm db:reset` | `down -v && up -d db` | **Wipe the database** (drops the data volume) and start fresh |
+| `pnpm db:logs` | `logs -f db` | Tail Postgres logs |
+| — | `docker compose ps` | Show what's running / health |
+| — | `docker compose up -d adminer` | Start the Adminer DB UI (not started by `db:up`) |
+| — | `docker compose pull` | Pull newer `postgres:17` / `adminer` images |
+| — | `docker compose exec db psql -U wau wau` | Open a `psql` shell inside the container |
+
+**Connect** — put this in `.env.local`:
+
+```
+DATABASE_URL=postgresql://wau:wau@localhost:5433/wau
+```
+
+> Host port is **5433** (not the default 5432) to avoid colliding with any other local
+> Postgres you already run. User / password / db are all `wau` (local dev only — see `compose.yml`).
+
+**Adminer UI** (optional): `docker compose up -d adminer`, then http://localhost:8080 —
+System: PostgreSQL · Server: `db` · Username / Password: `wau`.
+
+**Data & persistence:** rows live in the named volume `wau_pgdata`, so `db:down` → `db:up`
+keeps your data; only `db:reset` (or `docker compose down -v`) erases it. Postgres is only
+actually *used* from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
+
+### Project layout & scripts (Phase 0)
+
+```
+src/
+  app/                 App Router: layout.tsx, page.tsx, globals.css, api/health/
+  components/          UI components (landing.tsx) + __tests__/ specs beside them
+  i18n/request.ts      next-intl request config (locale = uk)
+  db/                  Drizzle client (index.ts), schema.ts (empty until Phase 1), seed.ts
+messages/uk.json       all Ukrainian UI copy (no hardcoded user-facing strings)
+drizzle.config.ts      Drizzle Kit config (reads DATABASE_URL)
+open-next.config.ts + wrangler.jsonc   thin Cloudflare Workers deploy layer
+.github/workflows/     ci.yml (lint/typecheck/test/build) · deploy.yml (manual, Cloudflare)
+```
+
+Quality gates (all green on `main`, enforced by CI as 4 parallel jobs):
+`pnpm typecheck`, `pnpm lint`, `pnpm format:check`, `pnpm test`, `pnpm build`.
+
+**Git hooks:** a `pre-commit` hook (in `git-hooks/`, wired via `core.hooksPath`) runs
+Prettier `--write` + ESLint `--fix --max-warnings=0` on your **staged** files and re-stages
+the fixes. It installs automatically on `pnpm install`; re-run manually with
+`pnpm hooks:install`. Bypass in an emergency with `git commit --no-verify`. The heavier
+gates (typecheck/test/build) stay in CI, not the hook, to keep commits fast.
+
+**Stack notes for this scaffold:** Next.js 16 (App Router, Turbopack) · React 19 ·
+Tailwind v4 · **next-intl** (`uk`, single-locale, no URL prefix — structured to add
+locales later) · Drizzle ORM + **node-postgres** (portable, works on Node hosts and on
+Cloudflare Workers via `nodejs_compat`). Whole app is `noindex` by default; the landing
+page opts back in during Phase 2.
+
+### Deploying to Cloudflare (thin layer)
+
+The app is standard, host-agnostic Next.js; Cloudflare is added via
+[`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (Workers, the successor to
+`next-on-pages` for Next.js). `pnpm cf:preview` builds and previews locally;
+`pnpm cf:deploy` deploys. Auto-deploy on `main` is wired but **disabled** until you set two
+GitHub repo secrets — `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — and flip
+`.github/workflows/deploy.yml` from `workflow_dispatch` to `push`.
 
 ---
 

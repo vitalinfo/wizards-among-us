@@ -1,0 +1,13 @@
+pnpm-lock.yaml
+
+# Markdown is authoritative prose (build plan, README, rules) — don't let
+# Prettier reflow it.
+**/*.md
+
+.next
+.open-next
+.wrangler
+coverage
+drizzle
+next-env.d.ts
+public
