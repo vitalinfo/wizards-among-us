@@ -1,5 +1,5 @@
 {
-  "id": "da1ab321-d835-4f17-9aaf-0ac0be80f291",
+  "id": "ebfe0aa1-424b-4e84-a2bc-cf3bd9569714",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -25,13 +25,13 @@
           "name": "password_hash",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "display_name": {
           "name": "display_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -48,18 +48,26 @@
           "default": "now()"
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
+      "indexes": {
         "admins_email_unique": {
           "name": "admins_email_unique",
-          "nullsNotDistinct": false,
           "columns": [
-            "email"
-          ]
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -371,8 +379,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.audit_log": {
-      "name": "audit_log",
+    "public.audit_logs": {
+      "name": "audit_logs",
       "schema": "",
       "columns": {
         "id": {
@@ -427,8 +435,8 @@
         }
       },
       "indexes": {
-        "audit_log_target_idx": {
-          "name": "audit_log_target_idx",
+        "audit_logs_target_idx": {
+          "name": "audit_logs_target_idx",
           "columns": [
             {
               "expression": "target_type",
@@ -454,8 +462,8 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "audit_log_actor_type_valid": {
-          "name": "audit_log_actor_type_valid",
+        "audit_logs_actor_type_valid": {
+          "name": "audit_logs_actor_type_valid",
           "value": "actor_type in ('user', 'admin')"
         }
       },
@@ -622,7 +630,38 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "claims_application_unique": {
+          "name": "claims_application_unique",
+          "columns": [
+            {
+              "expression": "application_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "claims_volunteer_idx": {
+          "name": "claims_volunteer_idx",
+          "columns": [
+            {
+              "expression": "volunteer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "claims_application_id_applications_id_fk": {
           "name": "claims_application_id_applications_id_fk",
@@ -652,15 +691,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "claims_application_unique": {
-          "name": "claims_application_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "application_id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -715,7 +746,29 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "identities_provider_uid_unique": {
+          "name": "identities_provider_uid_unique",
+          "columns": [
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provider_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "identities_user_id_users_id_fk": {
           "name": "identities_user_id_users_id_fk",
@@ -732,16 +785,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "identities_provider_uid_unique": {
-          "name": "identities_provider_uid_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "provider",
-            "provider_user_id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
         "identities_provider_valid": {
@@ -762,8 +806,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "parent_id": {
-          "name": "parent_id",
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -774,17 +818,11 @@
           "primaryKey": false,
           "notNull": false
         },
-        "volunteer_id": {
-          "name": "volunteer_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "rating": {
           "name": "rating",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "body": {
           "name": "body",
@@ -814,14 +852,45 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "reviews_user_idx": {
+          "name": "reviews_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "reviews_application_idx": {
+          "name": "reviews_application_idx",
+          "columns": [
+            {
+              "expression": "application_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "reviews_parent_id_users_id_fk": {
-          "name": "reviews_parent_id_users_id_fk",
+        "reviews_user_id_users_id_fk": {
+          "name": "reviews_user_id_users_id_fk",
           "tableFrom": "reviews",
           "tableTo": "users",
           "columnsFrom": [
-            "parent_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -835,19 +904,6 @@
           "tableTo": "applications",
           "columnsFrom": [
             "application_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "reviews_volunteer_id_users_id_fk": {
-          "name": "reviews_volunteer_id_users_id_fk",
-          "tableFrom": "reviews",
-          "tableTo": "users",
-          "columnsFrom": [
-            "volunteer_id"
           ],
           "columnsTo": [
             "id"
@@ -921,12 +977,6 @@
         },
         "username": {
           "name": "username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "phone": {
-          "name": "phone",
           "type": "text",
           "primaryKey": false,
           "notNull": false

@@ -33,7 +33,8 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-la
 - TypeScript strict. Shared **zod** schemas validate on client *and* server (server is authoritative).
 - **Enums = readable text** (`text` + `CHECK`) mapped to TS string-literal unions (in `src/db/enums.ts`). Never integer-backed enums. DB values must read as words (`'approved'`, not `3`).
 - **DB constraints are a structural safety net, not the validation layer.** Put in the DB only what the app can't guarantee: uniqueness/atomicity (races), FKs, `NOT NULL` for always-present columns, enum CHECKs. Business/range/cross-field validation lives in **zod** (server-authoritative) — don't add value-range CHECKs (e.g. age/rating) to the DB.
-- **Timestamps:** every table has `created_at` + `updated_at` (both `default now() not null`; `updated_at` bumped app-side via Drizzle `$onUpdate`), **except** append-only `audit_log` (created_at only). Use the `timestamps()` helper in `schema.ts`.
+- **Timestamps:** every table has `created_at` + `updated_at` (both `default now() not null`; `updated_at` bumped app-side via Drizzle `$onUpdate`), **except** append-only `audit_logs` (created_at only). Use the `timestamps()` helper in `schema.ts`.
+- **`schema.ts` hygiene:** table names are **plural** (`users`, `audit_logs`); table definitions are ordered **alphabetically** by name (helpers first) for navigation. Express uniqueness with **unique indexes** (`uniqueIndex(...)`, partial via `.where()` when needed), not `UNIQUE` constraints — uniform, and buildable `CONCURRENTLY` in prod.
 - **Settings** is a **key-value** table (`key` text PK, `value` jsonb); keys in `SETTING_KEYS`. New switch = new row, no migration.
 - **Authorization in the server layer** via `getSessionActor()` / `requireAdmin()`. No client-side-only checks.
 - Migrations are code-defined (Drizzle) and shown before running.
@@ -56,7 +57,8 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-la
 - **Region taxonomy:** fixed list = the 24 oblasts + Crimea (slugs in `src/db/enums.ts`, UA labels in `messages/uk.json`); city/town is **free text**. Kyiv-city/Sevastopol are not separate values.
 - **Gift currency:** **UAH only** — no `gift_currency` column (`gift_price numeric(10,2)`).
 - **Enum modeling:** `text` + `CHECK` (not `pgEnum`).
-- **Claims:** plain `UNIQUE(application_id)` — re-claim after release UPDATEs the row.
+- **Claims:** unique index on `application_id` (one claim/app) — re-claim after release UPDATEs the row.
 - **Settings:** key-value table (not a boolean singleton).
 - **DB constraints:** structural only — range validation (age/rating) lives in zod, not DB CHECKs. Application content fields stay **nullable** (persisted drafts); required-ness enforced at submit via zod.
-- **Timestamps:** `created_at` + `updated_at` on every table except `audit_log`.
+- **Timestamps:** `created_at` + `updated_at` on every table except `audit_logs`.
+- **schema.ts:** plural table names, alphabetical order, uniqueness via unique **indexes** (not constraints).

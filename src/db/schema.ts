@@ -10,7 +10,6 @@ import {
   pgTable,
   text,
   timestamp,
-  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -26,6 +25,9 @@ import {
   USER_ROLES,
 } from "./enums";
 
+// Convention: tables below are ordered ALPHABETICALLY by name for navigation
+// (helpers first). Uniqueness is expressed with unique INDEXES, not constraints.
+
 // Build a DB CHECK that constrains a column to a fixed set of readable values —
 // the "text + CHECK" half of our enum convention (the TS union comes from
 // ./enums). Values are our own ASCII constants, inlined as SQL literals.
@@ -40,10 +42,10 @@ function oneOfNullable(column: string, values: readonly string[]) {
   return sql.raw(`${column} is null or ${column} in (${list})`);
 }
 
-// Convention: every table carries created_at + updated_at (except append-only
-// audit_log). updated_at defaults to now() on insert and is bumped on every
-// Drizzle update via $onUpdate (app-level, like ActiveRecord timestamps — a raw
-// SQL UPDATE won't touch it; add a trigger if we ever need DB-guaranteed).
+// Every table carries created_at + updated_at (except append-only audit_logs).
+// updated_at defaults to now() on insert and is bumped on every Drizzle update
+// via $onUpdate (app-level, like ActiveRecord timestamps — a raw SQL UPDATE
+// won't touch it; add a trigger if we ever need DB-guaranteed).
 const timestamps = () => ({
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -54,109 +56,38 @@ const timestamps = () => ({
     .$onUpdate(() => new Date()),
 });
 
-// ---------------------------------------------------------------------------
-// Identity: our own tables (portable). The auth library's session tables are
-// added in Phase 3 and are NOT referenced by the domain.
-// ---------------------------------------------------------------------------
-
-// The person: Telegram parents/volunteers (data subjects). Never admins.
-export const users = pgTable(
-  "users",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    // Capability set, combinable: {'parent'}, {'volunteer'}, or both.
-    role: text("role", { enum: USER_ROLES })
-      .array()
-      .notNull()
-      .default(sql`'{}'::text[]`),
-    username: text("username"), // denormalized handle for display + volunteer filter
-    phone: text("phone"),
-    note: text("note"), // optional free-text note from the person (one per user)
-    ...timestamps(),
-  },
-  (t) => [
-    check(
-      "users_role_valid",
-      sql`${t.role} <@ ARRAY['parent','volunteer']::text[]`,
-    ),
-  ],
-);
-
-// Linked auth methods; one row per provider (Telegram now, Google/FB later).
-export const identities = pgTable(
-  "identities",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    provider: text("provider", { enum: IDENTITY_PROVIDERS }).notNull(),
-    providerUserId: text("provider_user_id").notNull(), // provider's stable id
-    data: jsonb("data"), // verified provider payload (telegram: username, photo_url, …)
-    ...timestamps(),
-  },
-  (t) => [
-    // A given provider account links to exactly one user.
-    unique("identities_provider_uid_unique").on(t.provider, t.providerUserId),
-    check("identities_provider_valid", oneOf("provider", IDENTITY_PROVIDERS)),
-  ],
-);
-
 // Email/password operators (not data subjects). Membership == admin privilege.
-export const admins = pgTable("admins", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
-  passwordHash: text("password_hash"),
-  displayName: text("display_name"),
-  ...timestamps(),
-});
-
-// ---------------------------------------------------------------------------
-// Campaigns + global settings
-// ---------------------------------------------------------------------------
-
-export const campaigns = pgTable(
-  "campaigns",
+// (Auth library session tables are added in Phase 3 and not referenced here.)
+export const admins = pgTable(
+  "admins",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    type: text("type", { enum: CAMPAIGN_TYPES }).notNull(),
-    title: text("title").notNull(),
-    description: text("description"),
-    status: text("status", { enum: CAMPAIGN_STATUSES })
+    email: text("email").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    displayName: text("display_name").notNull(),
+    ...timestamps(),
+  },
+  (t) => [uniqueIndex("admins_email_unique").on(t.email)],
+);
+
+export const applicationFiles = pgTable(
+  "application_files",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    applicationId: uuid("application_id")
       .notNull()
-      .default("draft"),
-    // Intake gate: campaign can stay live while new submissions are closed.
-    acceptingApplications: boolean("accepting_applications")
-      .notNull()
-      .default(true),
-    startsAt: timestamp("starts_at", { withTimezone: true }),
-    endsAt: timestamp("ends_at", { withTimezone: true }),
-    archivedAt: timestamp("archived_at", { withTimezone: true }),
+      .references(() => applications.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: FILE_KINDS }).notNull(),
+    storageKey: text("storage_key").notNull(), // S3/R2 object key
+    contentType: text("content_type").notNull(),
+    sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
     ...timestamps(),
   },
   (t) => [
-    check("campaigns_type_valid", oneOf("type", CAMPAIGN_TYPES)),
-    check("campaigns_status_valid", oneOf("status", CAMPAIGN_STATUSES)),
-    // At most one 'active' campaign at a time (invariant) — needs a partial
-    // index, so this stays a unique index rather than a unique constraint.
-    uniqueIndex("campaigns_one_active")
-      .on(t.status)
-      .where(sql`${t.status} = 'active'`),
+    check("application_files_kind_valid", oneOf("kind", FILE_KINDS)),
+    index("application_files_application_idx").on(t.applicationId),
   ],
 );
-
-// Global settings as a key-value store: one row per switch (e.g.
-// 'applications_enabled' → true, the emergency kill switch). New switches are
-// new rows, no migration. Keys live in SETTING_KEYS (./enums).
-export const settings = pgTable("settings", {
-  key: text("key").primaryKey(),
-  value: jsonb("value").notNull(),
-  ...timestamps(),
-});
-
-// ---------------------------------------------------------------------------
-// Applications + files
-// ---------------------------------------------------------------------------
 
 // Status lifecycle: draft → submitted → approved → claimed → fulfilled (+ rejected).
 // Common fields are nullable in DB so drafts save partially; "required" is
@@ -206,33 +137,61 @@ export const applications = pgTable(
   ],
 );
 
-export const applicationFiles = pgTable(
-  "application_files",
+// Append-only audit log. Loose polymorphic actor ref (no FK) + snapshot label,
+// so rows stay readable after an actor is deleted. Immutable: created_at only.
+export const auditLogs = pgTable(
+  "audit_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    applicationId: uuid("application_id")
-      .notNull()
-      .references(() => applications.id, { onDelete: "cascade" }),
-    kind: text("kind", { enum: FILE_KINDS }).notNull(),
-    storageKey: text("storage_key").notNull(), // S3/R2 object key
-    contentType: text("content_type").notNull(),
-    sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
-    ...timestamps(),
+    actorId: uuid("actor_id").notNull(), // users.id or admins.id — intentionally no FK
+    actorType: text("actor_type", { enum: ACTOR_TYPES }).notNull(),
+    actorLabel: text("actor_label").notNull(), // @username / admin email snapshot — keeps the row readable after the actor is deleted
+    action: text("action").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: uuid("target_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (t) => [
-    check("application_files_kind_valid", oneOf("kind", FILE_KINDS)),
-    index("application_files_application_idx").on(t.applicationId),
+    check("audit_logs_actor_type_valid", oneOf("actor_type", ACTOR_TYPES)),
+    index("audit_logs_target_idx").on(t.targetType, t.targetId),
   ],
 );
 
-// ---------------------------------------------------------------------------
-// Claims + reviews
-// ---------------------------------------------------------------------------
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: text("type", { enum: CAMPAIGN_TYPES }).notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    status: text("status", { enum: CAMPAIGN_STATUSES })
+      .notNull()
+      .default("draft"),
+    // Intake gate: campaign can stay live while new submissions are closed.
+    acceptingApplications: boolean("accepting_applications")
+      .notNull()
+      .default(true),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    ...timestamps(),
+  },
+  (t) => [
+    check("campaigns_type_valid", oneOf("type", CAMPAIGN_TYPES)),
+    check("campaigns_status_valid", oneOf("status", CAMPAIGN_STATUSES)),
+    // At most one 'active' campaign at a time (invariant) — partial unique index.
+    uniqueIndex("campaigns_one_active")
+      .on(t.status)
+      .where(sql`${t.status} = 'active'`),
+  ],
+);
 
-// Atomic claim: exactly one claim row per application (plain UNIQUE), so a
-// double-claim is impossible. Releasing sets released_at on that row; a
-// re-claim UPDATEs the same row (new volunteer_id, released_at back to NULL)
-// rather than inserting. Combine with a transaction on claim.
+// Atomic claim: exactly one claim row per application (unique index), so a
+// double-claim is impossible. Releasing sets released_at on that row; a re-claim
+// UPDATEs the same row (new volunteer_id, released_at back to NULL) rather than
+// inserting. Combine with a transaction on claim.
 export const claims = pgTable(
   "claims",
   {
@@ -249,43 +208,81 @@ export const claims = pgTable(
     releasedAt: timestamp("released_at", { withTimezone: true }),
     ...timestamps(),
   },
-  (t) => [unique("claims_application_unique").on(t.applicationId)],
+  (t) => [
+    uniqueIndex("claims_application_unique").on(t.applicationId),
+    index("claims_volunteer_idx").on(t.volunteerId),
+  ],
 );
 
-export const reviews = pgTable("reviews", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  parentId: uuid("parent_id")
-    .notNull()
-    .references(() => users.id),
-  applicationId: uuid("application_id").references(() => applications.id),
-  volunteerId: uuid("volunteer_id").references(() => users.id),
-  rating: integer("rating"), // range (1–5) validated in zod, not a DB CHECK
-  body: text("body"),
-  isPublished: boolean("is_published").notNull().default(false), // admin-moderated
+// Linked auth methods; one row per provider (Telegram now, Google/FB later).
+export const identities = pgTable(
+  "identities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider", { enum: IDENTITY_PROVIDERS }).notNull(),
+    providerUserId: text("provider_user_id").notNull(), // provider's stable id
+    data: jsonb("data"), // verified provider payload (telegram: username, photo_url, …)
+    ...timestamps(),
+  },
+  (t) => [
+    // A given provider account links to exactly one user.
+    uniqueIndex("identities_provider_uid_unique").on(
+      t.provider,
+      t.providerUserId,
+    ),
+    check("identities_provider_valid", oneOf("provider", IDENTITY_PROVIDERS)),
+  ],
+);
+
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    applicationId: uuid("application_id").references(() => applications.id),
+    rating: integer("rating").notNull(), // range (1–5) validated in zod, not a DB CHECK
+    body: text("body"),
+    isPublished: boolean("is_published").notNull().default(false), // admin-moderated
+    ...timestamps(),
+  },
+  (t) => [
+    index("reviews_user_idx").on(t.userId),
+    index("reviews_application_idx").on(t.applicationId),
+  ],
+);
+
+// Global settings as a key-value store: one row per switch (e.g.
+// 'applications_enabled' → true, the emergency kill switch). New switches are
+// new rows, no migration. Keys live in SETTING_KEYS (./enums).
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
   ...timestamps(),
 });
 
-// ---------------------------------------------------------------------------
-// Audit log — append-only. Loose polymorphic actor ref (no FK) + snapshot label,
-// so rows stay readable after an actor is deleted. Immutable: created_at only.
-// ---------------------------------------------------------------------------
-
-export const auditLog = pgTable(
-  "audit_log",
+// The person: Telegram parents/volunteers (data subjects). Never admins.
+export const users = pgTable(
+  "users",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    actorId: uuid("actor_id").notNull(), // users.id or admins.id — intentionally no FK
-    actorType: text("actor_type", { enum: ACTOR_TYPES }).notNull(),
-    actorLabel: text("actor_label").notNull(), // @username / admin email at write time
-    action: text("action").notNull(),
-    targetType: text("target_type").notNull(),
-    targetId: uuid("target_id"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
+    // Capability set, combinable: {'parent'}, {'volunteer'}, or both.
+    role: text("role", { enum: USER_ROLES })
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    username: text("username"), // denormalized handle for display + volunteer filter
+    note: text("note"), // optional free-text note from the person (one per user)
+    ...timestamps(),
   },
   (t) => [
-    check("audit_log_actor_type_valid", oneOf("actor_type", ACTOR_TYPES)),
-    index("audit_log_target_idx").on(t.targetType, t.targetId),
+    check(
+      "users_role_valid",
+      sql`${t.role} <@ ARRAY['parent','volunteer']::text[]`,
+    ),
   ],
 );

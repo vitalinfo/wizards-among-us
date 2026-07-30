@@ -1,11 +1,10 @@
 CREATE TABLE "admins" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
-	"password_hash" text,
-	"display_name" text,
+	"password_hash" text NOT NULL,
+	"display_name" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "admins_email_unique" UNIQUE("email")
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "application_files" (
@@ -45,7 +44,7 @@ CREATE TABLE "applications" (
 	CONSTRAINT "applications_current_region_valid" CHECK (current_region is null or current_region in ('cherkasy', 'chernihiv', 'chernivtsi', 'dnipropetrovsk', 'donetsk', 'ivano_frankivsk', 'kharkiv', 'kherson', 'khmelnytskyi', 'kirovohrad', 'kyiv', 'luhansk', 'lviv', 'mykolaiv', 'odesa', 'poltava', 'rivne', 'sumy', 'ternopil', 'vinnytsia', 'volyn', 'zakarpattia', 'zaporizhzhia', 'zhytomyr', 'crimea'))
 );
 --> statement-breakpoint
-CREATE TABLE "audit_log" (
+CREATE TABLE "audit_logs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"actor_id" uuid NOT NULL,
 	"actor_type" text NOT NULL,
@@ -54,7 +53,7 @@ CREATE TABLE "audit_log" (
 	"target_type" text NOT NULL,
 	"target_id" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "audit_log_actor_type_valid" CHECK (actor_type in ('user', 'admin'))
+	CONSTRAINT "audit_logs_actor_type_valid" CHECK (actor_type in ('user', 'admin'))
 );
 --> statement-breakpoint
 CREATE TABLE "campaigns" (
@@ -80,8 +79,7 @@ CREATE TABLE "claims" (
 	"claimed_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"released_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "claims_application_unique" UNIQUE("application_id")
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "identities" (
@@ -92,16 +90,14 @@ CREATE TABLE "identities" (
 	"data" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "identities_provider_uid_unique" UNIQUE("provider","provider_user_id"),
 	CONSTRAINT "identities_provider_valid" CHECK (provider in ('telegram'))
 );
 --> statement-breakpoint
 CREATE TABLE "reviews" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"parent_id" uuid NOT NULL,
+	"user_id" uuid NOT NULL,
 	"application_id" uuid,
-	"volunteer_id" uuid,
-	"rating" integer,
+	"rating" integer NOT NULL,
 	"body" text,
 	"is_published" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -119,7 +115,6 @@ CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"role" text[] DEFAULT '{}'::text[] NOT NULL,
 	"username" text,
-	"phone" text,
 	"note" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -132,11 +127,16 @@ ALTER TABLE "applications" ADD CONSTRAINT "applications_parent_id_users_id_fk" F
 ALTER TABLE "claims" ADD CONSTRAINT "claims_application_id_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "public"."applications"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "claims" ADD CONSTRAINT "claims_volunteer_id_users_id_fk" FOREIGN KEY ("volunteer_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "identities" ADD CONSTRAINT "identities_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "reviews" ADD CONSTRAINT "reviews_parent_id_users_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "reviews" ADD CONSTRAINT "reviews_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_application_id_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "public"."applications"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "reviews" ADD CONSTRAINT "reviews_volunteer_id_users_id_fk" FOREIGN KEY ("volunteer_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "admins_email_unique" ON "admins" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "application_files_application_idx" ON "application_files" USING btree ("application_id");--> statement-breakpoint
 CREATE INDEX "applications_campaign_status_idx" ON "applications" USING btree ("campaign_id","status");--> statement-breakpoint
 CREATE INDEX "applications_parent_idx" ON "applications" USING btree ("parent_id");--> statement-breakpoint
-CREATE INDEX "audit_log_target_idx" ON "audit_log" USING btree ("target_type","target_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "campaigns_one_active" ON "campaigns" USING btree ("status") WHERE "campaigns"."status" = 'active';
+CREATE INDEX "audit_logs_target_idx" ON "audit_logs" USING btree ("target_type","target_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "campaigns_one_active" ON "campaigns" USING btree ("status") WHERE "campaigns"."status" = 'active';--> statement-breakpoint
+CREATE UNIQUE INDEX "claims_application_unique" ON "claims" USING btree ("application_id");--> statement-breakpoint
+CREATE INDEX "claims_volunteer_idx" ON "claims" USING btree ("volunteer_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "identities_provider_uid_unique" ON "identities" USING btree ("provider","provider_user_id");--> statement-breakpoint
+CREATE INDEX "reviews_user_idx" ON "reviews" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "reviews_application_idx" ON "reviews" USING btree ("application_id");
