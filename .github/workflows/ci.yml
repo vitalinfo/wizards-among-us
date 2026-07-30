@@ -5,8 +5,31 @@ on:
     branches: [main]
   pull_request:
 
+# Cancel an in-progress run for a branch when a new commit is pushed to it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  verify:
+  # Each gate is its own job so they run in parallel and the UI shows exactly
+  # which one failed (a red "lint" is clearer than a red "verify" you have to
+  # open). Trade-off: every job re-installs dependencies — fine at this size,
+  # and the pnpm store cache keeps it fast. If install time ever bites, collapse
+  # these into one job with sequential steps, or share a prebuilt cache.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+
+  typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,6 +40,33 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
-      - run: pnpm lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm test
+
+  # Why build in CI at all? `next build` is the only gate that runs the real
+  # production compiler: it catches Server/Client Component boundary mistakes,
+  # bad `generateMetadata`, and type errors that only surface in a prod build —
+  # none of which `tsc`, `eslint`, or unit tests see. It's also proof the app
+  # still deploys. It's the slowest gate, which is exactly why it's its own
+  # parallel job instead of tacked onto the end of another.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build

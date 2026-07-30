@@ -1,0 +1,47 @@
+# Local development services. The app itself runs on the host with `pnpm dev`
+# (best DX for Next.js — fast HMR, no bind-mount file-watching pain, and the
+# deploy target is Cloudflare Workers, not a container). Docker here provides
+# only the backing services the app talks to. Postgres lands in use in Phase 1.
+#
+#   pnpm db:up      # start Postgres (+ Adminer) in the background
+#   pnpm db:down    # stop them
+#   pnpm db:down -v # stop and DELETE the data volume (fresh DB)
+#
+# Host port is 5433 (not the default 5432) to avoid colliding with any other
+# local Postgres you already run. Default connection string (put in .env.local):
+#   DATABASE_URL=postgresql://wau:wau@localhost:5433/wau
+
+name: wizards-among-us
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: wau_db
+    environment:
+      POSTGRES_USER: wau
+      POSTGRES_PASSWORD: wau
+      POSTGRES_DB: wau
+    ports:
+      - "5433:5432"
+    volumes:
+      - wau_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wau -d wau"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Lightweight web UI for poking at the database while learning. Optional —
+  # start it with `docker compose up -d adminer`; not started by `pnpm db:up`.
+  # Open http://localhost:8080 (System: PostgreSQL, Server: db, User/Pass: wau).
+  adminer:
+    image: adminer:5
+    container_name: wau_adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  wau_pgdata:

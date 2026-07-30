@@ -128,6 +128,30 @@ pnpm db:seed                 # optional: seed a draft campaign
 pnpm dev                     # http://localhost:3000
 ```
 
+### Local database (Docker)
+
+The app runs on the host (`pnpm dev`); only the backing **Postgres** runs in Docker
+(`compose.yml`). Nothing is containerized beyond that — Next.js dev is fastest on the host,
+and the deploy target is Cloudflare Workers, not a container.
+
+```bash
+pnpm db:up        # start Postgres in the background (postgres:17)
+pnpm db:down      # stop it (add -v to also delete the data volume)
+```
+
+Then set in `.env.local`:
+
+```
+DATABASE_URL=postgresql://wau:wau@localhost:5433/wau
+```
+
+> Host port is **5433** (not the default 5432) to avoid colliding with any other
+> local Postgres you already run.
+
+An optional Adminer DB UI is included — `docker compose up -d adminer`, then
+http://localhost:8080 (System: PostgreSQL · Server: `db` · User/Pass: `wau`). Postgres is
+only actually used from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
+
 ### Project layout & scripts (Phase 0)
 
 ```
