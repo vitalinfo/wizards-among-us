@@ -13,6 +13,8 @@ Quick matrix for a typical changeset:
 
 For mixed changesets, run both. Changed-file scope is enough locally; run the full scope (`pnpm lint`, `pnpm format:check`) before merging a large branch.
 
+A **pre-commit hook** (`git-hooks/pre-commit`, enabled via `core.hooksPath` on `pnpm install`) already runs Prettier `--write` + ESLint `--fix --max-warnings=0` on staged files and re-stages the fixes — so `--max-warnings=0` (no warnings, not just no errors) is the enforced bar. It doesn't replace running the linter on what you touched; the heavier gates (typecheck/test/build) run in CI.
+
 ### Cross-cutting rules
 
 - **Prefer fixing the offense over disabling the rule.**

@@ -7,10 +7,12 @@
     "node": ">=20"
   },
   "scripts": {
+    "prepare": "sh git-hooks/install",
+    "hooks:install": "sh git-hooks/install",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",

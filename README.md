@@ -114,7 +114,7 @@ External accounts to set up (human task, Phase 0 — see plan §3): domain (`.xy
 Package manager: **pnpm** (v11+). Node 20+.
 
 ```bash
-# 1. Install
+# 1. Install (also enables git hooks via the "prepare" script)
 pnpm install
 
 # 2. Configure (optional for Phase 0 — the scaffold runs with no env set)
@@ -166,8 +166,14 @@ open-next.config.ts + wrangler.jsonc   thin Cloudflare Workers deploy layer
 .github/workflows/     ci.yml (lint/typecheck/test/build) · deploy.yml (manual, Cloudflare)
 ```
 
-Quality gates (all green on `main`, enforced by CI): `pnpm typecheck`, `pnpm lint`,
-`pnpm format:check`, `pnpm test`, `pnpm build`.
+Quality gates (all green on `main`, enforced by CI as 4 parallel jobs):
+`pnpm typecheck`, `pnpm lint`, `pnpm format:check`, `pnpm test`, `pnpm build`.
+
+**Git hooks:** a `pre-commit` hook (in `git-hooks/`, wired via `core.hooksPath`) runs
+Prettier `--write` + ESLint `--fix --max-warnings=0` on your **staged** files and re-stages
+the fixes. It installs automatically on `pnpm install`; re-run manually with
+`pnpm hooks:install`. Bypass in an emergency with `git commit --no-verify`. The heavier
+gates (typecheck/test/build) stay in CI, not the hook, to keep commits fast.
 
 **Stack notes for this scaffold:** Next.js 16 (App Router, Turbopack) · React 19 ·
 Tailwind v4 · **next-intl** (`uk`, single-locale, no URL prefix — structured to add

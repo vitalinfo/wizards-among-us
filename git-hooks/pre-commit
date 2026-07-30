@@ -1,0 +1,49 @@
+#!/usr/bin/env sh
+#
+# Pre-commit: format + lint the STAGED files only (fast). Mirrors the
+# git-hooks/ pattern from classtag_web / classtag_connect_client — no husky or
+# lint-staged, just tracked hooks wired via core.hooksPath (see git-hooks/install).
+#
+# Prettier --write and ESLint --fix run on staged files, then the fixes are
+# re-staged. Caveat (same as the reference projects): a partially-staged file is
+# fixed and re-added whole, so unstaged hunks in that file get included. Commit
+# whole files, or `git stash -k` first, if that matters to you.
+#
+# The heavier gates (typecheck, tests, build) run in CI, not here.
+
+exec 1>&2 # send all output to stderr so it shows during the commit
+
+# NUL-safe list of staged, non-deleted files matching the given pathspecs.
+staged() {
+  git diff --cached --name-only --diff-filter=d -z -- "$@" | tr '\0' '\n' | sed '/^$/d'
+}
+
+ts_files=$(staged '*.ts' '*.tsx')
+# Everything Prettier owns here (Markdown is skipped via .prettierignore).
+fmt_files=$(staged '*.ts' '*.tsx' '*.css' '*.json' '*.jsonc' '*.mjs' '*.yml' '*.yaml')
+
+status=0
+
+if [ -n "$fmt_files" ]; then
+  echo "$fmt_files" | xargs pnpm exec prettier --write --ignore-unknown || status=1
+fi
+
+if [ -n "$ts_files" ]; then
+  # --max-warnings=0: eslint-config-next reports most issues as warnings (exit 0
+  # by default). Treat any warning as a failure to honor the "pristine output"
+  # rule in .claude/rules/lints.md — same as the CI `lint` script.
+  echo "$ts_files" | xargs pnpm exec eslint --fix --max-warnings=0 || status=1
+fi
+
+# Re-stage whatever the fixers rewrote.
+[ -n "$fmt_files" ] && echo "$fmt_files" | xargs git add
+[ -n "$ts_files" ] && echo "$ts_files" | xargs git add
+
+if [ "$status" -ne 0 ]; then
+  echo ""
+  echo "pre-commit: ESLint/Prettier reported errors above. Fix them and re-commit."
+  echo "(To bypass in an emergency: git commit --no-verify)"
+  exit 1
+fi
+
+exit 0
