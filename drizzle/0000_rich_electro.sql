@@ -4,6 +4,7 @@ CREATE TABLE "admins" (
 	"password_hash" text,
 	"display_name" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "admins_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
@@ -15,6 +16,7 @@ CREATE TABLE "application_files" (
 	"content_type" text NOT NULL,
 	"size_bytes" bigint NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "application_files_kind_valid" CHECK (kind in ('attachment', 'confirmation'))
 );
 --> statement-breakpoint
@@ -37,11 +39,10 @@ CREATE TABLE "applications" (
 	"status" text DEFAULT 'draft' NOT NULL,
 	"rejection_note" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "applications_status_valid" CHECK (status in ('draft', 'submitted', 'approved', 'rejected', 'claimed', 'fulfilled')),
 	CONSTRAINT "applications_home_region_valid" CHECK (home_region is null or home_region in ('cherkasy', 'chernihiv', 'chernivtsi', 'dnipropetrovsk', 'donetsk', 'ivano_frankivsk', 'kharkiv', 'kherson', 'khmelnytskyi', 'kirovohrad', 'kyiv', 'luhansk', 'lviv', 'mykolaiv', 'odesa', 'poltava', 'rivne', 'sumy', 'ternopil', 'vinnytsia', 'volyn', 'zakarpattia', 'zaporizhzhia', 'zhytomyr', 'crimea')),
-	CONSTRAINT "applications_current_region_valid" CHECK (current_region is null or current_region in ('cherkasy', 'chernihiv', 'chernivtsi', 'dnipropetrovsk', 'donetsk', 'ivano_frankivsk', 'kharkiv', 'kherson', 'khmelnytskyi', 'kirovohrad', 'kyiv', 'luhansk', 'lviv', 'mykolaiv', 'odesa', 'poltava', 'rivne', 'sumy', 'ternopil', 'vinnytsia', 'volyn', 'zakarpattia', 'zaporizhzhia', 'zhytomyr', 'crimea')),
-	CONSTRAINT "applications_child_age_valid" CHECK ("applications"."child_age" is null or "applications"."child_age" between 0 and 18)
+	CONSTRAINT "applications_current_region_valid" CHECK (current_region is null or current_region in ('cherkasy', 'chernihiv', 'chernivtsi', 'dnipropetrovsk', 'donetsk', 'ivano_frankivsk', 'kharkiv', 'kherson', 'khmelnytskyi', 'kirovohrad', 'kyiv', 'luhansk', 'lviv', 'mykolaiv', 'odesa', 'poltava', 'rivne', 'sumy', 'ternopil', 'vinnytsia', 'volyn', 'zakarpattia', 'zaporizhzhia', 'zhytomyr', 'crimea'))
 );
 --> statement-breakpoint
 CREATE TABLE "audit_log" (
@@ -67,6 +68,7 @@ CREATE TABLE "campaigns" (
 	"ends_at" timestamp with time zone,
 	"archived_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "campaigns_type_valid" CHECK (type in ('new_school_year', 'saint_nicholas_day')),
 	CONSTRAINT "campaigns_status_valid" CHECK (status in ('draft', 'active', 'archived'))
 );
@@ -76,7 +78,10 @@ CREATE TABLE "claims" (
 	"application_id" uuid NOT NULL,
 	"volunteer_id" uuid NOT NULL,
 	"claimed_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"released_at" timestamp with time zone
+	"released_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "claims_application_unique" UNIQUE("application_id")
 );
 --> statement-breakpoint
 CREATE TABLE "identities" (
@@ -86,6 +91,8 @@ CREATE TABLE "identities" (
 	"provider_user_id" text NOT NULL,
 	"data" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "identities_provider_uid_unique" UNIQUE("provider","provider_user_id"),
 	CONSTRAINT "identities_provider_valid" CHECK (provider in ('telegram'))
 );
 --> statement-breakpoint
@@ -98,14 +105,14 @@ CREATE TABLE "reviews" (
 	"body" text,
 	"is_published" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "reviews_rating_valid" CHECK ("reviews"."rating" is null or "reviews"."rating" between 1 and 5)
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "settings" (
-	"id" boolean PRIMARY KEY DEFAULT true NOT NULL,
-	"applications_enabled" boolean DEFAULT true NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "settings_singleton" CHECK ("settings"."id")
+	"key" text PRIMARY KEY NOT NULL,
+	"value" jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -115,6 +122,7 @@ CREATE TABLE "users" (
 	"phone" text,
 	"note" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "users_role_valid" CHECK ("users"."role" <@ ARRAY['parent','volunteer']::text[])
 );
 --> statement-breakpoint
@@ -131,6 +139,4 @@ CREATE INDEX "application_files_application_idx" ON "application_files" USING bt
 CREATE INDEX "applications_campaign_status_idx" ON "applications" USING btree ("campaign_id","status");--> statement-breakpoint
 CREATE INDEX "applications_parent_idx" ON "applications" USING btree ("parent_id");--> statement-breakpoint
 CREATE INDEX "audit_log_target_idx" ON "audit_log" USING btree ("target_type","target_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "campaigns_one_active" ON "campaigns" USING btree ("status") WHERE "campaigns"."status" = 'active';--> statement-breakpoint
-CREATE UNIQUE INDEX "claims_application_unique" ON "claims" USING btree ("application_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "identities_provider_uid_unique" ON "identities" USING btree ("provider","provider_user_id");
+CREATE UNIQUE INDEX "campaigns_one_active" ON "campaigns" USING btree ("status") WHERE "campaigns"."status" = 'active';

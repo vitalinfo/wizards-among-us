@@ -1,6 +1,7 @@
 import { loadEnvConfig } from "@next/env";
 import { eq } from "drizzle-orm";
 
+import { SETTING_KEYS } from "./enums";
 import { getDb } from "./index";
 import { campaigns, settings } from "./schema";
 
@@ -19,7 +20,11 @@ const DRAFT_CAMPAIGN = {
 async function main() {
   const db = getDb();
 
-  await db.insert(settings).values({ id: true }).onConflictDoNothing();
+  // Kill switch on by default (key-value settings row).
+  await db
+    .insert(settings)
+    .values({ key: SETTING_KEYS.applicationsEnabled, value: true })
+    .onConflictDoNothing();
 
   const existing = await db
     .select({ id: campaigns.id })

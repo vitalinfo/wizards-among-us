@@ -69,3 +69,11 @@ export const UKRAINE_REGIONS = [
   "crimea",
 ] as const;
 export type UkraineRegion = (typeof UKRAINE_REGIONS)[number];
+
+// Keys for the key-value `settings` table. Each is one row (value in a jsonb
+// column). Add a new switch = add a key here + seed a row; no migration.
+export const SETTING_KEYS = {
+  // Global emergency kill switch for all new-application intake (boolean).
+  applicationsEnabled: "applications_enabled",
+} as const;
+export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

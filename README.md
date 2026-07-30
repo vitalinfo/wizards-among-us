@@ -176,9 +176,10 @@ actually *used* from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm us
 
 Drizzle schema for all tables lives in `src/db/schema.ts` (hand-written; the source of
 truth). Enum-like columns are stored as readable `text` + a `CHECK` constraint, mapped to TS
-unions in `src/db/enums.ts`. Key invariants are enforced in the DB, not just app code: one
-active campaign (partial unique index), one claim per application, a singleton `settings`
-row (kill switch). Regions are the 24 oblasts + Crimea (slugs in `enums.ts`, Ukrainian labels
+unions in `src/db/enums.ts`. Structural invariants are enforced in the DB (uniqueness, FKs, enum CHECKs): one active
+campaign (partial unique index), one claim per application. Settings is a **key-value** table
+(`key`/`value`; kill switch = `applications_enabled`). Business/range validation lives in zod,
+not DB CHECKs. Every table has `created_at`/`updated_at` (except append-only `audit_log`). Regions are the 24 oblasts + Crimea (slugs in `enums.ts`, Ukrainian labels
 in `messages/uk.json`); city/town is free text; gift price is UAH-only.
 
 Authorization is a set of **pure predicates** in `src/lib/authz.ts` (edit-lock, claim rules,

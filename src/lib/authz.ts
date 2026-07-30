@@ -1,12 +1,16 @@
 import type { UserRole } from "@/db/enums";
-import type { applications, campaigns, claims, settings } from "@/db/schema";
+import type { applications, campaigns, claims } from "@/db/schema";
 
 // Types are imported with `import type` so this module stays free of any runtime
 // DB/drizzle imports — the predicates are pure and safe to import anywhere.
 type Application = typeof applications.$inferSelect;
 type Campaign = typeof campaigns.$inferSelect;
-type Settings = typeof settings.$inferSelect;
 type Claim = typeof claims.$inferSelect;
+
+// Settings is a key-value table; callers resolve the switches they need into a
+// plain object before calling the predicates (keeps authz decoupled from the
+// row shape).
+type ResolvedSettings = { applicationsEnabled: boolean };
 
 // The authenticated actor. Sessions are resolved into an Actor in Phase 3
 // (getSessionActor / requireAdmin); these predicates are the pure, testable
@@ -60,7 +64,7 @@ export function canEditApplication(
 export function intakeOpen(ctx: {
   campaign:
     Pick<Campaign, "status" | "acceptingApplications"> | null | undefined;
-  settings: Pick<Settings, "applicationsEnabled"> | null | undefined;
+  settings: ResolvedSettings | null | undefined;
 }): boolean {
   const { campaign, settings } = ctx;
   return (

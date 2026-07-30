@@ -178,7 +178,7 @@ describe("toBrowseCard redaction (guardrail)", () => {
       status: "approved",
       rejectionNote: null,
       createdAt: new Date(),
-      updatedAt: null,
+      updatedAt: new Date(),
     };
 
     const card = toBrowseCard(application);
