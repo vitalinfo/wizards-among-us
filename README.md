@@ -128,36 +128,49 @@ pnpm db:seed                 # optional: seed a draft campaign
 pnpm dev                     # http://localhost:3000
 ```
 
-### Local database (Docker)
+### Local services (Docker)
 
-The app runs on the host (`pnpm dev`); only the backing **Postgres** runs in Docker
-(`compose.yml`). Nothing is containerized beyond that — Next.js dev is fastest on the host,
-and the deploy target is Cloudflare Workers, not a container.
+**Only the backing services run in Docker — the app itself does not.** `pnpm dev` runs
+Next.js on your host (fastest HMR; the deploy target is Cloudflare Workers, not a container),
+so there is **no application image to build or rebuild**. `compose.yml` provides just
+**Postgres 17** and an optional **Adminer** web UI. (If we ever need a container-parity build,
+we'll add a Dockerfile then — we don't have one now, on purpose.)
 
-```bash
-pnpm db:up        # start Postgres in the background (postgres:17)
-pnpm db:down      # stop it (add -v to also delete the data volume)
-```
+Requires Docker Desktop (or any Docker Engine) running.
 
-Then set in `.env.local`:
+| Command | Underlying `docker compose` | What it does |
+|---|---|---|
+| `pnpm db:up` | `up -d db` | Start Postgres in the background |
+| `pnpm db:down` | `down` | Stop & remove the containers (**data is kept** in the volume) |
+| `pnpm db:reset` | `down -v && up -d db` | **Wipe the database** (drops the data volume) and start fresh |
+| `pnpm db:logs` | `logs -f db` | Tail Postgres logs |
+| — | `docker compose ps` | Show what's running / health |
+| — | `docker compose up -d adminer` | Start the Adminer DB UI (not started by `db:up`) |
+| — | `docker compose pull` | Pull newer `postgres:17` / `adminer` images |
+| — | `docker compose exec db psql -U wau wau` | Open a `psql` shell inside the container |
+
+**Connect** — put this in `.env.local`:
 
 ```
 DATABASE_URL=postgresql://wau:wau@localhost:5433/wau
 ```
 
-> Host port is **5433** (not the default 5432) to avoid colliding with any other
-> local Postgres you already run.
+> Host port is **5433** (not the default 5432) to avoid colliding with any other local
+> Postgres you already run. User / password / db are all `wau` (local dev only — see `compose.yml`).
 
-An optional Adminer DB UI is included — `docker compose up -d adminer`, then
-http://localhost:8080 (System: PostgreSQL · Server: `db` · User/Pass: `wau`). Postgres is
-only actually used from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
+**Adminer UI** (optional): `docker compose up -d adminer`, then http://localhost:8080 —
+System: PostgreSQL · Server: `db` · Username / Password: `wau`.
+
+**Data & persistence:** rows live in the named volume `wau_pgdata`, so `db:down` → `db:up`
+keeps your data; only `db:reset` (or `docker compose down -v`) erases it. Postgres is only
+actually *used* from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
 
 ### Project layout & scripts (Phase 0)
 
 ```
 src/
   app/                 App Router: layout.tsx, page.tsx, globals.css, api/health/
-  components/          UI components (landing.tsx + colocated *.test.tsx)
+  components/          UI components (landing.tsx) + __tests__/ specs beside them
   i18n/request.ts      next-intl request config (locale = uk)
   db/                  Drizzle client (index.ts), schema.ts (empty until Phase 1), seed.ts
 messages/uk.json       all Ukrainian UI copy (no hardcoded user-facing strings)
