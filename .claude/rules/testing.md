@@ -2,7 +2,7 @@
 
 Stack: **Vitest** (jsdom) + **@testing-library/react** + **@testing-library/user-event** + **@testing-library/jest-dom**. Config: `vitest.config.ts`; setup: `vitest.setup.ts`. Run with `pnpm test` (CI) or `pnpm test:watch`.
 
-Specs live next to the code as `*.test.ts` / `*.test.tsx` under `src/`.
+Specs live in a `__tests__/` folder beside the code they test — `src/components/__tests__/landing.test.tsx` next to `src/components/landing.tsx`. (Vitest's `include` glob `src/**/*.{test,spec}.{ts,tsx}` also matches colocated-flat files, but `__tests__/` is the house convention — keep source folders code-only.)
 
 ### Philosophy
 
@@ -48,7 +48,7 @@ Avoid `container.querySelector` and class-based selection — they couple tests 
 
   ```tsx
   import { NextIntlClientProvider } from "next-intl";
-  import messages from "../../messages/uk.json";
+  import messages from "../../../messages/uk.json"; // from src/components/__tests__/
 
   render(
     <NextIntlClientProvider locale="uk" messages={messages}>
@@ -57,12 +57,12 @@ Avoid `container.querySelector` and class-based selection — they couple tests 
   );
   ```
 
-  Assert against `messages.*` values (see `src/components/landing.test.tsx`) so copy edits don't silently break coverage.
+  Assert against `messages.*` values (see `src/components/__tests__/landing.test.tsx`) so copy edits don't silently break coverage.
 - Wrap with the other real providers a component expects (theme, auth) rather than mocking them, unless the real one has a hard external dependency.
 
 ### Server Components, server actions, DB
 
-- RTL renders **client** components. For a server component, extract its rendered UI into a client component and test that (as `page.tsx` → `<Landing/>` does), or assert via an integration/e2e layer.
+- RTL renders **client** components. For a server component, extract its rendered UI into a client component and test that (as `page.tsx` → `<Landing/>` does, tested in `src/components/__tests__/landing.test.tsx`), or assert via an integration/e2e layer.
 - For code that touches Postgres, prefer testing pure logic (zod schemas, mappers, authorization predicates) directly. Don't mock the DB just to assert the mock — if a test needs the DB, use a real test database.
 - Server-layer authorization (`getSessionActor()` / `requireAdmin()`, added Phase 1/3) must have direct tests for allow/deny per role — this is a security boundary.
 

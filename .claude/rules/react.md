@@ -51,4 +51,4 @@ Stack: **Next.js 16 App Router + React 19 + TypeScript (strict) + Tailwind v4 + 
 
 ### Testing
 
-- Every component that owns behavior ships a co-located `*.test.tsx`. Conventions: [`testing.md`](testing.md). Accessibility expectations: [`accessibility.md`](accessibility.md).
+- Every component that owns behavior ships a spec in a `__tests__/` folder beside it (`src/components/__tests__/foo.test.tsx`). Conventions: [`testing.md`](testing.md). Accessibility expectations: [`accessibility.md`](accessibility.md).
