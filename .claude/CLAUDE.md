@@ -62,3 +62,13 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-la
 - **DB constraints:** structural only — range validation (age/rating) lives in zod, not DB CHECKs. Application content fields stay **nullable** (persisted drafts); required-ness enforced at submit via zod.
 - **Timestamps:** `created_at` + `updated_at` on every table except `audit_logs`.
 - **schema.ts:** plural table names, alphabetical order, uniqueness via unique **indexes** (not constraints).
+
+## Code organization — decide at Phase 4
+
+Currently **layered**: one whole file per concern (`src/db/schema.ts`, `src/lib/validation.ts`, `src/lib/authz.ts`). Don't pre-split these while they're small and cohesive — split against real usage.
+
+At the **start of Phase 4** (first real resource flow — parent application), choose how code is organized as resources multiply (applications, claims, campaigns, reviews), since schema + validation + authz + mappers + queries grow per-resource in lockstep:
+- **Layered** — split each layer by resource (`lib/validation/<resource>.ts`, `lib/authz/<resource>.ts`).
+- **Feature-based** (leaning this way) — co-locate per resource: `src/features/<resource>/{schema,validation,authz,mappers,queries}.ts`. Keep the `can*` authz predicates greppable/auditable via a barrel re-export (security boundary).
+
+Also: `toBrowseCard`/`BrowseCard` is a DTO **mapper**, not authz — move it out of `authz.ts` when we split. And keep `src/db/enums.ts` **pure** (no zod import) so both `schema.ts` and `validation.ts` derive from the one source of truth.
