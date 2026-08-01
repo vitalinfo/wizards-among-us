@@ -170,6 +170,7 @@ describe("toBrowseCard redaction (guardrail)", () => {
       homeRegion: "donetsk",
       currentTown: "Lviv",
       currentRegion: "lviv",
+      displacedYear: 2022,
       familyStory: "…",
       giftDescription: "Backpack",
       giftPrice: "1200.00",

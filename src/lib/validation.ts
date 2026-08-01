@@ -30,6 +30,9 @@ export const applicationSubmitSchema = z.object({
   homeRegion: regionSchema,
   currentTown: z.string().trim().min(1),
   currentRegion: regionSchema,
+  // Year the family was displaced. War displacement began in 2014; cap at the
+  // current year. Range lives here (zod), not a DB CHECK.
+  displacedYear: z.number().int().min(2014).max(new Date().getFullYear()),
   familyStory: z.string().trim().min(1),
   giftDescription: z.string().trim().min(1),
   giftPrice: z.number().positive().max(99_999_999.99),

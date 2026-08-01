@@ -110,6 +110,7 @@ export const applications = pgTable(
     homeRegion: text("home_region", { enum: UKRAINE_REGIONS }),
     currentTown: text("current_town"), // [sensitive] revealed only to the claiming volunteer
     currentRegion: text("current_region", { enum: UKRAINE_REGIONS }), // primary volunteer filter
+    displacedYear: integer("displaced_year"), // year the family was displaced (range validated in zod)
     familyStory: text("family_story"),
     giftDescription: text("gift_description"), // shown on the browse card
     giftPrice: numeric("gift_price", { precision: 10, scale: 2 }), // UAH (single currency)

@@ -10,6 +10,7 @@ const validSubmit = {
   homeRegion: "donetsk",
   currentTown: "Lviv",
   currentRegion: "lviv",
+  displacedYear: 2022,
   familyStory: "Our family relocated in 2022.",
   giftDescription: "A school backpack",
   giftPrice: 1200,
@@ -46,6 +47,19 @@ describe("applicationSubmitSchema", () => {
     expect(
       applicationSubmitSchema.safeParse({ ...validSubmit, childAge: -1 })
         .success,
+    ).toBe(false);
+  });
+
+  it("rejects a displaced year outside 2014–current year", () => {
+    expect(
+      applicationSubmitSchema.safeParse({ ...validSubmit, displacedYear: 2013 })
+        .success,
+    ).toBe(false);
+    expect(
+      applicationSubmitSchema.safeParse({
+        ...validSubmit,
+        displacedYear: new Date().getFullYear() + 1,
+      }).success,
     ).toBe(false);
   });
 
