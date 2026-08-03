@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 
 import { StarIcon } from "@/components/icons";
@@ -58,18 +59,16 @@ function Hero() {
           </span>
         </div>
 
-        {/* Non-identifying illustrative placeholder — swap for a consented photo. */}
-        <div
-          role="img"
-          aria-label={t("hero.imageAlt")}
-          className="from-primary-tint to-surface border-border flex h-44 items-center justify-center rounded-xl border bg-gradient-to-br p-6 lg:aspect-[440/360] lg:h-auto lg:items-end"
-        >
-          <span
-            aria-hidden="true"
-            className="text-primary-tint-foreground/70 text-sm"
-          >
-            {t("hero.imageAlt")}
-          </span>
+        {/* Brand logo lockup «Чарівники Поруч». */}
+        <div className="flex items-center justify-center">
+          <Image
+            src="/logo.png"
+            alt={t("hero.imageAlt")}
+            width={440}
+            height={440}
+            priority
+            className="h-44 w-auto lg:h-[340px]"
+          />
         </div>
       </div>
     </section>
