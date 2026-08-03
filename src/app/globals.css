@@ -1,24 +1,81 @@
 @import "tailwindcss";
 
+/* Design system — from the "Wizards Among Us v2" Claude Design project.
+   Light theme (the design is light-only). Onest is the brand typeface. */
 :root {
-  --background: #fbf7f0;
-  --foreground: #1f2430;
+  color-scheme: light;
+
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --muted-foreground: #6e7173; /* secondary text */
+  --body: #4f5053; /* body copy inside cards */
+  --surface: #ffffff;
+  --surface-muted: #fafafa;
+  --canvas: #eef0f0;
+
+  --border: #c5c7c7; /* 1.5px card borders */
+  --divider: #e6e7e7; /* 1px section dividers */
+
+  --primary: #1561d2;
+  --primary-hover: #1c4fb2;
+  --primary-foreground: #ffffff;
+  --primary-tint: #ecf4fd; /* badge / step-number background */
+  --primary-tint-foreground: #1e3f91;
+
+  --header: #004084; /* dark-blue top bar */
+  --header-foreground: #f3f4f5;
+  --header-muted: #dbf5ff;
+  --header-outline: #76c1ff;
+
+  --footer: #1e2425;
+  --footer-foreground: #f3f4f5;
+  --footer-muted: #a6a8aa;
+
+  --star: #e4a443;
+  --warning: #e4a443;
+  --warning-surface: #fffbeb;
+  --warning-foreground: #a96500;
+
+  --ring: #4696f0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #14161c;
-    --foreground: #ededed;
-  }
+  --color-muted-foreground: var(--muted-foreground);
+  --color-body: var(--body);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-canvas: var(--canvas);
+  --color-border: var(--border);
+  --color-divider: var(--divider);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-tint: var(--primary-tint);
+  --color-primary-tint-foreground: var(--primary-tint-foreground);
+  --color-header: var(--header);
+  --color-header-foreground: var(--header-foreground);
+  --color-header-muted: var(--header-muted);
+  --color-header-outline: var(--header-outline);
+  --color-footer: var(--footer);
+  --color-footer-foreground: var(--footer-foreground);
+  --color-footer-muted: var(--footer-muted);
+  --color-star: var(--star);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-onest);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Design spec: visible focus ring on interactive elements. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }

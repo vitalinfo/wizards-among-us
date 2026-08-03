@@ -13,37 +13,41 @@ function renderLanding() {
 }
 
 describe("Landing", () => {
-  it("renders the Ukrainian hero heading", () => {
+  it("renders the hero heading", () => {
     renderLanding();
     expect(
-      screen.getByRole("heading", { level: 1, name: messages.landing.title }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: messages.landing.hero.title,
+      }),
     ).toBeInTheDocument();
   });
 
-  it("shows both role entry points linking to the right routes", () => {
+  it("routes the two hero CTAs to the parent and volunteer pages", () => {
     renderLanding();
     expect(
-      screen.getByRole("link", { name: messages.landing.parentCta }),
+      screen.getByRole("link", { name: messages.landing.hero.parentCta }),
     ).toHaveAttribute("href", "/parent");
     expect(
-      screen.getByRole("link", { name: messages.landing.volunteerCta }),
+      screen.getByRole("link", { name: messages.landing.hero.volunteerCta }),
     ).toHaveAttribute("href", "/volunteer");
   });
 
-  it("lists all three how-it-works steps", () => {
+  it("lists all four how-it-works steps", () => {
+    renderLanding();
+    for (const step of ["tell", "verify", "choose", "done"] as const) {
+      expect(
+        screen.getByRole("heading", {
+          name: messages.landing.how.steps[step].title,
+        }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it("shows the testimonials section", () => {
     renderLanding();
     expect(
-      screen.getByRole("heading", {
-        name: messages.landing.steps.submit.title,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: messages.landing.steps.match.title }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        name: messages.landing.steps.deliver.title,
-      }),
+      screen.getByRole("heading", { name: messages.landing.reviews.title }),
     ).toBeInTheDocument();
   });
 });
