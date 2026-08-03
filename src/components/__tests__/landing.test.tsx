@@ -4,10 +4,10 @@ import { NextIntlClientProvider } from "next-intl";
 import messages from "../../../messages/uk.json";
 import { Landing } from "../landing";
 
-function renderLanding() {
+function renderLanding(activeCampaignTitle: string | null = null) {
   return render(
     <NextIntlClientProvider locale="uk" messages={messages}>
-      <Landing />
+      <Landing activeCampaignTitle={activeCampaignTitle} />
     </NextIntlClientProvider>,
   );
 }
@@ -49,5 +49,17 @@ describe("Landing", () => {
     expect(
       screen.getByRole("heading", { name: messages.landing.reviews.title }),
     ).toBeInTheDocument();
+  });
+
+  it("shows the campaign badge only when a campaign is active", () => {
+    renderLanding("Новий навчальний рік 2026");
+    expect(
+      screen.getByText("Триває кампанія «Новий навчальний рік 2026»"),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the campaign badge when no campaign is active", () => {
+    renderLanding(null);
+    expect(screen.queryByText(/Триває кампанія/)).not.toBeInTheDocument();
   });
 });

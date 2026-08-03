@@ -20,10 +20,15 @@ const REVIEWS = [
   { key: "three", rating: 4 },
 ] as const;
 
-export function Landing() {
+export function Landing({
+  activeCampaignTitle,
+}: {
+  // Title of the active campaign, or null when none is running (badge hidden).
+  activeCampaignTitle: string | null;
+}) {
   return (
     <main className="flex flex-1 flex-col">
-      <Hero />
+      <Hero activeCampaignTitle={activeCampaignTitle} />
       <HowItWorks />
       <Stats />
       <Reviews />
@@ -31,7 +36,7 @@ export function Landing() {
   );
 }
 
-function Hero() {
+function Hero({ activeCampaignTitle }: { activeCampaignTitle: string | null }) {
   const t = useTranslations("landing");
 
   return (
@@ -41,7 +46,9 @@ function Hero() {
     >
       <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_440px]">
         <div className="flex flex-col items-start gap-4.5">
-          <Badge>{t("campaignBadge")}</Badge>
+          {activeCampaignTitle && (
+            <Badge>{t("campaignBadge", { title: activeCampaignTitle })}</Badge>
+          )}
           <h1 className="max-w-xl text-4xl font-semibold tracking-tight text-balance sm:text-[44px] sm:leading-[1.1]">
             {t("hero.title")}
           </h1>
