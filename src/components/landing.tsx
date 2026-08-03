@@ -62,7 +62,7 @@ function Hero() {
         <div
           role="img"
           aria-label={t("hero.imageAlt")}
-          className="from-primary-tint to-surface border-border hidden aspect-[440/360] items-end justify-center rounded-xl border bg-gradient-to-br p-6 lg:flex"
+          className="from-primary-tint to-surface border-border flex h-44 items-center justify-center rounded-xl border bg-gradient-to-br p-6 lg:aspect-[440/360] lg:h-auto lg:items-end"
         >
           <span
             aria-hidden="true"
@@ -112,17 +112,19 @@ function Stats() {
 
   return (
     <section className="bg-surface-muted border-divider border-y">
-      <dl className="mx-auto grid w-full max-w-6xl grid-cols-1 sm:grid-cols-3">
+      <dl className="mx-auto grid w-full max-w-6xl grid-cols-3">
         {STATS.map((stat, i) => (
           <div
             key={stat.key}
             className={cn(
-              "flex flex-col gap-1 px-5 py-7 sm:px-8",
-              i > 0 && "border-divider sm:border-l",
+              "flex flex-col gap-1 px-4 py-6 sm:px-8 sm:py-7",
+              i > 0 && "border-divider border-l",
             )}
           >
-            <dt className="text-primary order-2 text-sm">{t(stat.key)}</dt>
-            <dd className="text-primary order-1 text-[32px] font-semibold">
+            <dt className="text-primary order-2 text-[13px] sm:text-sm">
+              {t(stat.key)}
+            </dt>
+            <dd className="text-primary order-1 text-2xl font-semibold sm:text-[32px]">
               {stat.value}
             </dd>
           </div>
