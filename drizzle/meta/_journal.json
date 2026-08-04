@@ -15,6 +15,20 @@
       "when": 1785610853734,
       "tag": "0001_massive_human_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785860257340,
+      "tag": "0002_absurd_cloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785860732254,
+      "tag": "0003_motionless_rumiko_fujikawa",
+      "breakpoints": true
     }
   ]
 }

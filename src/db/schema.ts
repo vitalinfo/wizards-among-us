@@ -156,7 +156,10 @@ export const auditLogs = pgTable(
   },
   (t) => [
     check("audit_logs_actor_type_valid", oneOf("actor_type", ACTOR_TYPES)),
-    index("audit_logs_target_idx").on(t.targetType, t.targetId),
+    // id-first so both lookups seek straight to the rows (2-value *_type columns
+    // are poor prefixes): "activity on this target" and "everything this actor did".
+    index("audit_logs_target_idx").on(t.targetId, t.targetType),
+    index("audit_logs_actor_idx").on(t.actorId, t.actorType),
   ],
 );
 
@@ -254,6 +257,29 @@ export const reviews = pgTable(
   (t) => [
     index("reviews_user_idx").on(t.userId),
     index("reviews_application_idx").on(t.applicationId),
+  ],
+);
+
+// App-layer sessions (we roll our own auth). The cookie holds an opaque random
+// token; we store only its SHA-256 hash, so a read-only DB leak can't hijack
+// live sessions. actor_id is a polymorphic ref to users/admins (no FK, like
+// audit_logs), discriminated by actor_type. Delete the row to revoke instantly.
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenHash: text("token_hash").notNull(),
+    actorType: text("actor_type", { enum: ACTOR_TYPES }).notNull(),
+    actorId: uuid("actor_id").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    check("sessions_actor_type_valid", oneOf("actor_type", ACTOR_TYPES)),
+    uniqueIndex("sessions_token_hash_unique").on(t.tokenHash),
+    // actor_id (uuid, high-cardinality) leads so "this actor's sessions" seeks
+    // straight to the rows; actor_type (2 values) would be a poor prefix.
+    index("sessions_actor_idx").on(t.actorId, t.actorType),
   ],
 );
 

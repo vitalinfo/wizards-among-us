@@ -52,7 +52,9 @@ export function canEditApplication(
   actor: MaybeActor,
   application: Pick<Application, "parentId" | "status">,
 ): boolean {
-  if (isAdmin(actor)) return true;
+  if (isAdmin(actor)) {
+    return true;
+  }
   return (
     ownsApplication(actor, application) &&
     PARENT_EDITABLE.includes(application.status)
@@ -79,7 +81,9 @@ export function canStartApplication(
   actor: MaybeActor,
   ctx: Parameters<typeof intakeOpen>[0],
 ): boolean {
-  if (isAdmin(actor)) return true; // operational override
+  if (isAdmin(actor)) {
+    return true;
+  } // operational override
   return hasRole(actor, "parent") && intakeOpen(ctx);
 }
 
@@ -97,7 +101,9 @@ export function canClaim(
   application: Pick<Application, "status">,
   activeClaim: Pick<Claim, "releasedAt"> | null | undefined,
 ): boolean {
-  if (!isAdmin(actor) && !hasRole(actor, "volunteer")) return false;
+  if (!isAdmin(actor) && !hasRole(actor, "volunteer")) {
+    return false;
+  }
   return application.status === "approved" && !isClaimed(activeClaim);
 }
 
@@ -109,8 +115,12 @@ export function canViewSensitiveChildData(
   application: Pick<Application, "parentId">,
   claim: Pick<Claim, "volunteerId" | "releasedAt"> | null | undefined,
 ): boolean {
-  if (isAdmin(actor)) return true;
-  if (ownsApplication(actor, application)) return true;
+  if (isAdmin(actor)) {
+    return true;
+  }
+  if (ownsApplication(actor, application)) {
+    return true;
+  }
   return (
     isUser(actor) &&
     !!claim &&
