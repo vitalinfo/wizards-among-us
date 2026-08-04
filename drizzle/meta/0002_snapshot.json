@@ -1,5 +1,5 @@
 {
-  "id": "84a89f38-b528-40ea-9c02-6cf0c4f9ce9c",
+  "id": "3162b8e9-417f-4598-a3b5-3e3ea1fa7e78",
   "prevId": "315ce0f2-5325-4f27-bcbc-86691c846ab4",
   "version": "7",
   "dialect": "postgresql",
@@ -994,13 +994,13 @@
           "name": "sessions_actor_idx",
           "columns": [
             {
-              "expression": "actor_type",
+              "expression": "actor_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "actor_id",
+              "expression": "actor_type",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

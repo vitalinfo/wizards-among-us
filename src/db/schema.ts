@@ -274,7 +274,9 @@ export const sessions = pgTable(
   (t) => [
     check("sessions_actor_type_valid", oneOf("actor_type", ACTOR_TYPES)),
     uniqueIndex("sessions_token_hash_unique").on(t.tokenHash),
-    index("sessions_actor_idx").on(t.actorType, t.actorId),
+    // actor_id (uuid, high-cardinality) leads so "this actor's sessions" seeks
+    // straight to the rows; actor_type (2 values) would be a poor prefix.
+    index("sessions_actor_idx").on(t.actorId, t.actorType),
   ],
 );
 

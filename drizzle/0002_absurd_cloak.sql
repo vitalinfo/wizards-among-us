@@ -10,4 +10,4 @@ CREATE TABLE "sessions" (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX "sessions_token_hash_unique" ON "sessions" USING btree ("token_hash");--> statement-breakpoint
-CREATE INDEX "sessions_actor_idx" ON "sessions" USING btree ("actor_type","actor_id");
+CREATE INDEX "sessions_actor_idx" ON "sessions" USING btree ("actor_id","actor_type");
