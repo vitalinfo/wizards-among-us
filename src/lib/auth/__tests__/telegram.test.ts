@@ -18,7 +18,10 @@ function sign(fields: Record<string, string>, token: string): string {
   const secret = createHash("sha256").update(token).digest();
   return createHmac("sha256", secret).update(checkString).digest("hex");
 }
-function payload(fields: Record<string, string>, token = TOKEN) {
+function payload(
+  fields: Record<string, string>,
+  token = TOKEN,
+): Record<string, string> {
   return { ...fields, hash: sign(fields, token) };
 }
 
