@@ -156,7 +156,10 @@ export const auditLogs = pgTable(
   },
   (t) => [
     check("audit_logs_actor_type_valid", oneOf("actor_type", ACTOR_TYPES)),
-    index("audit_logs_target_idx").on(t.targetType, t.targetId),
+    // id-first so both lookups seek straight to the rows (2-value *_type columns
+    // are poor prefixes): "activity on this target" and "everything this actor did".
+    index("audit_logs_target_idx").on(t.targetId, t.targetType),
+    index("audit_logs_actor_idx").on(t.actorId, t.actorType),
   ],
 );
 
