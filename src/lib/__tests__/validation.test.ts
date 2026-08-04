@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { applicationDraftSchema, applicationSubmitSchema } from "../validation";
+import {
+  adminLoginSchema,
+  applicationDraftSchema,
+  applicationSubmitSchema,
+} from "../validation";
 
 const validSubmit = {
   parentName: "Ivan",
@@ -70,6 +74,27 @@ describe("applicationSubmitSchema", () => {
     ).toBe(false);
     expect(
       applicationSubmitSchema.safeParse({ ...validSubmit, giftPrice: 0 })
+        .success,
+    ).toBe(false);
+  });
+});
+
+describe("adminLoginSchema", () => {
+  it("normalizes email (trim + lowercase)", () => {
+    const parsed = adminLoginSchema.parse({
+      email: "  Admin@Example.COM ",
+      password: "longenough",
+    });
+    expect(parsed.email).toBe("admin@example.com");
+  });
+
+  it("rejects an invalid email or a too-short password", () => {
+    expect(
+      adminLoginSchema.safeParse({ email: "nope", password: "longenough" })
+        .success,
+    ).toBe(false);
+    expect(
+      adminLoginSchema.safeParse({ email: "a@b.com", password: "short" })
         .success,
     ).toBe(false);
   });

@@ -13,6 +13,19 @@ import {
 // (the authoritative gate; the server always re-validates). Built from the same
 // enum arrays as the DB schema so DB, TS types, and validation never drift.
 
+// Admin email/password login. Email is normalized (trim + lowercase) so it
+// matches the allowlist and the stored row; the min length also applies at
+// first-login provisioning (the password entered then becomes the admin's).
+export const adminLoginSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email()
+    .transform((email) => email.toLowerCase()),
+  password: z.string().min(8),
+});
+export type AdminLoginInput = z.infer<typeof adminLoginSchema>;
+
 export const userRoleSchema = z.enum(USER_ROLES);
 export const campaignTypeSchema = z.enum(CAMPAIGN_TYPES);
 export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
