@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 
-import messages from "../../../messages/uk.json";
-import { Landing } from "../landing";
+import messages from "../../../../messages/uk.json";
+import { Landing } from "../Landing";
 
 function renderLanding(activeCampaignTitle: string | null = null) {
   return render(

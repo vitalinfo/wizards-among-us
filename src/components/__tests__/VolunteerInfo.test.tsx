@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 
 import messages from "../../../messages/uk.json";
-import { VolunteerInfo } from "../volunteer-info";
+import { VolunteerInfo } from "../VolunteerInfo";
 
 function renderVolunteerInfo() {
   return render(

@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 
 import { CheckIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 
 const POINTS = ["cost", "one", "direct"] as const;
 

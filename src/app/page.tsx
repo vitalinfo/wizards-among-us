@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 import { Landing } from "@/components/landing";
-import { SiteFooter } from "@/components/site/footer";
-import { SiteHeader } from "@/components/site/header";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { SiteHeader } from "@/components/site/SiteHeader";
 import { getActiveCampaign } from "@/db/queries/campaigns";
 
 // The landing page is the ONLY indexable route (§10 crawler policy) — override

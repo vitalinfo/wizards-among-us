@@ -11,7 +11,8 @@ Stack: **Next.js 16 App Router + React 19 + TypeScript (strict) + Tailwind v4 + 
 
 ### Components
 
-- One component per file; the component name matches the file (`ApplicationCard` in `application-card.tsx`). File names are kebab-case, component names PascalCase.
+- **One component per file**, and the file is named **exactly for the component**: `ApplicationCard` → `ApplicationCard.tsx`. Component files are **PascalCase**; non-component files (hooks `useThing.ts`, utils, config, styles like `buttonStyles.ts`) stay **camelCase**. Next.js special files stay lowercase as the framework requires (`page.tsx`, `layout.tsx`, `route.ts`, `robots.ts`, `sitemap.ts`, `error.tsx`, `loading.tsx`).
+- Group a component's private sub-parts in a folder named for the parent, with an `index.ts` barrel: e.g. `landing/{Landing,Hero,HowItWorks,Stats,Reviews}.tsx` + `index.ts`. Shared primitives live in `ui/` (`Button.tsx`, `Badge.tsx`); the icon set is one file per icon under `icons/` over a shared `IconBase`.
 - Functional components only. Keep them small and focused — a 140-line component holding a whole screen is a smell; split it.
 - **Decompose aggressively.** A page is a thin composer; a card is a header + body; a body is small presentational pieces. Co-locate a component's helpers next to it; promote to `src/components/` (shared) only when reused.
 - **Reuse before you hand-roll.** Before writing a modal, dialog, toggle, or input, check `src/components/` for an existing one. We have no component library yet; when a second use appears, extract a shared component rather than copy-paste.

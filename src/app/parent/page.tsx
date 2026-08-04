@@ -1,6 +1,6 @@
-import { ParentInfo } from "@/components/parent-info";
-import { SiteFooter } from "@/components/site/footer";
-import { SiteHeader } from "@/components/site/header";
+import { ParentInfo } from "@/components/ParentInfo";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { SiteHeader } from "@/components/site/SiteHeader";
 
 // Public but noindex (inherits the root layout's robots default — §10).
 export default function ParentPage() {
