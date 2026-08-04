@@ -15,6 +15,13 @@
       "when": 1785610853734,
       "tag": "0001_massive_human_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785859012014,
+      "tag": "0002_boring_mentor",
+      "breakpoints": true
     }
   ]
 }

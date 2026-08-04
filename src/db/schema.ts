@@ -257,6 +257,27 @@ export const reviews = pgTable(
   ],
 );
 
+// App-layer sessions (we roll our own auth). The cookie holds an opaque random
+// token; we store only its SHA-256 hash, so a read-only DB leak can't hijack
+// live sessions. actor_id is a polymorphic ref to users/admins (no FK, like
+// audit_logs), discriminated by actor_type. Delete the row to revoke instantly.
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenHash: text("token_hash").notNull(),
+    actorType: text("actor_type", { enum: ACTOR_TYPES }).notNull(),
+    actorId: uuid("actor_id").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    ...timestamps(),
+  },
+  (t) => [
+    check("sessions_actor_type_valid", oneOf("actor_type", ACTOR_TYPES)),
+    uniqueIndex("sessions_token_hash_unique").on(t.tokenHash),
+    index("sessions_actor_idx").on(t.actorType, t.actorId),
+  ],
+);
+
 // Global settings as a key-value store: one row per switch (e.g.
 // 'applications_enabled' → true, the emergency kill switch). New switches are
 // new rows, no migration. Keys live in SETTING_KEYS (./enums).
