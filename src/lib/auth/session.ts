@@ -40,7 +40,9 @@ export async function createSession(target: {
 // A client-side check is never a substitute for calling this on the server.
 export async function getSessionActor(): Promise<Actor | null> {
   const token = (await cookies()).get(COOKIE_NAME)?.value;
-  if (!token) return null;
+  if (!token) {
+    return null;
+  }
 
   const db = getDb();
   const tokenHash = await sha256Base64Url(token);
@@ -54,7 +56,9 @@ export async function getSessionActor(): Promise<Actor | null> {
       ),
     )
     .limit(1);
-  if (!session) return null;
+  if (!session) {
+    return null;
+  }
 
   if (session.actorType === "admin") {
     const [admin] = await db
@@ -88,6 +92,8 @@ export async function destroySession(): Promise<void> {
 // isn't an admin; callers decide how to surface it (redirect / 403).
 export async function requireAdmin(): Promise<AdminActor> {
   const actor = await getSessionActor();
-  if (!isAdmin(actor)) throw new Error("Unauthorized: admin session required");
+  if (!isAdmin(actor)) {
+    throw new Error("Unauthorized: admin session required");
+  }
   return actor;
 }

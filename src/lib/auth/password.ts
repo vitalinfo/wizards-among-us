@@ -39,12 +39,18 @@ export async function verifyPassword(
   stored: string,
 ): Promise<boolean> {
   const parts = stored.split("$");
-  if (parts.length !== 4 || parts[0] !== "pbkdf2") return false;
+  if (parts.length !== 4 || parts[0] !== "pbkdf2") {
+    return false;
+  }
   const iterations = Number(parts[1]);
-  if (!Number.isInteger(iterations) || iterations < 1) return false;
+  if (!Number.isInteger(iterations) || iterations < 1) {
+    return false;
+  }
   const salt = fromBase64Url(parts[2]);
   const expected = fromBase64Url(parts[3]);
-  if (salt.length === 0 || expected.length === 0) return false;
+  if (salt.length === 0 || expected.length === 0) {
+    return false;
+  }
   const actual = await deriveBits(password, salt, iterations, expected.length);
   return constantTimeEqual(actual, expected);
 }

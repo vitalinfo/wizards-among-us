@@ -4,7 +4,9 @@
 
 export function toBase64Url(bytes: Uint8Array): string {
   let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
   return btoa(binary)
     .replaceAll("+", "-")
     .replaceAll("/", "_")
@@ -17,15 +19,21 @@ export function fromBase64Url(value: string): Uint8Array<ArrayBuffer> {
   const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
   return bytes;
 }
 
 // Constant-time byte comparison (avoids leaking match position via timing).
 export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
+  if (a.length !== b.length) {
+    return false;
+  }
   let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  for (let i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
   return diff === 0;
 }
 

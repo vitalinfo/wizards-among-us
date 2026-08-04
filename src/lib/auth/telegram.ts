@@ -52,7 +52,9 @@ export function verifyTelegramLogin(
   }: VerifyOptions = {},
 ): TelegramVerifyResult {
   const { hash, ...fields } = raw;
-  if (!hash) return { ok: false, reason: "missing_hash" };
+  if (!hash) {
+    return { ok: false, reason: "missing_hash" };
+  }
 
   const expected = sign(fields, botToken);
 
@@ -67,7 +69,9 @@ export function verifyTelegramLogin(
     return { ok: false, reason: "malformed" };
   }
   const authDate = Number(fields.auth_date);
-  if (!Number.isFinite(authDate)) return { ok: false, reason: "malformed" };
+  if (!Number.isFinite(authDate)) {
+    return { ok: false, reason: "malformed" };
+  }
   if (nowSeconds() - authDate > maxAgeSeconds) {
     return { ok: false, reason: "expired" };
   }

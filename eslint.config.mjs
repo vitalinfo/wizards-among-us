@@ -8,6 +8,12 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Turn off rules that conflict with Prettier formatting.
   prettier,
+  {
+    rules: {
+      // Always require braces around control-flow blocks.
+      curly: ["error", "all"],
+    },
+  },
   globalIgnores([
     ".next/**",
     "out/**",
