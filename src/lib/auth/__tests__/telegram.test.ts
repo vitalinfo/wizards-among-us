@@ -67,6 +67,15 @@ describe("verifyTelegramLogin", () => {
     ).toEqual({ ok: false, reason: "bad_hash" });
   });
 
+  it("rejects a valid hash with trailing garbage (no hex truncation)", () => {
+    const p = payload(validFields);
+    p.hash = `${p.hash}zz`;
+    expect(verifyTelegramLogin(p, TOKEN, { nowSeconds: at })).toEqual({
+      ok: false,
+      reason: "bad_hash",
+    });
+  });
+
   it("rejects a missing hash", () => {
     expect(
       verifyTelegramLogin({ ...validFields }, TOKEN, { nowSeconds: at }),

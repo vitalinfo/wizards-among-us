@@ -8,38 +8,53 @@ import { type Actor, type AdminActor, isAdmin } from "@/lib/authz";
 
 import { randomToken, sha256Base64Url } from "./encoding";
 
-const COOKIE_NAME = "wau_session";
+export const SESSION_COOKIE_NAME = "wau_session";
 const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-// Create a session for an authenticated actor and set the cookie. Call from a
-// Server Action / Route Handler (where cookies are writable). The opaque token
-// lives only in the cookie; the DB stores just its hash.
-export async function createSession(target: {
-  actorType: ActorType;
-  actorId: string;
-}): Promise<void> {
+type SessionTarget = { actorType: ActorType; actorId: string };
+
+// Shared cookie attributes so server actions and route handlers set the session
+// cookie identically.
+export function sessionCookieOptions(expiresAt: Date) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    expires: expiresAt,
+  };
+}
+
+// Creates the session row and returns the raw token + expiry. The caller sets
+// the cookie — a server action via cookies(), a route handler on its response
+// (cookies() mutations don't attach to a custom NextResponse).
+export async function createSessionRecord(
+  target: SessionTarget,
+): Promise<{ token: string; expiresAt: Date }> {
   const token = randomToken();
   const tokenHash = await sha256Base64Url(token);
   const expiresAt = new Date(Date.now() + TTL_MS);
-
   await getDb()
     .insert(sessions)
     .values({ ...target, tokenHash, expiresAt });
+  return { token, expiresAt };
+}
 
-  (await cookies()).set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    expires: expiresAt,
-  });
+// For server actions / server components with writable cookies.
+export async function createSession(target: SessionTarget): Promise<void> {
+  const { token, expiresAt } = await createSessionRecord(target);
+  (await cookies()).set(
+    SESSION_COOKIE_NAME,
+    token,
+    sessionCookieOptions(expiresAt),
+  );
 }
 
 // Resolve the current request's actor, or null. Looks up a non-expired session
 // by token hash, then maps it to the Phase-1 Actor from our domain tables.
 // A client-side check is never a substitute for calling this on the server.
 export async function getSessionActor(): Promise<Actor | null> {
-  const token = (await cookies()).get(COOKIE_NAME)?.value;
+  const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
   if (!token) {
     return null;
   }
@@ -80,12 +95,12 @@ export async function getSessionActor(): Promise<Actor | null> {
 // Log out: delete the session row (instant revocation) and clear the cookie.
 export async function destroySession(): Promise<void> {
   const store = await cookies();
-  const token = store.get(COOKIE_NAME)?.value;
+  const token = store.get(SESSION_COOKIE_NAME)?.value;
   if (token) {
     const tokenHash = await sha256Base64Url(token);
     await getDb().delete(sessions).where(eq(sessions.tokenHash, tokenHash));
   }
-  store.delete(COOKIE_NAME);
+  store.delete(SESSION_COOKIE_NAME);
 }
 
 // Guard for admin-only server actions / route handlers. Throws when the caller
