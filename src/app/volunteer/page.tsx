@@ -1,12 +1,12 @@
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
+import { SiteHeaderServer } from "@/components/site/SiteHeaderServer";
 import { VolunteerInfo } from "@/components/VolunteerInfo";
 
 // Public but noindex (inherits the root layout's robots default — §10).
 export default function VolunteerPage() {
   return (
     <>
-      <SiteHeader />
+      <SiteHeaderServer />
       <VolunteerInfo />
       <SiteFooter />
     </>

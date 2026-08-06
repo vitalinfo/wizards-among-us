@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { logout } from "@/app/auth/actions";
 import { StarIcon, TelegramIcon } from "@/components/icons";
 
 const NAV = [
@@ -12,7 +13,16 @@ const NAV = [
   { key: "contacts", href: "/#contacts" },
 ] as const;
 
-export function SiteHeader() {
+const ACTION_CLASS =
+  "border-header-outline text-header-outline hover:bg-header-outline/10 focus-visible:outline-ring inline-flex h-11 items-center gap-2 rounded-md border-[1.5px] px-4 text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
+
+export function SiteHeader({
+  user,
+}: {
+  // The current Telegram user (for display), or null when signed out. Resolved
+  // server-side in SiteHeaderServer.
+  user: { username: string | null } | null;
+}) {
   const t = useTranslations("common");
 
   return (
@@ -45,14 +55,23 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        {/* Telegram login lands in Phase 3 — visually complete, wired later. */}
-        <button
-          type="button"
-          className="border-header-outline text-header-outline hover:bg-header-outline/10 focus-visible:outline-ring inline-flex h-11 items-center gap-2 rounded-md border-[1.5px] px-4 text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
-          <TelegramIcon className="size-4" />
-          {t("login")}
-        </button>
+        {user ? (
+          <div className="flex items-center gap-3">
+            <span className="text-[15px] font-semibold">
+              {user.username ? `@${user.username}` : t("account")}
+            </span>
+            <form action={logout}>
+              <button type="submit" className={ACTION_CLASS}>
+                {t("signOut")}
+              </button>
+            </form>
+          </div>
+        ) : (
+          <Link href="/login" className={ACTION_CLASS}>
+            <TelegramIcon className="size-4" />
+            {t("login")}
+          </Link>
+        )}
       </div>
     </header>
   );
