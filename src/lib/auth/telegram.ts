@@ -58,10 +58,15 @@ export function verifyTelegramLogin(
 
   const expected = sign(fields, botToken);
 
-  // Constant-time compare; unequal lengths (or non-hex) mean a bad hash.
-  const a = Buffer.from(expected, "hex");
-  const b = Buffer.from(hash, "hex");
-  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+  // Reject anything that isn't valid hex of the exact expected length before the
+  // constant-time compare — Buffer.from(hex) silently truncates on invalid
+  // input, which would otherwise let trailing garbage on a valid hash pass.
+  if (!/^[0-9a-f]+$/i.test(hash) || hash.length !== expected.length) {
+    return { ok: false, reason: "bad_hash" };
+  }
+  if (
+    !timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(hash, "hex"))
+  ) {
     return { ok: false, reason: "bad_hash" };
   }
 
