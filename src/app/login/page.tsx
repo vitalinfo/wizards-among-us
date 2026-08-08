@@ -1,8 +1,10 @@
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { TelegramLoginButton } from "@/components/auth/TelegramLoginButton";
 import { CheckIcon } from "@/components/icons";
+import { isDevLoginEnabled } from "@/lib/auth/devLogin";
 import { getSessionActor } from "@/lib/auth/session";
 
 // Session-dependent → dynamic; inherits the root noindex default.
@@ -31,6 +33,14 @@ export default async function LoginPage() {
           ))}
         </ul>
         <p className="text-muted-foreground text-xs">{t("consent")}</p>
+        {isDevLoginEnabled() && (
+          <Link
+            href="/dev/login"
+            className="text-muted-foreground hover:text-foreground text-xs underline"
+          >
+            Dev login (local only)
+          </Link>
+        )}
       </div>
     </main>
   );

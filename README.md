@@ -172,6 +172,23 @@ System: PostgreSQL · Server: `db` · Username / Password: `wau`.
 keeps your data; only `db:reset` (or `docker compose down -v`) erases it. Postgres is only
 actually *used* from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
 
+### Signing in locally (dev login)
+
+The Telegram Login Widget can't render on `localhost` — it only appears on a domain you've
+authorized with BotFather (`/setdomain`). To develop the signed-in parent/volunteer flows
+locally **without** a tunnel, set `DEV_LOGIN=1` in `.env.local` and visit
+[`/dev/login`](http://localhost:3000/dev/login) (also linked from `/login` when enabled).
+It creates a deterministic test user for the role you pick (parent, volunteer, or both) and
+starts a real session — same cookie/session machinery as Telegram, just skipping the widget.
+
+> ⚠️ This is a **login backdoor**. It's disabled unless `DEV_LOGIN=1`, and additionally hard-off
+> whenever `NODE_ENV=production` — so it can never be reached in a real deploy (the route 404s).
+> Keep `DEV_LOGIN` **out of** all staging/prod secrets. It only ever mints a *user* session,
+> never an admin one (admins use `/admin/login`).
+
+To verify the real Telegram widget end-to-end, deploy to **staging** with a separate dev bot —
+see [Deploying to Cloudflare](#deploying-to-cloudflare-thin-layer) below.
+
 ### Data layer (Phase 1)
 
 Drizzle schema for all tables lives in `src/db/schema.ts` (hand-written; the source of
@@ -234,6 +251,23 @@ The app is standard, host-agnostic Next.js; Cloudflare is added via
 `pnpm cf:deploy` deploys. Auto-deploy on `main` is wired but **disabled** until you set two
 GitHub repo secrets — `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — and flip
 `.github/workflows/deploy.yml` from `workflow_dispatch` to `push`.
+
+**Staging** (`pnpm cf:deploy:staging`) deploys a separate `wizards-among-us-staging` worker,
+defined as the `env.staging` block in `wrangler.jsonc` (only `name` is overridden; everything
+else inherits). Its purpose is verifying the real **Telegram Login Widget**, which can't render
+on localhost. One-time setup:
+
+1. Create a **separate dev bot** in BotFather (the Login Widget allows one `/setdomain` per bot,
+   so don't reuse the production bot) and point `/setdomain` at the staging URL.
+2. Set the staging worker's secrets — these are **not** in `wrangler.jsonc`:
+   ```bash
+   wrangler secret put DATABASE_URL --env staging
+   wrangler secret put TELEGRAM_BOT_TOKEN --env staging       # the DEV bot's token
+   wrangler secret put AUTH_SECRET --env staging
+   # NEXT_PUBLIC_TELEGRAM_BOT_USERNAME is build-time (public) — set it in the deploy env, not as a secret.
+   ```
+   Never set `DEV_LOGIN` on staging — the dev-login backdoor stays local-only.
+3. `pnpm cf:deploy:staging`.
 
 ---
 
