@@ -3,17 +3,17 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import messages from "../../../../messages/uk.json";
-import { SiteHeader } from "../SiteHeader";
+import { SiteHeaderClient } from "../SiteHeaderClient";
 
 function renderHeader(user: { username: string | null } | null) {
   return render(
     <NextIntlClientProvider locale="uk" messages={messages}>
-      <SiteHeader user={user} />
+      <SiteHeaderClient user={user} />
     </NextIntlClientProvider>,
   );
 }
 
-describe("SiteHeader auth state", () => {
+describe("SiteHeaderClient auth state", () => {
   it("shows a sign-in link to /login when signed out", () => {
     renderHeader(null);
 

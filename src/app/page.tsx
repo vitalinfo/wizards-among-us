@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { Landing } from "@/components/landing";
 import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeaderServer } from "@/components/site/SiteHeaderServer";
+import { SiteHeader } from "@/components/site/SiteHeader";
 import { getActiveCampaign } from "@/db/queries/campaigns";
 
 // The landing page is the ONLY indexable route (§10 crawler policy) — override
@@ -20,7 +20,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <SiteHeaderServer />
+      <SiteHeader />
       <Landing activeCampaignTitle={campaign?.title ?? null} />
       <SiteFooter />
     </>
