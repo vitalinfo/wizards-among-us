@@ -88,10 +88,10 @@ DATABASE_URL=
 DATABASE_URL_POOLED=          # only if deploying on edge/Workers
 
 # Auth
-AUTH_SECRET=                  # session/JWT signing
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_BOT_USERNAME=
-ADMIN_ALLOWLIST=              # comma-separated emails allowed to self-provision as admin
+AUTH_SECRET=                        # session/JWT signing
+TELEGRAM_BOT_TOKEN=                  # secret; verifies Login Widget hashes (server-only)
+NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=  # public; browser-exposed so the widget can render
+ADMIN_ALLOWLIST=                    # comma-separated emails allowed to self-provision as admin
 
 # Captcha (Cloudflare Turnstile)
 TURNSTILE_SITE_KEY=
