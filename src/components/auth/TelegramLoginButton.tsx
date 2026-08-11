@@ -21,7 +21,14 @@ export function TelegramLoginButton() {
     script.setAttribute("data-telegram-login", username);
     script.setAttribute("data-size", "large");
     script.setAttribute("data-radius", "6");
-    script.setAttribute("data-auth-url", "/auth/telegram");
+    // Must be ABSOLUTE. Given a relative path the widget silently falls back to
+    // callback mode (data-onauth), which we don't define — so authorizing does
+    // nothing and the button just flips to its "logged in" state. Built from the
+    // live origin so it works on localhost, staging, and prod without config.
+    script.setAttribute(
+      "data-auth-url",
+      new URL("/auth/telegram", window.location.origin).toString(),
+    );
     script.setAttribute("data-request-access", "write");
     container.appendChild(script);
   }, [username]);
