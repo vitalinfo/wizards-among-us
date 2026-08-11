@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  pg-cloudflare@1.4.0: 43ab90baa4db5d3693bb7a3621de75cb61ed76ee7df1c22ddaea1eb74cefc9d9
+
 importers:
 
   .:
@@ -9103,7 +9106,7 @@ snapshots:
 
   pathval@2.0.1: {}
 
-  pg-cloudflare@1.4.0:
+  pg-cloudflare@1.4.0(patch_hash=43ab90baa4db5d3693bb7a3621de75cb61ed76ee7df1c22ddaea1eb74cefc9d9):
     optional: true
 
   pg-connection-string@2.14.0: {}
@@ -9132,7 +9135,7 @@ snapshots:
       pg-types: 2.2.0
       pgpass: 1.0.5
     optionalDependencies:
-      pg-cloudflare: 1.4.0
+      pg-cloudflare: 1.4.0(patch_hash=43ab90baa4db5d3693bb7a3621de75cb61ed76ee7df1c22ddaea1eb74cefc9d9)
 
   pgpass@1.0.5:
     dependencies:
