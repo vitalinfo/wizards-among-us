@@ -257,17 +257,41 @@ defined as the `env.staging` block in `wrangler.jsonc` (only `name` is overridde
 else inherits). Its purpose is verifying the real **Telegram Login Widget**, which can't render
 on localhost. One-time setup:
 
-1. Create a **separate dev bot** in BotFather (the Login Widget allows one `/setdomain` per bot,
-   so don't reuse the production bot) and point `/setdomain` at the staging URL.
-2. Set the staging worker's secrets — these are **not** in `wrangler.jsonc`:
+Order matters: the worker must exist before secrets can be set, and you can't authorize the
+bot's domain until you know the deployed URL.
+
+1. **Create a separate dev bot** in BotFather (the Login Widget allows one `/setdomain` per bot,
+   so don't reuse the production bot). Keep its token secret; you only need the @username now.
+2. **Apply migrations** to the staging database, using its **direct** (non-`-pooler`)
+   connection string — Neon recommends direct connections for schema migrations:
    ```bash
-   wrangler secret put DATABASE_URL --env staging
-   wrangler secret put TELEGRAM_BOT_TOKEN --env staging       # the DEV bot's token
-   wrangler secret put AUTH_SECRET --env staging
-   # NEXT_PUBLIC_TELEGRAM_BOT_USERNAME is build-time (public) — set it in the deploy env, not as a secret.
+   (read -rs "DATABASE_URL?Paste the staging DIRECT URL: " && export DATABASE_URL && pnpm db:migrate)
    ```
-   Never set `DEV_LOGIN` on staging — the dev-login backdoor stays local-only.
-3. `pnpm cf:deploy:staging`.
+   The subshell keeps the value out of your shell history and out of later commands.
+3. **Deploy** — this creates the worker and prints its URL. `NEXT_PUBLIC_*` vars are inlined into
+   the browser bundle at **build** time, so it must be set here, not as a secret:
+   ```bash
+   NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=YourDevBot pnpm cf:deploy:staging
+   ```
+   The site will error on first load — expected, the runtime secrets don't exist yet.
+4. **Set the worker's secrets** (`wrangler` is a devDependency, so run it via `pnpm exec`). Each
+   command prompts for the value, so nothing lands in shell history. Use the **pooled**
+   (`-pooler`) connection string here — the worker opens many short-lived connections:
+   ```bash
+   pnpm exec wrangler secret put DATABASE_URL --env staging
+   ```
+   ```bash
+   pnpm exec wrangler secret put TELEGRAM_BOT_TOKEN --env staging
+   ```
+   ```bash
+   pnpm exec wrangler secret put AUTH_SECRET --env staging
+   ```
+   Generate a value for `AUTH_SECRET` with `openssl rand -base64 32`. Setting a secret
+   redeploys the worker automatically.
+   **Never set `DEV_LOGIN` on staging** — the dev-login backdoor stays local-only (it is also
+   hard-disabled whenever `NODE_ENV=production`).
+5. **Authorize the domain**: BotFather → `/setdomain` → the dev bot → the URL from step 3. The
+   Login Widget only renders on an authorized domain.
 
 ---
 
