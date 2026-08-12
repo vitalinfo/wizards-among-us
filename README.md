@@ -85,7 +85,8 @@ Copy `.env.example` → `.env.local` and fill in. Never commit real values.
 
 ```
 # Database (plain Postgres — Neon, Supabase-as-Postgres, Heroku PG, RDS all work)
-DATABASE_URL=           # Neon: pooled (-pooler) for the app, direct for db:migrate
+DATABASE_URL=           # Neon: the pooled (-pooler) string
+DIRECT_DATABASE_URL=    # optional: Neon's direct string, used only by migrations
 
 # Auth
 AUTH_SECRET=            # session/JWT signing
@@ -161,10 +162,14 @@ DATABASE_URL=postgresql://wau:wau@localhost:5433/wau
 
 The DB scripts (`db:generate` / `db:migrate` / `db:seed`) auto-load `.env.local` via
 `@next/env` — the same files `next dev` reads — so you don't need to export `DATABASE_URL`
-in your shell. No migrations exist until Phase 1 generates them (`pnpm db:generate`), so
-`db:migrate` currently reports "nothing to apply" and exits cleanly. `db:migrate` runs a
-small script (`src/db/migrate.ts`) instead of `drizzle-kit migrate`, which gives real
-errors (e.g. "is Postgres running?") — drizzle-kit swallows them.
+in your shell.
+
+`db:migrate` runs `scripts/migrate.mjs` instead of `drizzle-kit migrate`, which gives real
+errors (e.g. "is Postgres running?") — drizzle-kit swallows them, reporting a stopped
+database and an empty migrations folder identically. That script is **plain `.mjs`, not
+TypeScript, on purpose**: it also runs in Heroku's release phase, where devDependencies
+(including `tsx`) have been pruned, so it must run on bare `node` using only production
+dependencies.
 
 **Adminer UI** (optional): `docker compose up -d adminer`, then http://localhost:8080 —
 System: PostgreSQL · Server: `db` · Username / Password: `wau`.
@@ -247,9 +252,23 @@ the landing page opts back in during Phase 2.
 ### Deploying (Heroku)
 
 The app is standard, host-agnostic Next.js running as a **long-lived Node process**. Nothing
-host-specific lives in app code — the entire deploy layer is one line in `Procfile`
-(`web: pnpm start`) plus the config vars below, so moving hosts later is a docs change, not a
-rewrite.
+host-specific lives in app code — the entire deploy layer is the two-line `Procfile` plus the
+config vars below, so moving hosts later is a docs change, not a rewrite.
+
+```
+release: pnpm db:migrate
+web: pnpm start
+```
+
+**Migrations run automatically on every deploy**, in Heroku's `release` phase — before the new
+code goes live. If a migration fails the release is **aborted** and the previous version keeps
+serving, so a bad migration can't ship a half-broken app. (This is the same shape as
+`release: rails db:migrate`.) Note it also runs on `pipelines:promote`, migrating production
+against production's own config vars.
+
+> Migrations are reviewed in the PR that introduces them (we show the SQL before applying) —
+> the release phase then applies the already-reviewed migration. Nothing unreviewed reaches a
+> database this way.
 
 > **Why a long-lived Node process, and not Cloudflare Workers?**
 > We tried Workers (via OpenNext) and hit a hard wall: `src/db/index.ts` caches a `pg.Pool` at
@@ -269,6 +288,7 @@ rewrite.
 | Var | Value |
 |---|---|
 | `DATABASE_URL` | Postgres connection string. On Neon use the **pooled** (`-pooler`) string |
+| `DIRECT_DATABASE_URL` | *Recommended.* Neon's **direct** (non-`-pooler`) string. Used only by the release-phase migration — Neon recommends direct connections for schema changes, and transaction-mode poolers can break migration locks. Falls back to `DATABASE_URL` if unset |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `TELEGRAM_BOT_TOKEN` | BotFather token for **this** environment's bot |
 | `TELEGRAM_BOT_USERNAME` | That bot's @username (no `@`) |
@@ -292,26 +312,21 @@ config vars, and you can't authorize the domain until you know the URL.
 
 1. **Create a separate staging bot** in BotFather. The widget allows one `/setdomain` per bot, so
    don't reuse the production bot. Keep its token secret; you only need the @username now.
-2. **Apply migrations**, using the database's **direct** (non-`-pooler`) connection string —
-   Neon recommends direct connections for schema changes:
-   ```bash
-   (read -rs "DATABASE_URL?Paste the staging DIRECT URL: " && export DATABASE_URL && pnpm db:migrate)
-   ```
-   The subshell keeps the value out of your shell history and out of later commands.
-3. **Set the config vars** from the table above (use the **pooled** string for `DATABASE_URL`).
-   Each `heroku config:set` restarts the app:
+2. **Set the config vars** from the table above (the **pooled** string for `DATABASE_URL`, the
+   **direct** one for `DIRECT_DATABASE_URL`). Each `heroku config:set` restarts the app:
    ```bash
    heroku config:set --app wau-staging AUTH_SECRET="$(openssl rand -base64 32)"
    ```
    Set the remaining vars the same way, or paste them in the Heroku dashboard to keep secrets out
    of your shell history.
-4. **Deploy**:
+3. **Deploy** — the release phase applies migrations before the new code goes live, so there's no
+   separate migration step:
    ```bash
    git push https://git.heroku.com/wau-staging.git HEAD:main
    ```
    Or add the remote once with `heroku git:remote --app wau-staging --remote staging`, then
    `git push staging HEAD:main`.
-5. **Authorize the domain**: BotFather → `/setdomain` → the staging bot → the URL you'll actually
+4. **Authorize the domain**: BotFather → `/setdomain` → the staging bot → the URL you'll actually
    browse (`heroku apps:info --app wau-staging` shows the `herokuapp.com` one). The widget only
    renders on an authorized domain, and it checks the domain the *page* is served from — so if you
    set a custom domain below, use that one here.
