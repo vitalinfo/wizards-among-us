@@ -289,6 +289,7 @@ against production's own config vars.
 |---|---|
 | `DATABASE_URL` | Postgres connection string. On Neon use the **pooled** (`-pooler`) string |
 | `DIRECT_DATABASE_URL` | *Recommended.* Neon's **direct** (non-`-pooler`) string. Used only by the release-phase migration — Neon recommends direct connections for schema changes, and transaction-mode poolers can break migration locks. Falls back to `DATABASE_URL` if unset |
+| `CANONICAL_HOST` | *Recommended.* The one host this app should be served on, no scheme (e.g. `staging.wizards-among-us.pp.ua`). Requests on any other host are redirected to it. Unset = accept whatever host was requested |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `TELEGRAM_BOT_TOKEN` | BotFather token for **this** environment's bot |
 | `TELEGRAM_BOT_USERNAME` | That bot's @username (no `@`) |
@@ -303,6 +304,22 @@ against production's own config vars.
 
 **Never set `DEV_LOGIN`** on any deployed app — the dev-login backdoor is local-only, and is
 additionally hard-disabled whenever `NODE_ENV=production` (which Heroku sets for you).
+
+#### HTTPS and canonical host
+
+`src/middleware.ts` enforces both in production (it's a no-op in local dev):
+
+- **http → https**, as a `308`. Heroku serves the app on both, and browsing over plain http
+  silently **drops the session cookie** — it's `Secure` in production — so login appears to
+  succeed and then shows you signed out. This is the fix for that class of confusion, and it
+  also sends `Strict-Transport-Security` so browsers stop trying http at all.
+- **any host → `CANONICAL_HOST`**, as a `307`. Cookies are scoped per host, so bouncing between
+  the `herokuapp.com` URL and the custom domain looks exactly like being logged out.
+
+The host redirect is deliberately **temporary (307)** while domains are still being set up — a
+permanent redirect to a mistyped canonical host would stick in browser caches. Switch it to 308
+at launch. Set `CANONICAL_HOST` to whichever host you point BotFather's `/setdomain` at, so the
+login flow and browsing always agree.
 
 #### Staging (needed to test the Telegram widget)
 
