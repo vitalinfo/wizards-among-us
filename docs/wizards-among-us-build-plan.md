@@ -351,6 +351,7 @@ Keep each phase in its own branch/PR so volunteers can review changes.
 
 1. ~~**Deployment budget**~~ — **resolved:** Heroku Basic dyno (~$7/mo, no idle sleep) + Neon free tier ≈ **$7/mo per environment**. Still open: whether to pay for a Neon plan with automated backups before going live with real family data — recommended.
 2. **Confirmations:** photos only, or video too? (Drives storage choice and limits.)
+2a. ~~**Contacting users without a Telegram `@username`**~~ — **resolved (Phase 4):** a Telegram username is optional, so some users have no clickable handle; only their numeric id is stored, which is usable by our bot, not by a human volunteer. Decision: **never block sign-in on it**; require a usable contact at **application submit / claim** instead (use the `@username` when present, otherwise the person sets one or supplies an alternative). The contact field is **sensitive** — claiming-volunteer only, never on the browse card. A later alternative is bot-mediated introductions by Telegram id (Phase 7), which would remove the need to exchange handles at all.
 3. **Required verification document** on the parent form — which document, and who may view it? (Privacy-critical.)
 4. **Volunteers:** self-register with Telegram, no approval gate at launch (decided). Revisit adding vetting if abuse appears.
 5. **Multiple active campaigns at once**, or exactly one at a time? (One-at-a-time keeps the active-campaign scoping — and thus the archive behavior — simplest; the schema enforces it via a partial unique index on `status = 'active'`.)
