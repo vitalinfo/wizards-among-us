@@ -22,11 +22,13 @@ Package manager: **pnpm**. (Scaffolded in Phase 0 with Next.js 16 App Router + T
 - `pnpm lint` / `pnpm typecheck` / `pnpm format:check` — quality gates (also run in CI)
 - `pnpm test` — Vitest + React Testing Library (`pnpm test:watch` to watch)
 - `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:seed` — Drizzle migrations / seed (schema lands in Phase 1)
-- `pnpm cf:preview` / `pnpm cf:deploy` — Cloudflare Workers (OpenNext) preview / deploy
+- Deploy: `git push heroku HEAD:main` (see README). The whole deploy layer is `Procfile`.
 
 ## Stack
 
-Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-layer auth (Auth.js/NextAuth or better-auth) · Cloudflare R2 (S3-compatible) + Turnstile + Pages/DNS.
+Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-layer auth (Auth.js/NextAuth or better-auth) · Cloudflare R2 (S3-compatible) + Turnstile + DNS · hosted on Heroku (long-lived Node process).
+
+**Hosting constraint (learned the hard way):** `src/db/index.ts` caches a `pg.Pool` at module scope. That requires a **long-lived Node process**. It is invalid on Cloudflare Workers / edge runtimes, where a cached pool hangs the second request (sockets can't cross request contexts) — we hit this on a real Workers deploy. Don't propose an edge/serverless host without also changing the data layer (per-request client, Hyperdrive, or an HTTP driver).
 
 ## Conventions
 
