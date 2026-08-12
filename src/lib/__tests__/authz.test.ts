@@ -16,18 +16,21 @@ const parent: Actor = {
   kind: "user",
   id: "p1",
   username: "p1",
+  firstName: "Petro",
   roles: ["parent"],
 };
 const otherParent: Actor = {
   kind: "user",
   id: "p2",
   username: "p2",
+  firstName: "Pavlo",
   roles: ["parent"],
 };
 const volunteer: Actor = {
   kind: "user",
   id: "v1",
   username: "v1",
+  firstName: "Vira",
   roles: ["volunteer"],
 };
 

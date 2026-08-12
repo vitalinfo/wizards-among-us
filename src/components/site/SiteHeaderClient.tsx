@@ -21,7 +21,7 @@ export function SiteHeaderClient({
 }: {
   // The current Telegram user (for display), or null when signed out. Resolved
   // server-side by SiteHeader (the server entry that wraps this island).
-  user: { username: string | null } | null;
+  user: { username: string | null; firstName: string | null } | null;
 }) {
   const t = useTranslations("common");
 
@@ -58,7 +58,12 @@ export function SiteHeaderClient({
         {user ? (
           <div className="flex items-center gap-3">
             <span className="text-[15px] font-semibold">
-              {user.username ? `@${user.username}` : t("account")}
+              {/* A Telegram @username is optional; fall back to the first name
+                  so the signed-in state always names *someone*, and only then
+                  to a generic label. */}
+              {user.username
+                ? `@${user.username}`
+                : (user.firstName ?? t("account"))}
             </span>
             <form action={logout}>
               <button type="submit" className={ACTION_CLASS}>
