@@ -88,10 +88,11 @@ DATABASE_URL=
 DATABASE_URL_POOLED=          # only if deploying on edge/Workers
 
 # Auth
-AUTH_SECRET=                        # session/JWT signing
-TELEGRAM_BOT_TOKEN=                  # secret; verifies Login Widget hashes (server-only)
-NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=  # public; browser-exposed so the widget can render
-ADMIN_ALLOWLIST=                    # comma-separated emails allowed to self-provision as admin
+AUTH_SECRET=            # session/JWT signing
+TELEGRAM_BOT_TOKEN=     # secret; verifies Login Widget hashes
+TELEGRAM_BOT_USERNAME=  # the bot's @username (no @); read server-side, passed to the widget
+ADMIN_ALLOWLIST=        # comma-separated emails allowed to self-provision as admin
+DEV_LOGIN=              # local only: 1 enables /dev/login (see below). Never set in a deploy.
 
 # Captcha (Cloudflare Turnstile)
 TURNSTILE_SITE_KEY=
@@ -260,15 +261,25 @@ rewrite.
 > We still use Cloudflare for **R2** (file storage), **Turnstile** (captcha) and DNS — those are
 > plain APIs, callable from any host.
 
-**Runtime config vars** (Heroku *Config Vars*, set per app — never commit them):
+**Pipeline:** `wau` — staging app `wau-staging`, production app `wau`.
+
+**Runtime config vars** (Heroku *Config Vars*, set per app — never commit them). All are read at
+**request time**, so they differ per app and survive a pipeline promotion correctly:
 
 | Var | Value |
 |---|---|
 | `DATABASE_URL` | Postgres connection string. On Neon use the **pooled** (`-pooler`) string |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `TELEGRAM_BOT_TOKEN` | BotFather token for **this** environment's bot |
-| `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | The bot's @username (no `@`). Public — inlined into the browser bundle at **build** time, so it must be set *before* the build that ships it |
+| `TELEGRAM_BOT_USERNAME` | That bot's @username (no `@`) |
 | `ADMIN_ALLOWLIST` | Comma-separated admin emails |
+
+> **Why no `NEXT_PUBLIC_*` vars.** Heroku pipeline promotion copies the **compiled slug** from
+> staging to production instead of rebuilding. `NEXT_PUBLIC_*` values are inlined into the browser
+> bundle at *build* time, so a promoted build would carry **staging's** values into production —
+> e.g. rendering the login widget for the staging bot. So the bot username is read on the server
+> per request and passed to the client component as a prop. Keep it that way: don't reintroduce a
+> `NEXT_PUBLIC_` var for anything that differs between environments.
 
 **Never set `DEV_LOGIN`** on any deployed app — the dev-login backdoor is local-only, and is
 additionally hard-disabled whenever `NODE_ENV=production` (which Heroku sets for you).
@@ -279,34 +290,36 @@ The Telegram Login Widget can't render on `localhost` — it only appears on a B
 domain. A staging app gives you that domain. Order matters: the app must exist before you can set
 config vars, and you can't authorize the domain until you know the URL.
 
-1. **Create a separate dev bot** in BotFather. The widget allows one `/setdomain` per bot, so
+1. **Create a separate staging bot** in BotFather. The widget allows one `/setdomain` per bot, so
    don't reuse the production bot. Keep its token secret; you only need the @username now.
-2. **Create the app** in the EU region (data residency — this app stores children's data):
-   ```bash
-   heroku create wizards-among-us-staging --region eu
-   ```
-3. **Apply migrations**, using the database's **direct** (non-`-pooler`) connection string —
+2. **Apply migrations**, using the database's **direct** (non-`-pooler`) connection string —
    Neon recommends direct connections for schema changes:
    ```bash
    (read -rs "DATABASE_URL?Paste the staging DIRECT URL: " && export DATABASE_URL && pnpm db:migrate)
    ```
    The subshell keeps the value out of your shell history and out of later commands.
-4. **Set the config vars** from the table above (use the **pooled** string for `DATABASE_URL`).
+3. **Set the config vars** from the table above (use the **pooled** string for `DATABASE_URL`).
    Each `heroku config:set` restarts the app:
    ```bash
-   heroku config:set --app wizards-among-us-staging AUTH_SECRET="$(openssl rand -base64 32)"
+   heroku config:set --app wau-staging AUTH_SECRET="$(openssl rand -base64 32)"
    ```
    Set the remaining vars the same way, or paste them in the Heroku dashboard to keep secrets out
    of your shell history.
-5. **Deploy**:
+4. **Deploy**:
    ```bash
-   git push heroku HEAD:main
+   git push https://git.heroku.com/wau-staging.git HEAD:main
    ```
-   Use `heroku git:remote --app wizards-among-us-staging` first if the remote isn't set.
-6. **Authorize the domain**: BotFather → `/setdomain` → the dev bot → the app's URL
-   (`heroku apps:info` shows it). The widget only renders on an authorized domain.
+   Or add the remote once with `heroku git:remote --app wau-staging --remote staging`, then
+   `git push staging HEAD:main`.
+5. **Authorize the domain**: BotFather → `/setdomain` → the staging bot → the app's URL
+   (`heroku apps:info --app wau-staging` shows it). The widget only renders on an authorized
+   domain.
 
-**Logs**: `heroku logs --tail --app wizards-among-us-staging`.
+**Promoting to production**: `heroku pipelines:promote --app wau-staging`. This reuses the built
+slug — so production must have its **own** config vars (its own database, its own bot token +
+username). Set those on `wau` before the first promotion.
+
+**Logs**: `heroku logs --tail --app wau-staging`.
 
 **Dyno size**: use **Basic** ($7/mo), not Eco. Eco dynos sleep after inactivity, and a parent
 hitting a multi-second cold start on a stressful errand is not a UX we want to ship.
