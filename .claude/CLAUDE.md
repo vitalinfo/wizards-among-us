@@ -26,7 +26,7 @@ Package manager: **pnpm**. (Scaffolded in Phase 0 with Next.js 16 App Router + T
 
 ## Stack
 
-Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-layer auth (Auth.js/NextAuth or better-auth) · Cloudflare R2 (S3-compatible) + Turnstile + DNS · hosted on Heroku (long-lived Node process).
+Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Frankfurt) · app-layer auth (Auth.js/NextAuth or better-auth) · Cloudflare R2 (S3-compatible) + Turnstile · hosted on Heroku (long-lived Node process; pipeline `wau` → apps `wau-staging` / `wau`) · domain `wizards-among-us.pp.ua` with DNS at NIC.UA (not Cloudflare).
 
 **Hosting constraint (learned the hard way):** `src/db/index.ts` caches a `pg.Pool` at module scope. That requires a **long-lived Node process**. It is invalid on Cloudflare Workers / edge runtimes, where a cached pool hangs the second request (sockets can't cross request contexts) — we hit this on a real Workers deploy. Don't propose an edge/serverless host without also changing the data layer (per-request client, Hyperdrive, or an HTTP driver).
 

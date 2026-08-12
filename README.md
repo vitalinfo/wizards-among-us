@@ -22,7 +22,8 @@ The plan includes a designer-facing chapter (Appendix A) that can be shared with
 - **Tailwind CSS** for styling.
 - **Drizzle ORM** + **Postgres** (the database is treated as plain, portable Postgres behind `DATABASE_URL`).
 - **App-layer auth** (Auth.js / NextAuth v5, or better-auth) storing sessions in our own Postgres. Telegram Login Widget for parents/volunteers; email + password for admins.
-- **Cloudflare**: R2 (S3-compatible file storage), Turnstile (captcha), DNS, Bot Fight Mode — used as plain APIs, callable from any host.
+- **Cloudflare**: R2 (S3-compatible file storage) and Turnstile (captcha) — used as plain APIs, callable from any host.
+- **Domain**: `wizards-among-us.pp.ua`, registered at **NIC.UA**, which also serves DNS (`ns10/11/12.uadns.com`).
 - Deploy target: **Heroku** (any Node host works — the app is host-agnostic; see [Deploying](#deploying-heroku)).
 
 ---
@@ -84,8 +85,7 @@ Copy `.env.example` → `.env.local` and fill in. Never commit real values.
 
 ```
 # Database (plain Postgres — Neon, Supabase-as-Postgres, Heroku PG, RDS all work)
-DATABASE_URL=
-DATABASE_URL_POOLED=          # only if deploying on edge/Workers
+DATABASE_URL=           # Neon: pooled (-pooler) for the app, direct for db:migrate
 
 # Auth
 AUTH_SECRET=            # session/JWT signing
@@ -106,7 +106,7 @@ S3_BUCKET=
 S3_PUBLIC_BASE_URL=
 ```
 
-External accounts to set up (human task, Phase 0 — see plan §3): domain (`.xyz` via NIC.UA), Cloudflare (DNS + Turnstile + R2), Heroku (app hosting), a Postgres provider (Neon), and a Telegram bot (for the Login Widget).
+External accounts (human task, Phase 0 — see plan §3): domain + DNS (`wizards-among-us.pp.ua` at NIC.UA), Cloudflare (Turnstile + R2), Heroku (app hosting, pipeline `wau`), Neon (Postgres), and a Telegram bot per environment (for the Login Widget).
 
 ---
 
@@ -258,8 +258,8 @@ rewrite.
 > DB-backed route alternated OK / hang. The fixes (per-request client, Hyperdrive, or an
 > HTTP-only driver) each mean either a data-layer rewrite or provider lock-in, so we host on a
 > plain Node process instead. See the comment in `src/db/index.ts`.
-> We still use Cloudflare for **R2** (file storage), **Turnstile** (captcha) and DNS — those are
-> plain APIs, callable from any host.
+> We still use Cloudflare for **R2** (file storage) and **Turnstile** (captcha) — those are plain
+> APIs, callable from any host. DNS is at NIC.UA, not Cloudflare.
 
 **Pipeline:** `wau` — staging app `wau-staging`, production app `wau`.
 
@@ -311,9 +311,31 @@ config vars, and you can't authorize the domain until you know the URL.
    ```
    Or add the remote once with `heroku git:remote --app wau-staging --remote staging`, then
    `git push staging HEAD:main`.
-5. **Authorize the domain**: BotFather → `/setdomain` → the staging bot → the app's URL
-   (`heroku apps:info --app wau-staging` shows it). The widget only renders on an authorized
-   domain.
+5. **Authorize the domain**: BotFather → `/setdomain` → the staging bot → the URL you'll actually
+   browse (`heroku apps:info --app wau-staging` shows the `herokuapp.com` one). The widget only
+   renders on an authorized domain, and it checks the domain the *page* is served from — so if you
+   set a custom domain below, use that one here.
+
+#### Custom domain (optional)
+
+The `herokuapp.com` URL is enough for `/setdomain` and for testing. To use
+`staging.wizards-among-us.pp.ua` instead:
+
+```bash
+heroku domains:add staging.wizards-among-us.pp.ua --app wau-staging
+```
+
+That prints a **DNS Target** (`<something>.herokudns.com`). Add it at **NIC.UA** — which serves
+our DNS; Cloudflare is not in the DNS path — as a `CNAME` on the `staging` label.
+
+> ⚠️ **Enter the target with a trailing dot** (`xxx.herokudns.com.`). Without it, the value is
+> treated as relative to the zone and you get
+> `xxx.herokudns.com.wizards-among-us.pp.ua.` — a broken record. Never use an A record; Heroku's
+> IPs rotate.
+
+Verify with `dig +short staging.wizards-among-us.pp.ua`, then wait for
+`heroku certs:auto --app wau-staging` to report the certificate as OK before pointing BotFather at
+the custom domain.
 
 **Promoting to production**: `heroku pipelines:promote --app wau-staging`. This reuses the built
 slug — so production must have its **own** config vars (its own database, its own bot token +
