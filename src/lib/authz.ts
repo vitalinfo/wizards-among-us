@@ -19,6 +19,7 @@ type ResolvedSettings = { applicationsEnabled: boolean };
 export type UserActor = {
   kind: "user";
   id: string;
+  username: string | null; // Telegram @handle, for display
   roles: readonly UserRole[];
 };
 export type AdminActor = { kind: "admin"; id: string; email: string };

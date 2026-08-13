@@ -9,3 +9,21 @@ allowBuilds:
   workerd: true
   "@parcel/watcher": true
   sharp: false
+# One-line patch so the Cloudflare Workers build can resolve pg-cloudflare
+# (pg's optional Workers socket implementation).
+#
+# Why: pg-cloudflare's exports map sends the `workerd` condition to
+# dist/index.js but `default` to dist/empty.js. OpenNext TRACES dependencies
+# under the default (Node) condition — copying only empty.js — then BUNDLES for
+# workerd, which asks for dist/index.js, a file that was never copied:
+#   ERROR: Could not resolve "pg-cloudflare"
+# The patch points `default` at dist/index.js too, so the tracer copies the real
+# file. Safe in Node: pg only requires this module when it detects a Workers
+# runtime, and index.js itself only needs `events` at load time — its
+# `cloudflare:sockets` import is a lazy await import() inside connect().
+#
+# Upstream issue (still open): https://github.com/opennextjs/opennextjs-cloudflare/issues/263
+# Revisit on any pg / pg-cloudflare bump — pnpm fails loudly if the patch stops
+# applying. Removing it breaks `pnpm cf:build`, not the local Node build.
+patchedDependencies:
+  pg-cloudflare@1.4.0: patches/pg-cloudflare@1.4.0.patch

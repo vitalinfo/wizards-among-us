@@ -12,9 +12,24 @@ import {
 } from "../authz";
 
 const admin: Actor = { kind: "admin", id: "a1", email: "a@example.com" };
-const parent: Actor = { kind: "user", id: "p1", roles: ["parent"] };
-const otherParent: Actor = { kind: "user", id: "p2", roles: ["parent"] };
-const volunteer: Actor = { kind: "user", id: "v1", roles: ["volunteer"] };
+const parent: Actor = {
+  kind: "user",
+  id: "p1",
+  username: "p1",
+  roles: ["parent"],
+};
+const otherParent: Actor = {
+  kind: "user",
+  id: "p2",
+  username: "p2",
+  roles: ["parent"],
+};
+const volunteer: Actor = {
+  kind: "user",
+  id: "v1",
+  username: "v1",
+  roles: ["volunteer"],
+};
 
 describe("canEditApplication (edit lock)", () => {
   const own = { parentId: "p1" };

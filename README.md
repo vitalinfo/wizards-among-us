@@ -88,10 +88,10 @@ DATABASE_URL=
 DATABASE_URL_POOLED=          # only if deploying on edge/Workers
 
 # Auth
-AUTH_SECRET=                  # session/JWT signing
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_BOT_USERNAME=
-ADMIN_ALLOWLIST=              # comma-separated emails allowed to self-provision as admin
+AUTH_SECRET=                        # session/JWT signing
+TELEGRAM_BOT_TOKEN=                  # secret; verifies Login Widget hashes (server-only)
+NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=  # public; browser-exposed so the widget can render
+ADMIN_ALLOWLIST=                    # comma-separated emails allowed to self-provision as admin
 
 # Captcha (Cloudflare Turnstile)
 TURNSTILE_SITE_KEY=
@@ -172,6 +172,23 @@ System: PostgreSQL · Server: `db` · Username / Password: `wau`.
 keeps your data; only `db:reset` (or `docker compose down -v`) erases it. Postgres is only
 actually *used* from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
 
+### Signing in locally (dev login)
+
+The Telegram Login Widget can't render on `localhost` — it only appears on a domain you've
+authorized with BotFather (`/setdomain`). To develop the signed-in parent/volunteer flows
+locally **without** a tunnel, set `DEV_LOGIN=1` in `.env.local` and visit
+[`/dev/login`](http://localhost:3000/dev/login) (also linked from `/login` when enabled).
+It creates a deterministic test user for the role you pick (parent, volunteer, or both) and
+starts a real session — same cookie/session machinery as Telegram, just skipping the widget.
+
+> ⚠️ This is a **login backdoor**. It's disabled unless `DEV_LOGIN=1`, and additionally hard-off
+> whenever `NODE_ENV=production` — so it can never be reached in a real deploy (the route 404s).
+> Keep `DEV_LOGIN` **out of** all staging/prod secrets. It only ever mints a *user* session,
+> never an admin one (admins use `/admin/login`).
+
+To verify the real Telegram widget end-to-end, deploy to **staging** with a separate dev bot —
+see [Deploying to Cloudflare](#deploying-to-cloudflare-thin-layer) below.
+
 ### Data layer (Phase 1)
 
 Drizzle schema for all tables lives in `src/db/schema.ts` (hand-written; the source of
@@ -234,6 +251,47 @@ The app is standard, host-agnostic Next.js; Cloudflare is added via
 `pnpm cf:deploy` deploys. Auto-deploy on `main` is wired but **disabled** until you set two
 GitHub repo secrets — `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — and flip
 `.github/workflows/deploy.yml` from `workflow_dispatch` to `push`.
+
+**Staging** (`pnpm cf:deploy:staging`) deploys a separate `wizards-among-us-staging` worker,
+defined as the `env.staging` block in `wrangler.jsonc` (only `name` is overridden; everything
+else inherits). Its purpose is verifying the real **Telegram Login Widget**, which can't render
+on localhost. One-time setup:
+
+Order matters: the worker must exist before secrets can be set, and you can't authorize the
+bot's domain until you know the deployed URL.
+
+1. **Create a separate dev bot** in BotFather (the Login Widget allows one `/setdomain` per bot,
+   so don't reuse the production bot). Keep its token secret; you only need the @username now.
+2. **Apply migrations** to the staging database, using its **direct** (non-`-pooler`)
+   connection string — Neon recommends direct connections for schema migrations:
+   ```bash
+   (read -rs "DATABASE_URL?Paste the staging DIRECT URL: " && export DATABASE_URL && pnpm db:migrate)
+   ```
+   The subshell keeps the value out of your shell history and out of later commands.
+3. **Deploy** — this creates the worker and prints its URL. `NEXT_PUBLIC_*` vars are inlined into
+   the browser bundle at **build** time, so it must be set here, not as a secret:
+   ```bash
+   NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=YourDevBot pnpm cf:deploy:staging
+   ```
+   The site will error on first load — expected, the runtime secrets don't exist yet.
+4. **Set the worker's secrets** (`wrangler` is a devDependency, so run it via `pnpm exec`). Each
+   command prompts for the value, so nothing lands in shell history. Use the **pooled**
+   (`-pooler`) connection string here — the worker opens many short-lived connections:
+   ```bash
+   pnpm exec wrangler secret put DATABASE_URL --env staging
+   ```
+   ```bash
+   pnpm exec wrangler secret put TELEGRAM_BOT_TOKEN --env staging
+   ```
+   ```bash
+   pnpm exec wrangler secret put AUTH_SECRET --env staging
+   ```
+   Generate a value for `AUTH_SECRET` with `openssl rand -base64 32`. Setting a secret
+   redeploys the worker automatically.
+   **Never set `DEV_LOGIN` on staging** — the dev-login backdoor stays local-only (it is also
+   hard-disabled whenever `NODE_ENV=production`).
+5. **Authorize the domain**: BotFather → `/setdomain` → the dev bot → the URL from step 3. The
+   Login Widget only renders on an authorized domain.
 
 ---
 

@@ -85,11 +85,13 @@ export async function getSessionActor(): Promise<Actor | null> {
   }
 
   const [user] = await db
-    .select({ id: users.id, role: users.role })
+    .select({ id: users.id, username: users.username, role: users.role })
     .from(users)
     .where(eq(users.id, session.actorId))
     .limit(1);
-  return user ? { kind: "user", id: user.id, roles: user.role } : null;
+  return user
+    ? { kind: "user", id: user.id, username: user.username, roles: user.role }
+    : null;
 }
 
 // Log out: delete the session row (instant revocation) and clear the cookie.

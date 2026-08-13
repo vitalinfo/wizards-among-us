@@ -12,4 +12,15 @@
   "observability": {
     "enabled": true,
   },
+  // Staging worker for verifying the real Telegram Login Widget (which can't
+  // render on localhost) against a separate dev bot. Deploy with
+  // `pnpm cf:deploy:staging`. Only `name` is overridden — main/assets/
+  // compatibility_* / observability are inherited from the top level. Per-env
+  // secrets (DATABASE_URL, TELEGRAM_BOT_TOKEN of the DEV bot, etc.) are set on
+  // this worker separately: `wrangler secret put <NAME> --env staging`.
+  "env": {
+    "staging": {
+      "name": "wizards-among-us-staging",
+    },
+  },
 }
