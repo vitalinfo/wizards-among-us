@@ -29,9 +29,10 @@
 | Authorization | **Server layer** (Next.js server actions / route handlers) via the ORM, keyed off session user id + role | Portable. Optional later: Postgres RLS via a per-transaction `SET LOCAL app.current_user_id` (works on any Postgres). |
 | File storage | **Cloudflare R2** (10 GB, zero egress), S3-compatible | Swap to AWS S3 / MinIO by changing credentials only. |
 | Captcha | **Cloudflare Turnstile** (free) | On the parent application form. |
-| DNS + CDN + bot protection | **Cloudflare** (free) | DNS, SSL, Turnstile, Bot Fight Mode. |
-| Domain | **`.xyz` via NIC.UA** (~$2 first year) | Cheap and fine for a noindex site. Confirm the year-2 renewal price (.xyz renewals are usually higher than the promo). Point nameservers at Cloudflare. `*.pages.dev` stays as a free dev/staging URL. |
-| Hosting | **Cloudflare Pages** (commercial-OK, free) — or Vercel Pro ($20/mo), or any Node host (Heroku/AWS) | Avoid Vercel Hobby (non-commercial only). Provides the `*.pages.dev` staging URL. On edge/Workers use a serverless-friendly PG driver (e.g. Neon serverless) or a pooler; on Node hosts standard `pg` works. |
+| DNS | **NIC.UA** (`ns10/11/12.uadns.com`) — *as built* | Originally planned to move nameservers to Cloudflare; we didn't. Cloudflare is still used for Turnstile + R2, which don't require it to serve DNS. |
+| Domain | **`wizards-among-us.pp.ua` via NIC.UA** — *as built* | Was planned as a `.xyz`; a free `.pp.ua` was registered instead. Fine for a noindex site. |
+| Captcha / bot protection | **Cloudflare Turnstile** (free) | Cloudflare's Bot Fight Mode needs Cloudflare-served DNS, so it isn't in play. |
+| Hosting | **Heroku** (pipeline `wau` → `wau-staging` / `wau`, EU region, Basic dyno ~$7/mo) — *as built* | Was planned as Cloudflare Pages/Workers. **We tried Workers and reverted:** a module-scoped `pg.Pool` can't be reused across Workers request contexts, so every DB-backed route alternated OK/hang. The app needs a long-lived Node process — see README §Deploying. |
 
 **Fully-free alternative:** Next.js on Cloudflare Pages/Workers + **D1** (SQLite) + **R2** + `better-auth`. Truly $0 and commercial-OK, but more assembly. Note D1 (SQLite) is less portable than Postgres — only pick it if you're confident you'll stay on Cloudflare.
 
@@ -43,19 +44,23 @@
 
 ## 3. Infrastructure setup checklist (Phase 0)
 
-1. **Domain:** register a `.xyz` at NIC.UA (~$2 first year — confirm the year-2 renewal price, which is typically higher). Freenom-style free TLDs (.tk/.ml/.ga) are dead (Freenom exited in 2024) — don't use them. The free `*.pages.dev` URL can serve as dev/staging.
-2. Create a Cloudflare account; add the `.xyz` domain; switch its nameservers at NIC.UA to Cloudflare's. (Cloudflare is needed for Turnstile + Pages regardless.)
-3. Enable Cloudflare: SSL (Full/Strict), Bot Fight Mode, and create a **Turnstile** widget (get site key + secret).
-4. Provision a **Postgres** database (Neon or Supabase both have a free tier; either works — you only consume it as plain Postgres). Save its `DATABASE_URL` (and a pooled/serverless URL if deploying on edge/Workers).
+> **Status: done, with deviations.** What we actually built is recorded below; see README for the
+> operational detail. Deviations from the original plan are marked *as built*.
+
+1. **Domain:** ~~register a `.xyz`~~ → registered **`wizards-among-us.pp.ua`** at NIC.UA (*as built*). Freenom-style free TLDs (.tk/.ml/.ga) are dead (Freenom exited in 2024) — don't use them.
+2. ~~Switch nameservers to Cloudflare~~ → **DNS stays at NIC.UA** (`ns10/11/12.uadns.com`) (*as built*). Cloudflare is used only for Turnstile + R2, neither of which requires it to serve DNS. Custom subdomains are `CNAME`s to the Heroku DNS target — enter the target **with a trailing dot** or NIC.UA appends the zone to it.
+3. Create a **Turnstile** widget in Cloudflare (site key + secret). (Bot Fight Mode / Cloudflare SSL don't apply — they need Cloudflare-served DNS.)
+4. Provision a **Postgres** database → **Neon, `aws-eu-central-1` (Frankfurt)** (*as built*), chosen for EU data residency and proximity to Ukraine. A project's region can't be changed later. Use the **direct** connection string for migrations and the **pooled** (`-pooler`) one for the running app.
 5. Create a **Cloudflare R2** bucket for uploads; create an API token (S3-compatible creds).
 6. Create the Next.js repo (GitHub). Configure environment variables (never commit secrets):
-   - `DATABASE_URL` (+ `DATABASE_URL_POOLED` if on edge/Workers)
+   - `DATABASE_URL`
    - `AUTH_SECRET` (session/JWT signing for the auth library)
-   - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` (for the Login Widget hash verification)
+   - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` (Login Widget: the token verifies the hash; the username renders the button). Use a **separate bot per environment** — the widget allows one `/setdomain` per bot.
    - `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
    - `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET`, `S3_PUBLIC_BASE_URL` (R2 now, any S3-compatible store later)
    - `ADMIN_ALLOWLIST` (optional: emails permitted to self-provision as admin on first login)
-7. Set up Cloudflare Pages deployment from the repo (or Vercel Pro, or a Node host).
+   - No `NEXT_PUBLIC_*` var may hold anything environment-specific — Heroku pipeline promotion reuses the compiled slug, so build-time values would leak from staging into production.
+7. ~~Set up Cloudflare Pages deployment~~ → **Heroku pipeline `wau`** (`wau-staging` → `wau`), EU region, Basic dyno (*as built*). Deploy layer is `Procfile`.
 8. Add a **keep-warm ping** (Cloudflare Worker cron or GitHub Action) hitting a health endpoint every few days so a free/idle database doesn't suspend.
 
 ---
@@ -264,7 +269,7 @@ robots.txt (allow /), sitemap.xml (landing page only)                           
 ## 9. Phased build plan (the Claude Code task list)
 
 **Phase 0 — Infra & scaffold**
-- Complete §3 checklist. Scaffold Next.js + TS + Tailwind. Add i18n (`uk` default). Add ESLint/Prettier. Base layout + responsive shell + design tokens. Deploy a "hello" build to Cloudflare Pages.
+- Complete §3 checklist. Scaffold Next.js + TS + Tailwind. Add i18n (`uk` default). Add ESLint/Prettier. Base layout + responsive shell + design tokens. Deploy a "hello" build to the host (*as built:* Heroku — see §2).
 
 **Phase 1 — Data layer**
 - ORM (Drizzle) schema + migrations for all tables in §7, run against `DATABASE_URL`. Implement the §5 permission matrix as reusable server-layer authorization checks. Seed one draft campaign. Set up a typed DB client + zod schemas shared between client and server.
@@ -344,8 +349,9 @@ Keep each phase in its own branch/PR so volunteers can review changes.
 
 ## 14. Open decisions (confirm before Phase 1)
 
-1. **Deployment budget:** truly $0 (Cloudflare Pages + a free Postgres tier kept warm with a ping) vs ~$20–25/mo (paid host and/or a paid DB plan for automated backups + no idle suspend)? For a live project holding this data, some spend is recommended for reliability + backups.
+1. ~~**Deployment budget**~~ — **resolved:** Heroku Basic dyno (~$7/mo, no idle sleep) + Neon free tier ≈ **$7/mo per environment**. Still open: whether to pay for a Neon plan with automated backups before going live with real family data — recommended.
 2. **Confirmations:** photos only, or video too? (Drives storage choice and limits.)
+2a. ~~**Contacting users without a Telegram `@username`**~~ — **resolved (Phase 4):** a Telegram username is optional, so some users have no clickable handle; only their numeric id is stored, which is usable by our bot, not by a human volunteer. Decision: **never block sign-in on it**; require a usable contact at **application submit / claim** instead (use the `@username` when present, otherwise the person sets one or supplies an alternative). The contact field is **sensitive** — claiming-volunteer only, never on the browse card. A later alternative is bot-mediated introductions by Telegram id (Phase 7), which would remove the need to exchange handles at all.
 3. **Required verification document** on the parent form — which document, and who may view it? (Privacy-critical.)
 4. **Volunteers:** self-register with Telegram, no approval gate at launch (decided). Revisit adding vetting if abuse appears.
 5. **Multiple active campaigns at once**, or exactly one at a time? (One-at-a-time keeps the active-campaign scoping — and thus the archive behavior — simplest; the schema enforces it via a partial unique index on `status = 'active'`.)

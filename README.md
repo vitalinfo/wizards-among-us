@@ -22,8 +22,9 @@ The plan includes a designer-facing chapter (Appendix A) that can be shared with
 - **Tailwind CSS** for styling.
 - **Drizzle ORM** + **Postgres** (the database is treated as plain, portable Postgres behind `DATABASE_URL`).
 - **App-layer auth** (Auth.js / NextAuth v5, or better-auth) storing sessions in our own Postgres. Telegram Login Widget for parents/volunteers; email + password for admins.
-- **Cloudflare**: R2 (S3-compatible file storage), Turnstile (captcha), DNS/Pages, Bot Fight Mode.
-- Deploy target: Cloudflare Pages (or any Node host — the app is host-agnostic).
+- **Cloudflare**: R2 (S3-compatible file storage) and Turnstile (captcha) — used as plain APIs, callable from any host.
+- **Domain**: `wizards-among-us.pp.ua`, registered at **NIC.UA**, which also serves DNS (`ns10/11/12.uadns.com`).
+- Deploy target: **Heroku** (any Node host works — the app is host-agnostic; see [Deploying](#deploying-heroku)).
 
 ---
 
@@ -84,14 +85,15 @@ Copy `.env.example` → `.env.local` and fill in. Never commit real values.
 
 ```
 # Database (plain Postgres — Neon, Supabase-as-Postgres, Heroku PG, RDS all work)
-DATABASE_URL=
-DATABASE_URL_POOLED=          # only if deploying on edge/Workers
+DATABASE_URL=           # Neon: the pooled (-pooler) string
+DIRECT_DATABASE_URL=    # optional: Neon's direct string, used only by migrations
 
 # Auth
-AUTH_SECRET=                        # session/JWT signing
-TELEGRAM_BOT_TOKEN=                  # secret; verifies Login Widget hashes (server-only)
-NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=  # public; browser-exposed so the widget can render
-ADMIN_ALLOWLIST=                    # comma-separated emails allowed to self-provision as admin
+AUTH_SECRET=            # session/JWT signing
+TELEGRAM_BOT_TOKEN=     # secret; verifies Login Widget hashes
+TELEGRAM_BOT_USERNAME=  # the bot's @username (no @); read server-side, passed to the widget
+ADMIN_ALLOWLIST=        # comma-separated emails allowed to self-provision as admin
+DEV_LOGIN=              # local only: 1 enables /dev/login (see below). Never set in a deploy.
 
 # Captcha (Cloudflare Turnstile)
 TURNSTILE_SITE_KEY=
@@ -105,7 +107,7 @@ S3_BUCKET=
 S3_PUBLIC_BASE_URL=
 ```
 
-External accounts to set up (human task, Phase 0 — see plan §3): domain (`.xyz` via NIC.UA), Cloudflare (DNS + Turnstile + R2 + Pages), a Postgres provider, and a Telegram bot (for the Login Widget).
+External accounts (human task, Phase 0 — see plan §3): domain + DNS (`wizards-among-us.pp.ua` at NIC.UA), Cloudflare (Turnstile + R2), Heroku (app hosting, pipeline `wau`), Neon (Postgres), and a Telegram bot per environment (for the Login Widget).
 
 ---
 
@@ -131,7 +133,7 @@ pnpm dev                     # http://localhost:3000
 ### Local services (Docker)
 
 **Only the backing services run in Docker — the app itself does not.** `pnpm dev` runs
-Next.js on your host (fastest HMR; the deploy target is Cloudflare Workers, not a container),
+Next.js on your host (fastest HMR; Heroku builds from source with a buildpack, not an image),
 so there is **no application image to build or rebuild**. `compose.yml` provides just
 **Postgres 17** and an optional **Adminer** web UI. (If we ever need a container-parity build,
 we'll add a Dockerfile then — we don't have one now, on purpose.)
@@ -160,10 +162,14 @@ DATABASE_URL=postgresql://wau:wau@localhost:5433/wau
 
 The DB scripts (`db:generate` / `db:migrate` / `db:seed`) auto-load `.env.local` via
 `@next/env` — the same files `next dev` reads — so you don't need to export `DATABASE_URL`
-in your shell. No migrations exist until Phase 1 generates them (`pnpm db:generate`), so
-`db:migrate` currently reports "nothing to apply" and exits cleanly. `db:migrate` runs a
-small script (`src/db/migrate.ts`) instead of `drizzle-kit migrate`, which gives real
-errors (e.g. "is Postgres running?") — drizzle-kit swallows them.
+in your shell.
+
+`db:migrate` runs `scripts/migrate.mjs` instead of `drizzle-kit migrate`, which gives real
+errors (e.g. "is Postgres running?") — drizzle-kit swallows them, reporting a stopped
+database and an empty migrations folder identically. That script is **plain `.mjs`, not
+TypeScript, on purpose**: it also runs in Heroku's release phase, where devDependencies
+(including `tsx`) have been pruned, so it must run on bare `node` using only production
+dependencies.
 
 **Adminer UI** (optional): `docker compose up -d adminer`, then http://localhost:8080 —
 System: PostgreSQL · Server: `db` · Username / Password: `wau`.
@@ -187,7 +193,7 @@ starts a real session — same cookie/session machinery as Telegram, just skippi
 > never an admin one (admins use `/admin/login`).
 
 To verify the real Telegram widget end-to-end, deploy to **staging** with a separate dev bot —
-see [Deploying to Cloudflare](#deploying-to-cloudflare-thin-layer) below.
+see [Deploying](#deploying-heroku) below.
 
 ### Data layer (Phase 1)
 
@@ -224,8 +230,8 @@ src/
 messages/uk.json       all Ukrainian UI copy incl. region labels (no hardcoded strings)
 drizzle/               GENERATED migrations (0000_*.sql + meta/) — don't hand-edit meta/
 drizzle.config.ts      Drizzle Kit config (reads DATABASE_URL)
-open-next.config.ts + wrangler.jsonc   thin Cloudflare Workers deploy layer
-.github/workflows/     ci.yml (lint/typecheck/test/build) · deploy.yml (manual, Cloudflare)
+Procfile               the entire deploy layer: `web: pnpm start`
+.github/workflows/     ci.yml (lint/typecheck/test/build)
 ```
 
 Quality gates (all green on `main`, enforced by CI as 4 parallel jobs):
@@ -239,59 +245,153 @@ gates (typecheck/test/build) stay in CI, not the hook, to keep commits fast.
 
 **Stack notes for this scaffold:** Next.js 16 (App Router, Turbopack) · React 19 ·
 Tailwind v4 · **next-intl** (`uk`, single-locale, no URL prefix — structured to add
-locales later) · Drizzle ORM + **node-postgres** (portable, works on Node hosts and on
-Cloudflare Workers via `nodejs_compat`). Whole app is `noindex` by default; the landing
-page opts back in during Phase 2.
+locales later) · Drizzle ORM + **node-postgres** (portable across Node hosts; requires a
+long-lived process — see [Deploying](#deploying-heroku)). Whole app is `noindex` by default;
+the landing page opts back in during Phase 2.
 
-### Deploying to Cloudflare (thin layer)
+### Deploying (Heroku)
 
-The app is standard, host-agnostic Next.js; Cloudflare is added via
-[`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) (Workers, the successor to
-`next-on-pages` for Next.js). `pnpm cf:preview` builds and previews locally;
-`pnpm cf:deploy` deploys. Auto-deploy on `main` is wired but **disabled** until you set two
-GitHub repo secrets — `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — and flip
-`.github/workflows/deploy.yml` from `workflow_dispatch` to `push`.
+The app is standard, host-agnostic Next.js running as a **long-lived Node process**. Nothing
+host-specific lives in app code — the entire deploy layer is the two-line `Procfile` plus the
+config vars below, so moving hosts later is a docs change, not a rewrite.
 
-**Staging** (`pnpm cf:deploy:staging`) deploys a separate `wizards-among-us-staging` worker,
-defined as the `env.staging` block in `wrangler.jsonc` (only `name` is overridden; everything
-else inherits). Its purpose is verifying the real **Telegram Login Widget**, which can't render
-on localhost. One-time setup:
+```
+release: pnpm db:migrate
+web: pnpm start
+```
 
-Order matters: the worker must exist before secrets can be set, and you can't authorize the
-bot's domain until you know the deployed URL.
+**Migrations run automatically on every deploy**, in Heroku's `release` phase — before the new
+code goes live. If a migration fails the release is **aborted** and the previous version keeps
+serving, so a bad migration can't ship a half-broken app. (This is the same shape as
+`release: rails db:migrate`.) Note it also runs on `pipelines:promote`, migrating production
+against production's own config vars.
 
-1. **Create a separate dev bot** in BotFather (the Login Widget allows one `/setdomain` per bot,
-   so don't reuse the production bot). Keep its token secret; you only need the @username now.
-2. **Apply migrations** to the staging database, using its **direct** (non-`-pooler`)
-   connection string — Neon recommends direct connections for schema migrations:
+> Migrations are reviewed in the PR that introduces them (we show the SQL before applying) —
+> the release phase then applies the already-reviewed migration. Nothing unreviewed reaches a
+> database this way.
+
+> **Why a long-lived Node process, and not Cloudflare Workers?**
+> We tried Workers (via OpenNext) and hit a hard wall: `src/db/index.ts` caches a `pg.Pool` at
+> module scope, which is correct on Node but **invalid on Workers** — a pool holds sockets bound
+> to the request that opened them, and Workers forbid reusing I/O across request contexts. Every
+> DB-backed route alternated OK / hang. The fixes (per-request client, Hyperdrive, or an
+> HTTP-only driver) each mean either a data-layer rewrite or provider lock-in, so we host on a
+> plain Node process instead. See the comment in `src/db/index.ts`.
+> We still use Cloudflare for **R2** (file storage) and **Turnstile** (captcha) — those are plain
+> APIs, callable from any host. DNS is at NIC.UA, not Cloudflare.
+
+**Pipeline:** `wau` — staging app `wau-staging`, production app `wau`.
+
+**Runtime config vars** (Heroku *Config Vars*, set per app — never commit them). All are read at
+**request time**, so they differ per app and survive a pipeline promotion correctly:
+
+| Var | Value |
+|---|---|
+| `DATABASE_URL` | Postgres connection string. On Neon use the **pooled** (`-pooler`) string |
+| `DIRECT_DATABASE_URL` | *Recommended.* Neon's **direct** (non-`-pooler`) string. Used only by the release-phase migration — Neon recommends direct connections for schema changes, and transaction-mode poolers can break migration locks. Falls back to `DATABASE_URL` if unset |
+| `CANONICAL_HOST` | *Recommended.* The one host this app should be served on, no scheme (e.g. `staging.wizards-among-us.pp.ua`). Requests on any other host are redirected to it. Unset = accept whatever host was requested |
+| `AUTH_SECRET` | `openssl rand -base64 32` |
+| `TELEGRAM_BOT_TOKEN` | BotFather token for **this** environment's bot |
+| `TELEGRAM_BOT_USERNAME` | That bot's @username (no `@`) |
+| `ADMIN_ALLOWLIST` | Comma-separated admin emails |
+
+> **Why no `NEXT_PUBLIC_*` vars.** Heroku pipeline promotion copies the **compiled slug** from
+> staging to production instead of rebuilding. `NEXT_PUBLIC_*` values are inlined into the browser
+> bundle at *build* time, so a promoted build would carry **staging's** values into production —
+> e.g. rendering the login widget for the staging bot. So the bot username is read on the server
+> per request and passed to the client component as a prop. Keep it that way: don't reintroduce a
+> `NEXT_PUBLIC_` var for anything that differs between environments.
+
+**Never set `DEV_LOGIN`** on any deployed app — the dev-login backdoor is local-only, and is
+additionally hard-disabled whenever `NODE_ENV=production` (which Heroku sets for you).
+
+#### HTTPS and canonical host
+
+`src/middleware.ts` enforces both in production (it's a no-op in local dev):
+
+- **http → https**, as a `308`. Heroku serves the app on both, and browsing over plain http
+  silently **drops the session cookie** — it's `Secure` in production — so login appears to
+  succeed and then shows you signed out. This is the fix for that class of confusion, and it
+  also sends `Strict-Transport-Security` so browsers stop trying http at all.
+- **any host → `CANONICAL_HOST`**, as a `307`. Cookies are scoped per host, so bouncing between
+  the `herokuapp.com` URL and the custom domain looks exactly like being logged out.
+
+The host redirect is deliberately **temporary (307)** while domains are still being set up — a
+permanent redirect to a mistyped canonical host would stick in browser caches. Switch it to 308
+at launch. Set `CANONICAL_HOST` to whichever host you point BotFather's `/setdomain` at, so the
+login flow and browsing always agree.
+
+#### Staging (needed to test the Telegram widget)
+
+The Telegram Login Widget can't render on `localhost` — it only appears on a BotFather-authorized
+domain. A staging app gives you that domain. Order matters: the app must exist before you can set
+config vars, and you can't authorize the domain until you know the URL.
+
+1. **Create a separate staging bot** in BotFather. The widget allows one `/setdomain` per bot, so
+   don't reuse the production bot. Keep its token secret; you only need the @username now.
+2. **Set the config vars** from the table above (the **pooled** string for `DATABASE_URL`, the
+   **direct** one for `DIRECT_DATABASE_URL`). Each `heroku config:set` restarts the app:
    ```bash
-   (read -rs "DATABASE_URL?Paste the staging DIRECT URL: " && export DATABASE_URL && pnpm db:migrate)
+   heroku config:set --app wau-staging AUTH_SECRET="$(openssl rand -base64 32)"
    ```
-   The subshell keeps the value out of your shell history and out of later commands.
-3. **Deploy** — this creates the worker and prints its URL. `NEXT_PUBLIC_*` vars are inlined into
-   the browser bundle at **build** time, so it must be set here, not as a secret:
+   Set the remaining vars the same way, or paste them in the Heroku dashboard to keep secrets out
+   of your shell history.
+3. **Deploy** — the release phase applies migrations before the new code goes live, so there's no
+   separate migration step:
    ```bash
-   NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=YourDevBot pnpm cf:deploy:staging
+   git push https://git.heroku.com/wau-staging.git HEAD:main
    ```
-   The site will error on first load — expected, the runtime secrets don't exist yet.
-4. **Set the worker's secrets** (`wrangler` is a devDependency, so run it via `pnpm exec`). Each
-   command prompts for the value, so nothing lands in shell history. Use the **pooled**
-   (`-pooler`) connection string here — the worker opens many short-lived connections:
-   ```bash
-   pnpm exec wrangler secret put DATABASE_URL --env staging
-   ```
-   ```bash
-   pnpm exec wrangler secret put TELEGRAM_BOT_TOKEN --env staging
-   ```
-   ```bash
-   pnpm exec wrangler secret put AUTH_SECRET --env staging
-   ```
-   Generate a value for `AUTH_SECRET` with `openssl rand -base64 32`. Setting a secret
-   redeploys the worker automatically.
-   **Never set `DEV_LOGIN` on staging** — the dev-login backdoor stays local-only (it is also
-   hard-disabled whenever `NODE_ENV=production`).
-5. **Authorize the domain**: BotFather → `/setdomain` → the dev bot → the URL from step 3. The
-   Login Widget only renders on an authorized domain.
+   Or add the remote once with `heroku git:remote --app wau-staging --remote staging`, then
+   `git push staging HEAD:main`.
+4. **Authorize the domain**: BotFather → `/setdomain` → the staging bot → the URL you'll actually
+   browse (`heroku apps:info --app wau-staging` shows the `herokuapp.com` one). The widget only
+   renders on an authorized domain, and it checks the domain the *page* is served from — so if you
+   set a custom domain below, use that one here.
+
+#### Custom domain (optional)
+
+The `herokuapp.com` URL is enough for `/setdomain` and for testing. To use
+`staging.wizards-among-us.pp.ua` instead:
+
+```bash
+heroku domains:add staging.wizards-among-us.pp.ua --app wau-staging
+```
+
+That prints a **DNS Target** (`<something>.herokudns.com`). Add it at **NIC.UA** — which serves
+our DNS; Cloudflare is not in the DNS path — as a `CNAME` on the `staging` label.
+
+> ⚠️ **Enter the target with a trailing dot** (`xxx.herokudns.com.`). Without it, the value is
+> treated as relative to the zone and you get
+> `xxx.herokudns.com.wizards-among-us.pp.ua.` — a broken record. Never use an A record; Heroku's
+> IPs rotate.
+
+Verify with `dig +short staging.wizards-among-us.pp.ua`, then wait for
+`heroku certs:auto --app wau-staging` to report the certificate as OK before pointing BotFather at
+the custom domain.
+
+**Promoting to production**: `heroku pipelines:promote --app wau-staging`. This reuses the built
+slug — so production must have its **own** config vars (its own database, its own bot token +
+username). Set those on `wau` before the first promotion.
+
+**Logs**: `heroku logs --tail --app wau-staging`.
+
+**Dyno size**: use **Basic** ($7/mo), not Eco. Eco dynos sleep after inactivity, and a parent
+hitting a multi-second cold start on a stressful errand is not a UX we want to ship.
+
+#### If the first deploy fails
+
+- **`tsc` / `tailwindcss` not found during build** — the buildpack pruned devDependencies before
+  building. Force them to stay:
+  ```bash
+  heroku config:set NPM_CONFIG_PRODUCTION=false YARN_PRODUCTION=false
+  ```
+- **pnpm not used / wrong version** — the buildpack picks the package manager from the
+  `packageManager` field in `package.json` (`pnpm@11.18.0`) via corepack. Don't commit a
+  `package-lock.json`; it would make the buildpack choose npm.
+- **Node version** — pinned via `engines.node` (`22.x`), matching `.nvmrc`. Heroku reads
+  `engines`, not `.nvmrc`, so keep the two in sync.
+- **App boots but every page 500s** — almost always a missing config var. Check
+  `heroku config` against the table above; `DATABASE_URL` and `AUTH_SECRET` are required.
 
 ---
 

@@ -22,11 +22,13 @@ Package manager: **pnpm**. (Scaffolded in Phase 0 with Next.js 16 App Router + T
 - `pnpm lint` / `pnpm typecheck` / `pnpm format:check` — quality gates (also run in CI)
 - `pnpm test` — Vitest + React Testing Library (`pnpm test:watch` to watch)
 - `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:seed` — Drizzle migrations / seed (schema lands in Phase 1)
-- `pnpm cf:preview` / `pnpm cf:deploy` — Cloudflare Workers (OpenNext) preview / deploy
+- Deploy: `git push heroku HEAD:main` (see README). The whole deploy layer is `Procfile`.
 
 ## Stack
 
-Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-layer auth (Auth.js/NextAuth or better-auth) · Cloudflare R2 (S3-compatible) + Turnstile + Pages/DNS.
+Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Frankfurt) · app-layer auth (Auth.js/NextAuth or better-auth) · Cloudflare R2 (S3-compatible) + Turnstile · hosted on Heroku (long-lived Node process; pipeline `wau` → apps `wau-staging` / `wau`) · domain `wizards-among-us.pp.ua` with DNS at NIC.UA (not Cloudflare).
+
+**Hosting constraint (learned the hard way):** `src/db/index.ts` caches a `pg.Pool` at module scope. That requires a **long-lived Node process**. It is invalid on Cloudflare Workers / edge runtimes, where a cached pool hangs the second request (sockets can't cross request contexts) — we hit this on a real Workers deploy. Don't propose an edge/serverless host without also changing the data layer (per-request client, Hyperdrive, or an HTTP driver).
 
 ## Conventions
 
@@ -45,7 +47,7 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-la
 
 - **Portability (hard rule):** depend only on a Postgres `DATABASE_URL`, S3-compatible storage creds, and an app-layer auth library storing to that Postgres. **No** hosting-provider-managed identity tables or BaaS-only APIs in the schema/data access.
 - **Identity model:** `users` (parents/volunteers) + `identities` (one row per auth provider — Telegram now, Google/FB later via a new `provider` value). `admins` is a **separate** table (email/password). Admins never appear as `parent_id`/`volunteer_id`. `audit_log.actor_id` is a loose polymorphic ref (`actor_type` `'user'|'admin'`, no FK) + `actor_label` snapshot.
-- **Child-data exposure:** the volunteer **browse card** shows only non-sensitive fields (child first name, age, current region, gift description + price). `current_town`, `delivery_information`, `parent_name`, and family Telegram are revealed **only to the volunteer who claims**. Log every view/claim/export in `audit_log`.
+- **Child-data exposure:** the volunteer **browse card** shows only non-sensitive fields (child first name, age, current region, gift description + price). `current_town`, `delivery_information`, `parent_name`, family Telegram, and any **contact field** (Phase 4) are revealed **only to the volunteer who claims**. Log every view/claim/export in `audit_log`.
 - **Indexing:** only `/` is indexable; everything else `noindex`. All data-bearing routes are behind auth + server-layer authz regardless.
 - **Campaigns:** one `active` campaign at a time (partial unique index). Parents can submit a *new* application only when there's an active campaign AND `accepting_applications` AND the global kill switch is on. Archive is **derived** (an app is "archived" because its campaign isn't active) — scope all parent/volunteer queries to the active campaign; don't build a separate archive store.
 - **Edit lock:** a parent may edit an application only while `draft`/`submitted`; admin approval locks it (server-enforced, not just UI).
@@ -62,6 +64,14 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres · app-la
 - **DB constraints:** structural only — range validation (age/rating) lives in zod, not DB CHECKs. Application content fields stay **nullable** (persisted drafts); required-ness enforced at submit via zod.
 - **Timestamps:** `created_at` + `updated_at` on every table except `audit_logs`.
 - **schema.ts:** plural table names, alphabetical order, uniqueness via unique **indexes** (not constraints).
+
+## Phase 4 decisions (resolved ahead of build)
+
+- **Telegram `@username` is OPTIONAL and must never gate sign-in.** Telegram doesn't require users to have one; `verifyTelegramLogin` already treats it as optional and `users.username` is nullable. Verified: a username-less login provisions correctly and lands signed in (header falls back to `common.account`). Don't "fix" this by requiring a username to authenticate.
+- **Contactability is enforced at SUBMIT/CLAIM, not at login.** Without an `@username` there is no handle a volunteer can click — the stored numeric Telegram id is usable by our *bot*, not by a human. So at the point it matters (parent submits an application; volunteer claims), require a usable contact: use the `@username` automatically when present, otherwise make the person set one (with instructions) or supply an alternative. Keeps the door open for stressed parents and puts friction only where it's justified.
+- **Consequence for the schema:** `applications` needs a contact field (nullable in DB per the drafts rule; required at submit via zod).
+- **⚠️ Contact info is SENSITIVE** — it belongs with `current_town` / `delivery_information` / `parent_name`, revealed only to the volunteer holding the active claim. It must NOT appear on the browse card (`toBrowseCard`), and every reveal is audit-logged.
+- Deferred alternative for later (Phase 7): **bot-mediated contact**, where our bot relays introductions by Telegram id so handles are never exchanged. The Login Widget already requests `data-request-access="write"` with that in mind — but verify the bot can actually message users unsolicited before designing on it.
 
 ## Code organization — decide at Phase 4
 

@@ -19,15 +19,9 @@
 # production
 /build
 
-# Cloudflare / OpenNext / wrangler
-/.open-next/
-/.wrangler/
-.dev.vars
-
-# env files — never commit secrets (but keep the example templates)
+# env files — never commit secrets (but keep the example template)
 .env*
 !.env.example
-!.dev.vars.example
 
 # debug logs
 npm-debug.log*

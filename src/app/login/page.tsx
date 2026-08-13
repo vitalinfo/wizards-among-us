@@ -23,7 +23,9 @@ export default async function LoginPage() {
       <div className="border-border bg-surface flex w-full max-w-md flex-col gap-5 rounded-lg border p-6">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <p className="text-muted-foreground leading-relaxed">{t("body")}</p>
-        <TelegramLoginButton />
+        <TelegramLoginButton
+          botUsername={process.env.TELEGRAM_BOT_USERNAME ?? null}
+        />
         <ul className="flex flex-col gap-2">
           {POINTS.map((key) => (
             <li key={key} className="text-body flex items-start gap-2 text-sm">

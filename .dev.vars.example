@@ -1,4 +1,0 @@
-# Cloudflare Workers local-dev variables (used by `pnpm cf:preview` / wrangler).
-# Copy to `.dev.vars` and fill in. Never commit `.dev.vars`.
-# For plain `next dev`, use `.env.local` instead (see .env.example).
-DATABASE_URL=

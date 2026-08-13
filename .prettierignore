@@ -5,8 +5,6 @@ pnpm-lock.yaml
 **/*.md
 
 .next
-.open-next
-.wrangler
 coverage
 drizzle
 next-env.d.ts

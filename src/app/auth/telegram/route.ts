@@ -14,16 +14,28 @@ import { findOrCreateTelegramUser } from "@/lib/auth/telegramUser";
 // to a custom NextResponse).
 export const dynamic = "force-dynamic";
 
+// Redirect with a RELATIVE Location, resolved by the browser against the URL it
+// actually requested.
+//
+// Do NOT use NextResponse.redirect(new URL(path, request.url)): behind a reverse
+// proxy (Heroku's router, and most PaaS) `request.url` is the dyno's internal
+// address, so that produced a real redirect to `localhost:<PORT>` in staging —
+// login appeared to "do nothing". A relative Location needs no host detection
+// and is correct on every host, proxied or not.
+function redirectTo(path: string): NextResponse {
+  return new NextResponse(null, { status: 302, headers: { Location: path } });
+}
+
 export async function GET(request: NextRequest) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
-    return NextResponse.redirect(new URL("/?login=misconfigured", request.url));
+    return redirectTo("/?login=misconfigured");
   }
 
   const params = Object.fromEntries(request.nextUrl.searchParams);
   const result = verifyTelegramLogin(params, botToken);
   if (!result.ok) {
-    return NextResponse.redirect(new URL("/?login=failed", request.url));
+    return redirectTo("/?login=failed");
   }
 
   const userId = await findOrCreateTelegramUser(result.profile);
@@ -32,7 +44,7 @@ export async function GET(request: NextRequest) {
     actorId: userId,
   });
 
-  const response = NextResponse.redirect(new URL("/", request.url));
+  const response = redirectTo("/");
   response.cookies.set(
     SESSION_COOKIE_NAME,
     token,

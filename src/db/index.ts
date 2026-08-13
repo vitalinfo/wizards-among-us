@@ -8,10 +8,17 @@ import * as schema from "./schema";
 // The client is created lazily so importing this module never requires the env
 // var at build time — only when a query actually runs (Phase 1+).
 //
-// Note for Cloudflare deploys: node-postgres works on the Workers runtime with
-// the `nodejs_compat` flag (already set in wrangler.jsonc). If we ever move to
-// the edge runtime, swap in a serverless PG driver or a pooler — a config-only
-// change, no schema/query rewrite.
+// The pool is cached at module scope and shared across requests. That is correct
+// on a long-lived Node process (our deploy target — see README) and is why we
+// host on one.
+//
+// ⚠️ It is NOT valid on Cloudflare Workers / edge runtimes. A pool is stateful:
+// its sockets belong to the request that opened them, and Workers forbid reusing
+// I/O across request contexts, so a cached pool hangs the second request
+// ("Worker exceeded CPU/hung"). We hit exactly that on a Workers deploy: every
+// DB-backed route alternated OK / hang. Moving to an edge runtime therefore
+// means a per-request client (closed via waitUntil), a pooler like Hyperdrive,
+// or an HTTP-based driver — a data-layer change, not just config.
 let pool: Pool | undefined;
 let db: ReturnType<typeof drizzle<typeof schema>> | undefined;
 
