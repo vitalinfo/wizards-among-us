@@ -15,6 +15,13 @@ export async function findOrCreateTelegramUser(
 ): Promise<string> {
   const db = getDb();
   const username = profile.username ?? null;
+  // Denormalized onto `users` so a person is identifiable even without an
+  // @username (optional on Telegram) — kept in sync on every login, like username.
+  const profileColumns = {
+    username,
+    firstName: profile.firstName,
+    lastName: profile.lastName ?? null,
+  };
   const data = {
     username,
     firstName: profile.firstName,
@@ -41,7 +48,7 @@ export async function findOrCreateTelegramUser(
   if (existing) {
     await db
       .update(users)
-      .set({ username })
+      .set(profileColumns)
       .where(eq(users.id, existing.userId));
     await db
       .update(identities)
@@ -54,7 +61,7 @@ export async function findOrCreateTelegramUser(
     return await db.transaction(async (tx) => {
       const [user] = await tx
         .insert(users)
-        .values({ username })
+        .values(profileColumns)
         .returning({ id: users.id });
       await tx.insert(identities).values({
         userId: user.id,

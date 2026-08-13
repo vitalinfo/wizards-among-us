@@ -303,6 +303,13 @@ export const users = pgTable(
       .notNull()
       .default(sql`'{}'::text[]`),
     username: text("username"), // denormalized handle for display + volunteer filter
+    // Denormalized from the verified provider profile (also kept in
+    // identities.data). A Telegram @username is OPTIONAL, so without these a
+    // user with no handle is anonymous everywhere — unusable for admin
+    // moderation and confusing in the header. Nullable: we can't guarantee a
+    // name for pre-existing rows or a future provider.
+    firstName: text("first_name"),
+    lastName: text("last_name"),
     note: text("note"), // optional free-text note from the person (one per user)
     ...timestamps(),
   },

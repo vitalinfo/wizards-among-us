@@ -9,6 +9,8 @@ import { SiteHeaderClient } from "./SiteHeaderClient";
 // surfaces here. Pages import this; SiteHeaderClient is the "use client" island.
 export async function SiteHeader() {
   const actor = await getSessionActor();
-  const user = isUser(actor) ? { username: actor.username } : null;
+  const user = isUser(actor)
+    ? { username: actor.username, firstName: actor.firstName }
+    : null;
   return <SiteHeaderClient user={user} />;
 }

@@ -84,13 +84,26 @@ export async function getSessionActor(): Promise<Actor | null> {
     return admin ? { kind: "admin", id: admin.id, email: admin.email } : null;
   }
 
+  // lastName is deliberately NOT selected — the actor travels widely, so it
+  // carries only what's needed to identify the person in the UI.
   const [user] = await db
-    .select({ id: users.id, username: users.username, role: users.role })
+    .select({
+      id: users.id,
+      username: users.username,
+      firstName: users.firstName,
+      role: users.role,
+    })
     .from(users)
     .where(eq(users.id, session.actorId))
     .limit(1);
   return user
-    ? { kind: "user", id: user.id, username: user.username, roles: user.role }
+    ? {
+        kind: "user",
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        roles: user.role,
+      }
     : null;
 }
 
