@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Landing } from "@/components/landing";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
-import { getActiveCampaign } from "@/db/queries/campaigns";
+import { getActiveCampaign } from "@/features/campaigns/queries";
 
 // The landing page is the ONLY indexable route (§10 crawler policy) — override
 // the app-wide noindex default set in the root layout.
