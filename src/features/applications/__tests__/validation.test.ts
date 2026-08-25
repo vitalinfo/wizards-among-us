@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { applicationDraftSchema, applicationSubmitSchema } from "../validation";
+import {
+  applicationDraftSchema,
+  applicationSubmitSchema,
+  applicationSubmitSchemaForCampaign,
+  contactSchema,
+} from "../validation";
 
 const validSubmit = {
   parentName: "Ivan",
@@ -12,10 +17,14 @@ const validSubmit = {
   currentRegion: "lviv",
   displacedYear: 2022,
   familyStory: "Our family relocated in 2022.",
+  contactMethod: "telegram",
+  contact: "@olha_mama",
   giftDescription: "A school backpack",
+  giftUrl: "https://rozetka.com.ua/ua/502764564/p502764564/",
   giftPrice: 1200,
   deliveryInformation: "Nova Poshta #5, Lviv",
   consent: true,
+  socialMediaConsent: false,
 } as const;
 
 describe("applicationSubmitSchema", () => {
@@ -86,6 +95,107 @@ describe("applicationDraftSchema", () => {
     ).toBe(true);
     expect(applicationDraftSchema.safeParse({ childAge: 99 }).success).toBe(
       false,
+    );
+  });
+});
+
+// The contact is how a volunteer reaches the family about a child's gift, so a
+// handle stored in the phone field (or vice versa) is a dead end at the worst
+// possible moment — validate per method, not just "non-empty".
+describe("contactSchema", () => {
+  it("accepts a Telegram handle and strips a leading @", () => {
+    const parsed = contactSchema.parse({
+      contactMethod: "telegram",
+      contact: "  @olha_mama ",
+    });
+    expect(parsed.contact).toBe("olha_mama");
+  });
+
+  it("accepts a Ukrainian phone and strips formatting", () => {
+    const parsed = contactSchema.parse({
+      contactMethod: "phone",
+      contact: "+380 (67) 123-45-67",
+    });
+    expect(parsed.contact).toBe("+380671234567");
+  });
+
+  it("rejects a phone number entered as a Telegram handle", () => {
+    expect(
+      contactSchema.safeParse({
+        contactMethod: "telegram",
+        contact: "+380671234567",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a handle entered as a phone number", () => {
+    expect(
+      contactSchema.safeParse({ contactMethod: "phone", contact: "@olha_mama" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a too-short handle and a non-Ukrainian number", () => {
+    expect(
+      contactSchema.safeParse({ contactMethod: "telegram", contact: "@ab" })
+        .success,
+    ).toBe(false);
+    expect(
+      contactSchema.safeParse({
+        contactMethod: "phone",
+        contact: "+15551234567",
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("gift url and social-media consent", () => {
+  it("requires a real URL for the gift link", () => {
+    expect(
+      applicationSubmitSchema.safeParse({ ...validSubmit, giftUrl: "rozetka" })
+        .success,
+    ).toBe(false);
+  });
+
+  // Required to ANSWER, but "no" is a valid answer — it must never be a
+  // literal(true) like the data-processing consent.
+  it("accepts either answer for social-media consent", () => {
+    for (const socialMediaConsent of [true, false]) {
+      expect(
+        applicationSubmitSchema.safeParse({
+          ...validSubmit,
+          socialMediaConsent,
+        }).success,
+      ).toBe(true);
+    }
+  });
+
+  it("still requires social-media consent to be answered", () => {
+    const withoutAnswer: Record<string, unknown> = { ...validSubmit };
+    delete withoutAnswer.socialMediaConsent;
+    expect(applicationSubmitSchema.safeParse(withoutAnswer).success).toBe(
+      false,
+    );
+  });
+});
+
+describe("applicationSubmitSchemaForCampaign (gift budget cap)", () => {
+  it("rejects a gift over the campaign cap", () => {
+    const schema = applicationSubmitSchemaForCampaign({
+      giftPriceCap: "700.00",
+    });
+    expect(schema.safeParse({ ...validSubmit, giftPrice: 701 }).success).toBe(
+      false,
+    );
+    expect(schema.safeParse({ ...validSubmit, giftPrice: 700 }).success).toBe(
+      true,
+    );
+  });
+
+  it("imposes no cap when the campaign has none", () => {
+    const schema = applicationSubmitSchemaForCampaign({ giftPriceCap: null });
+    expect(schema.safeParse({ ...validSubmit, giftPrice: 5000 }).success).toBe(
+      true,
     );
   });
 });

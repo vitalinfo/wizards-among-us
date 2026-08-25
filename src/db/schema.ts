@@ -19,6 +19,7 @@ import {
   APPLICATION_STATUSES,
   CAMPAIGN_STATUSES,
   CAMPAIGN_TYPES,
+  CONTACT_METHODS,
   FILE_KINDS,
   IDENTITY_PROVIDERS,
   UKRAINE_REGIONS,
@@ -103,7 +104,7 @@ export const applications = pgTable(
     parentId: uuid("parent_id")
       .notNull()
       .references(() => users.id),
-    parentName: text("parent_name"),
+    parentName: text("parent_name"), // [sensitive] claiming volunteer only
     childName: text("child_name"),
     childAge: integer("child_age"),
     homeTown: text("home_town"),
@@ -112,7 +113,13 @@ export const applications = pgTable(
     currentRegion: text("current_region", { enum: UKRAINE_REGIONS }), // primary volunteer filter
     displacedYear: integer("displaced_year"), // year the family was displaced (range validated in zod)
     familyStory: text("family_story"),
+    // How the volunteer reaches the family: a Telegram @handle or a phone
+    // number. Required at SUBMIT (zod), nullable here so drafts save — see the
+    // Phase 4 contactability decision. [sensitive] claiming volunteer only.
+    contact: text("contact"),
+    contactMethod: text("contact_method", { enum: CONTACT_METHODS }),
     giftDescription: text("gift_description"), // shown on the browse card
+    giftUrl: text("gift_url"), // link to the exact item in a Ukrainian shop
     giftPrice: numeric("gift_price", { precision: 10, scale: 2 }), // UAH (single currency)
     deliveryInformation: text("delivery_information"), // [sensitive] claiming volunteer only
     typeFields: jsonb("type_fields"), // campaign-type-specific extras
@@ -120,10 +127,21 @@ export const applications = pgTable(
       .notNull()
       .default("draft"),
     rejectionNote: text("rejection_note"),
+    // Consent, recorded as WHEN it was given rather than a boolean — a
+    // timestamp is the evidence a data-protection request needs. Set at submit.
+    consentAt: timestamp("consent_at", { withTimezone: true }),
+    // Separate, OPTIONAL consent (form Q20): may we use the letter / child
+    // photo on social media to promote the initiative? Null = not answered.
+    // Never conflate with consentAt — one is required, one is not.
+    socialMediaConsent: boolean("social_media_consent"),
     ...timestamps(),
   },
   (t) => [
     check("applications_status_valid", oneOf("status", APPLICATION_STATUSES)),
+    check(
+      "applications_contact_method_valid",
+      oneOfNullable("contact_method", CONTACT_METHODS),
+    ),
     check(
       "applications_home_region_valid",
       oneOfNullable("home_region", UKRAINE_REGIONS),
@@ -177,6 +195,10 @@ export const campaigns = pgTable(
     acceptingApplications: boolean("accepting_applications")
       .notNull()
       .default(true),
+    // Per-campaign gift budget ceiling in UAH (St Nicholas 2025 used 700).
+    // Null = no cap. Enforced at submit in zod, not as a DB CHECK, so changing
+    // the cap never needs a migration and never invalidates existing rows.
+    giftPriceCap: numeric("gift_price_cap", { precision: 10, scale: 2 }),
     startsAt: timestamp("starts_at", { withTimezone: true }),
     endsAt: timestamp("ends_at", { withTimezone: true }),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
