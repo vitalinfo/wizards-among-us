@@ -51,7 +51,12 @@ export const FILE_KINDS = [
 export type FileKind = (typeof FILE_KINDS)[number];
 
 // How a family can be reached. The 2025 form asked for "номер телефону у
-// формі +38xxxx або нік @", so exactly these two — extensible later.
+// формі +38xxxx або нік @", so exactly these two.
+//
+// APP-LEVEL ONLY — no column stores this. A Telegram handle already lives in
+// users.username and a fallback number in users.phone, so the method is
+// *derived* (see resolveUserContact); persisting it too would be a third copy
+// that can drift.
 export const CONTACT_METHODS = ["telegram", "phone"] as const;
 export type ContactMethod = (typeof CONTACT_METHODS)[number];
 

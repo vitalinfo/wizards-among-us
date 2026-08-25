@@ -19,16 +19,15 @@ describe("toBrowseCard redaction (guardrail)", () => {
       currentRegion: "lviv",
       displacedYear: 2022,
       familyStory: "…",
-      contact: "olha_mama",
-      contactMethod: "telegram",
       giftDescription: "Backpack",
-      giftUrl: "https://rozetka.com.ua/ua/502764564/p502764564/",
       giftPrice: "1200.00",
       deliveryInformation: "Nova Poshta #5 — private",
-      typeFields: null,
+      typeFields: {
+        giftUrl: "https://rozetka.com.ua/ua/502764564/p502764564/",
+      },
       status: "approved",
       rejectionNote: null,
-      consentAt: new Date(),
+      submittedAt: new Date(),
       socialMediaConsent: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -45,10 +44,9 @@ describe("toBrowseCard redaction (guardrail)", () => {
       giftPrice: "1200.00",
       status: "approved",
     });
-    // Anything a volunteer must not see before claiming. `contact` and
-    // `giftUrl` are new with the St Nicholas form: the handle/phone is how a
-    // stranger reaches the family, and the shop link is only needed once you've
-    // actually claimed the child.
+    // Anything a volunteer must not see before claiming. typeFields carries the
+    // St Nicholas shop link, which is only needed once you've actually claimed
+    // the child.
     for (const leaked of [
       "deliveryInformation",
       "currentTown",
@@ -56,10 +54,8 @@ describe("toBrowseCard redaction (guardrail)", () => {
       "familyStory",
       "homeTown",
       "homeRegion",
-      "contact",
-      "contactMethod",
-      "giftUrl",
-      "consentAt",
+      "typeFields",
+      "submittedAt",
       "socialMediaConsent",
     ]) {
       expect(leaked in card).toBe(false);

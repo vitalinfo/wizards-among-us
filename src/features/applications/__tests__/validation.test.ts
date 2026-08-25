@@ -4,7 +4,7 @@ import {
   applicationDraftSchema,
   applicationSubmitSchema,
   applicationSubmitSchemaForCampaign,
-  contactSchema,
+  stNicholasTypeFieldsSchema,
 } from "../validation";
 
 const validSubmit = {
@@ -17,10 +17,7 @@ const validSubmit = {
   currentRegion: "lviv",
   displacedYear: 2022,
   familyStory: "Our family relocated in 2022.",
-  contactMethod: "telegram",
-  contact: "@olha_mama",
   giftDescription: "A school backpack",
-  giftUrl: "https://rozetka.com.ua/ua/502764564/p502764564/",
   giftPrice: 1200,
   deliveryInformation: "Nova Poshta #5, Lviv",
   consent: true,
@@ -99,62 +96,16 @@ describe("applicationDraftSchema", () => {
   });
 });
 
-// The contact is how a volunteer reaches the family about a child's gift, so a
-// handle stored in the phone field (or vice versa) is a dead end at the worst
-// possible moment — validate per method, not just "non-empty".
-describe("contactSchema", () => {
-  it("accepts a Telegram handle and strips a leading @", () => {
-    const parsed = contactSchema.parse({
-      contactMethod: "telegram",
-      contact: "  @olha_mama ",
-    });
-    expect(parsed.contact).toBe("olha_mama");
-  });
-
-  it("accepts a Ukrainian phone and strips formatting", () => {
-    const parsed = contactSchema.parse({
-      contactMethod: "phone",
-      contact: "+380 (67) 123-45-67",
-    });
-    expect(parsed.contact).toBe("+380671234567");
-  });
-
-  it("rejects a phone number entered as a Telegram handle", () => {
+describe("gift url (campaign type field) and social-media consent", () => {
+  it("requires a real URL for the St Nicholas gift link", () => {
     expect(
-      contactSchema.safeParse({
-        contactMethod: "telegram",
-        contact: "+380671234567",
+      stNicholasTypeFieldsSchema.safeParse({ giftUrl: "rozetka" }).success,
+    ).toBe(false);
+    expect(
+      stNicholasTypeFieldsSchema.safeParse({
+        giftUrl: "https://rozetka.com.ua/ua/502764564/p502764564/",
       }).success,
-    ).toBe(false);
-  });
-
-  it("rejects a handle entered as a phone number", () => {
-    expect(
-      contactSchema.safeParse({ contactMethod: "phone", contact: "@olha_mama" })
-        .success,
-    ).toBe(false);
-  });
-
-  it("rejects a too-short handle and a non-Ukrainian number", () => {
-    expect(
-      contactSchema.safeParse({ contactMethod: "telegram", contact: "@ab" })
-        .success,
-    ).toBe(false);
-    expect(
-      contactSchema.safeParse({
-        contactMethod: "phone",
-        contact: "+15551234567",
-      }).success,
-    ).toBe(false);
-  });
-});
-
-describe("gift url and social-media consent", () => {
-  it("requires a real URL for the gift link", () => {
-    expect(
-      applicationSubmitSchema.safeParse({ ...validSubmit, giftUrl: "rozetka" })
-        .success,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   // Required to ANSWER, but "no" is a valid answer — it must never be a

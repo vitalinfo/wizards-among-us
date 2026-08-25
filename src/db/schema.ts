@@ -19,7 +19,6 @@ import {
   APPLICATION_STATUSES,
   CAMPAIGN_STATUSES,
   CAMPAIGN_TYPES,
-  CONTACT_METHODS,
   FILE_KINDS,
   IDENTITY_PROVIDERS,
   UKRAINE_REGIONS,
@@ -113,35 +112,34 @@ export const applications = pgTable(
     currentRegion: text("current_region", { enum: UKRAINE_REGIONS }), // primary volunteer filter
     displacedYear: integer("displaced_year"), // year the family was displaced (range validated in zod)
     familyStory: text("family_story"),
-    // How the volunteer reaches the family: a Telegram @handle or a phone
-    // number. Required at SUBMIT (zod), nullable here so drafts save — see the
-    // Phase 4 contactability decision. [sensitive] claiming volunteer only.
-    contact: text("contact"),
-    contactMethod: text("contact_method", { enum: CONTACT_METHODS }),
     giftDescription: text("gift_description"), // shown on the browse card
-    giftUrl: text("gift_url"), // link to the exact item in a Ukrainian shop
     giftPrice: numeric("gift_price", { precision: 10, scale: 2 }), // UAH (single currency)
     deliveryInformation: text("delivery_information"), // [sensitive] claiming volunteer only
-    typeFields: jsonb("type_fields"), // campaign-type-specific extras
+    // Campaign-type-specific extras — e.g. the St Nicholas shop link, or school
+    // grade / clothing sizes for New School Year. Validated per type in zod.
+    typeFields: jsonb("type_fields"),
     status: text("status", { enum: APPLICATION_STATUSES })
       .notNull()
       .default("draft"),
     rejectionNote: text("rejection_note"),
-    // Consent, recorded as WHEN it was given rather than a boolean — a
-    // timestamp is the evidence a data-protection request needs. Set at submit.
-    consentAt: timestamp("consent_at", { withTimezone: true }),
-    // Separate, OPTIONAL consent (form Q20): may we use the letter / child
-    // photo on social media to promote the initiative? Null = not answered.
-    // Never conflate with consentAt — one is required, one is not.
+    // When the parent actually submitted. NOT derivable from the other
+    // timestamps: created_at is when the draft was started and updated_at moves
+    // on every edit. Needed to honour the "we review within two days" promise
+    // and to order the admin queue.
+    //
+    // Consent is deliberately NOT stored: it's a hard gate at submit, so every
+    // submitted application has it by definition and a column would only record
+    // a foregone conclusion. submitted_at is the timestamp that carries
+    // information.
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    // A genuinely optional, separate consent (form Q20): may we use the letter
+    // or child photo on social media to promote the initiative? Either answer
+    // is valid, so it is a nullable boolean — never a required "true".
     socialMediaConsent: boolean("social_media_consent"),
     ...timestamps(),
   },
   (t) => [
     check("applications_status_valid", oneOf("status", APPLICATION_STATUSES)),
-    check(
-      "applications_contact_method_valid",
-      oneOfNullable("contact_method", CONTACT_METHODS),
-    ),
     check(
       "applications_home_region_valid",
       oneOfNullable("home_region", UKRAINE_REGIONS),
@@ -332,6 +330,13 @@ export const users = pgTable(
     // name for pre-existing rows or a future provider.
     firstName: text("first_name"),
     lastName: text("last_name"),
+    // Fallback contact for someone with no Telegram @username (it's optional on
+    // Telegram, and a numeric id is usable by our bot, not by a human
+    // volunteer). Asked once at submit/claim, reused by every application of
+    // theirs — deliberately NOT copied onto applications: a snapshot would go
+    // stale exactly when a volunteer needs to reach the family.
+    // [sensitive] revealed only to the volunteer holding the active claim.
+    phone: text("phone"),
     note: text("note"), // optional free-text note from the person (one per user)
     ...timestamps(),
   },

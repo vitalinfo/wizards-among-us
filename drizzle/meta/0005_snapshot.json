@@ -1,5 +1,5 @@
 {
-  "id": "e35133cc-4a6a-429e-b73e-35997417045c",
+  "id": "7549303f-7701-4cb5-a640-5048ee1f51d9",
   "prevId": "74025761-861d-4304-923f-83ea7f524c14",
   "version": "7",
   "dialect": "postgresql",
@@ -248,26 +248,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "contact": {
-          "name": "contact",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "contact_method": {
-          "name": "contact_method",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "gift_description": {
           "name": "gift_description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gift_url": {
-          "name": "gift_url",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -303,8 +285,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "consent_at": {
-          "name": "consent_at",
+        "submitted_at": {
+          "name": "submitted_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -403,10 +385,6 @@
         "applications_status_valid": {
           "name": "applications_status_valid",
           "value": "status in ('draft', 'submitted', 'approved', 'rejected', 'claimed', 'fulfilled')"
-        },
-        "applications_contact_method_valid": {
-          "name": "applications_contact_method_valid",
-          "value": "contact_method is null or contact_method in ('telegram', 'phone')"
         },
         "applications_home_region_valid": {
           "name": "applications_home_region_valid",
@@ -1156,6 +1134,12 @@
         },
         "last_name": {
           "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
           "type": "text",
           "primaryKey": false,
           "notNull": false

@@ -1,51 +1,12 @@
 import { z } from "zod";
 
-import { contactMethodSchema, regionSchema } from "@/lib/enumSchemas";
+import { regionSchema } from "@/lib/enumSchemas";
 
 // Base fields required for every campaign (§7), modelled on the real
 // «Святий Миколай 2025» form (docs/reference/st-nicholas-2025-google-form.pdf).
 // Enforced at SUBMIT — drafts save partial data (see applicationDraftSchema), so
 // these are NOT NOT NULL in the DB. The server always re-validates; client-side
 // use is inline feedback only.
-
-// Telegram usernames: 5–32 chars, letters/digits/underscore. We accept a leading
-// @ (the form asked for "нік @") and strip it, so stored values match
-// users.username and can be turned into a t.me link.
-const TELEGRAM_HANDLE = /^[A-Za-z0-9_]{5,32}$/;
-// Ukrainian mobile in the form the 2025 form asked for: +38 0XX XXX XX XX.
-const UA_PHONE = /^\+380\d{9}$/;
-
-// A usable contact for the volunteer who claims: either a Telegram handle or a
-// phone number. Which one is validated depends on contactMethod — a phone in the
-// telegram field would be a dead link at exactly the wrong moment.
-export const contactSchema = z
-  .object({
-    contactMethod: contactMethodSchema,
-    contact: z.string().trim().min(1),
-  })
-  .transform(({ contactMethod, contact }) => ({
-    contactMethod,
-    contact:
-      contactMethod === "telegram"
-        ? contact.replace(/^@/, "")
-        : contact.replace(/[\s()-]/g, ""),
-  }))
-  .superRefine(({ contactMethod, contact }, ctx) => {
-    const ok =
-      contactMethod === "telegram"
-        ? TELEGRAM_HANDLE.test(contact)
-        : UA_PHONE.test(contact);
-    if (!ok) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["contact"],
-        message:
-          contactMethod === "telegram"
-            ? "invalid_telegram_handle"
-            : "invalid_ua_phone",
-      });
-    }
-  });
 
 const applicationFields = {
   parentName: z.string().trim().min(1),
@@ -59,19 +20,16 @@ const applicationFields = {
   // current year. Range lives here (zod), not a DB CHECK.
   displacedYear: z.number().int().min(2014).max(new Date().getFullYear()),
   familyStory: z.string().trim().min(1),
-  contactMethod: contactMethodSchema,
-  contact: z.string().trim().min(1),
   giftDescription: z.string().trim().min(1),
-  // Link to the exact item in a shop. We require a real http(s) URL but do NOT
-  // enforce a Ukrainian domain — too many valid shapes (.ua, .com.ua, .com) to
-  // encode as a rule; the admin review step catches the rest.
-  giftUrl: z.string().trim().url(),
   giftPrice: z.number().positive().max(99_999_999.99),
   deliveryInformation: z.string().trim().min(1),
-  // Campaign-type-specific extras.
+  // Campaign-type-specific extras — e.g. the St Nicholas shop link. Validated
+  // per campaign type (see stNicholasTypeFieldsSchema).
   typeFields: z.record(z.string(), z.unknown()).optional(),
-  // Required consent to share the application with volunteers (§11). Persisted
-  // as applications.consent_at (a timestamp, not a flag).
+  // Required consent to share the application with volunteers (§11). A hard
+  // gate at submit, so it is NOT persisted — a submitted application has it by
+  // definition; applications.submitted_at is the timestamp that carries
+  // information.
   consent: z.literal(true),
   // SEPARATE, optional-in-substance consent (form Q20): may we use the letter /
   // child photo on social media? The parent must answer, but either answer is
@@ -79,19 +37,7 @@ const applicationFields = {
   socialMediaConsent: z.boolean(),
 };
 
-export const applicationSubmitSchema = z
-  .object(applicationFields)
-  .superRefine((value, ctx) => {
-    const parsed = contactSchema.safeParse({
-      contactMethod: value.contactMethod,
-      contact: value.contact,
-    });
-    if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        ctx.addIssue({ ...issue, path: ["contact"] });
-      }
-    }
-  });
+export const applicationSubmitSchema = z.object(applicationFields);
 export type ApplicationSubmitInput = z.infer<typeof applicationSubmitSchema>;
 
 // Per-campaign gift budget ceiling (St Nicholas 2025: 700 UAH). Applied as a
@@ -126,3 +72,24 @@ export const applicationDraftSchema = z
     socialMediaConsent: z.boolean().optional(),
   });
 export type ApplicationDraftInput = z.infer<typeof applicationDraftSchema>;
+
+// Campaign-type-specific fields, stored in applications.type_fields (jsonb).
+// Kept out of the base columns because they differ per campaign: St Nicholas
+// requires a shop link for the exact item; New School Year will want school
+// grade and sizes instead.
+export const stNicholasTypeFieldsSchema = z.object({
+  // The 2025 form required a link to the exact item on a Ukrainian shop. We
+  // require a real http(s) URL but do NOT enforce a Ukrainian domain — too many
+  // valid shapes (.ua, .com.ua, .com) to encode as a rule, and admin review
+  // catches the rest.
+  giftUrl: z.string().trim().url(),
+});
+export type StNicholasTypeFields = z.infer<typeof stNicholasTypeFieldsSchema>;
+
+// Validate the base application AND the extras for a given campaign type. The
+// per-type schema is applied to type_fields so a St Nicholas submission can't
+// land without its shop link.
+export const TYPE_FIELDS_SCHEMAS = {
+  saint_nicholas_day: stNicholasTypeFieldsSchema,
+  new_school_year: z.record(z.string(), z.unknown()), // fields TBD
+} as const;
