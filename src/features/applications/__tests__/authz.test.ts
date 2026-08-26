@@ -5,7 +5,9 @@ import type { Actor } from "@/lib/actor";
 import {
   canEditApplication,
   canStartApplication,
+  canSubmitApplication,
   canViewSensitiveChildData,
+  submitBlockedBecause,
 } from "../authz";
 import { intakeOpen } from "@/features/campaigns/authz";
 
@@ -147,5 +149,65 @@ describe("canViewSensitiveChildData", () => {
       }),
     ).toBe(false);
     expect(canViewSensitiveChildData(volunteer, app, null)).toBe(false);
+  });
+});
+
+// The submit gate combines four rules that each fail for a different reason, so
+// it returns WHICH one blocked — a parent who can't submit deserves to know why.
+describe("submitBlockedBecause (the full submit gate)", () => {
+  const own = { parentId: "p1", status: "draft" as const };
+  const open = {
+    campaign: { status: "active" as const, acceptingApplications: true },
+    settings: { applicationsEnabled: true },
+    contactable: true,
+  };
+
+  it("allows the owning parent when every gate passes", () => {
+    expect(submitBlockedBecause(parent, own, open)).toBeNull();
+    expect(canSubmitApplication(parent, own, open)).toBe(true);
+  });
+
+  it("blocks a different parent", () => {
+    expect(submitBlockedBecause(otherParent, own, open)).toBe("not_owner");
+  });
+
+  it("blocks once an admin has approved it (edit lock)", () => {
+    expect(
+      submitBlockedBecause(parent, { ...own, status: "approved" }, open),
+    ).toBe("locked");
+  });
+
+  it("blocks when intake is closed — campaign, accepting flag, or kill switch", () => {
+    expect(submitBlockedBecause(parent, own, { ...open, campaign: null })).toBe(
+      "intake_closed",
+    );
+    expect(
+      submitBlockedBecause(parent, own, {
+        ...open,
+        campaign: { status: "active", acceptingApplications: false },
+      }),
+    ).toBe("intake_closed");
+    expect(
+      submitBlockedBecause(parent, own, {
+        ...open,
+        settings: { applicationsEnabled: false },
+      }),
+    ).toBe("intake_closed");
+  });
+
+  // Contactability is enforced HERE, never at login (Phase 4 decision).
+  it("blocks when nobody could reach the family", () => {
+    expect(
+      submitBlockedBecause(parent, own, { ...open, contactable: false }),
+    ).toBe("no_contact");
+  });
+
+  it("lets an admin override the intake gate but never the contact gate", () => {
+    expect(
+      submitBlockedBecause(admin, own, { ...open, campaign: null }),
+    ).toBeNull();
+    expect(
+      submitBlockedBecause(admin, own, { ...open, contactable: false }),
+    ).toBe("no_contact");
   });
 });
