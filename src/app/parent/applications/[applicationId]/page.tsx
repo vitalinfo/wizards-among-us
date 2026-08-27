@@ -56,6 +56,10 @@ export default async function ApplicationPage({
   ]);
   const contact = resolveUserContact(contactFields);
   const steps = stepsForCampaignType(campaign?.type);
+  // An application from a finished campaign is read-only, whatever its status.
+  // The submit action already refuses it; without this the parent would be
+  // shown a working form that can only fail at the end.
+  const campaignActive = campaign?.status === "active";
 
   // Keyed by kind: each upload slot is single-file, so the newest wins if a
   // parent somehow has two of a kind.
@@ -94,7 +98,14 @@ export default async function ApplicationPage({
         ) : null}
 
         <div className="mt-8">
-          {!steps ? (
+          {!campaignActive ? (
+            <div className="border-border bg-surface-muted rounded-lg border p-4">
+              <h2 className="font-semibold">{t("pastCampaign.title")}</h2>
+              <p className="text-muted-foreground mt-1 text-sm">
+                {t("pastCampaign.body")}
+              </p>
+            </div>
+          ) : !steps ? (
             // No form is defined for this campaign type. Refuse loudly rather
             // than falling back to another campaign's questions.
             <div className="border-border bg-surface-muted rounded-lg border p-4">
