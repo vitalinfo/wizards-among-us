@@ -1,6 +1,6 @@
 import type { applications, claims } from "@/db/schema";
 import { intakeOpen } from "@/features/campaigns/authz";
-import { hasRole, isAdmin, isUser, type MaybeActor } from "@/lib/actor";
+import { isAdmin, isUser, type MaybeActor } from "@/lib/actor";
 
 // Types are imported with `import type` so this module stays free of any runtime
 // DB/drizzle imports — the predicates are pure and safe to import anywhere.
@@ -33,6 +33,15 @@ export function canEditApplication(
   );
 }
 
+// Any signed-in user may START an application — deliberately NOT gated on the
+// `parent` role. Roles are capabilities earned by what someone does, and
+// submitting an application is what earns `parent`; requiring it here would be
+// circular and would lock out every first-time parent.
+//
+// It isn't gated against volunteers either: roles are combinable (users.role is
+// a set), so a volunteer who also has a displaced child is a legitimate parent.
+// Nothing sensitive exists at this point — an empty draft — and submit
+// re-checks every gate.
 export function canStartApplication(
   actor: MaybeActor,
   ctx: Parameters<typeof intakeOpen>[0],
@@ -40,7 +49,7 @@ export function canStartApplication(
   if (isAdmin(actor)) {
     return true;
   } // operational override
-  return hasRole(actor, "parent") && intakeOpen(ctx);
+  return isUser(actor) && intakeOpen(ctx);
 }
 
 // Why a submit can be refused. Returned instead of a bare false so the UI can

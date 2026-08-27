@@ -100,7 +100,7 @@ describe("intakeOpen / canStartApplication", () => {
     ).toBe(false);
   });
 
-  it("lets a parent start only when intake is open; never a volunteer", () => {
+  it("lets any signed-in user start when intake is open, but nobody when it's closed", () => {
     expect(canStartApplication(parent, open)).toBe(true);
     expect(
       canStartApplication(parent, {
@@ -108,7 +108,10 @@ describe("intakeOpen / canStartApplication", () => {
         settings: { applicationsEnabled: false },
       }),
     ).toBe(false);
-    expect(canStartApplication(volunteer, open)).toBe(false);
+    // A volunteer may also be a parent — roles are a combinable set — and the
+    // `parent` role is EARNED by submitting, so it cannot be required here.
+    expect(canStartApplication(volunteer, open)).toBe(true);
+    expect(canStartApplication(null, open)).toBe(false);
   });
 
   it("lets an admin start regardless of the intake gate (override)", () => {
