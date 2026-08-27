@@ -43,6 +43,49 @@ export function canStartApplication(
   return hasRole(actor, "parent") && intakeOpen(ctx);
 }
 
+// Why a submit can be refused. Returned instead of a bare false so the UI can
+// say which gate failed — a parent who can't submit deserves to know why.
+export type SubmitBlockReason =
+  | "not_owner"
+  | "locked" // admin already approved/rejected it
+  | "intake_closed" // no active campaign, or intake/kill switch off
+  | "no_contact"; // no @username and no phone — nobody could reach them
+
+// The full submit gate: ownership + edit lock + intake + contactability
+// (Phase 4 decision — contact is required at SUBMIT, never at login).
+//
+// Returns the reason the submit is refused, or NULL when it may proceed. Pure,
+// so the server action enforces it and the UI explains it from the same rules.
+// Use canSubmitApplication() when you only need the boolean.
+export function getSubmitBlockReason(
+  actor: MaybeActor,
+  application: Pick<Application, "parentId" | "status">,
+  ctx: Parameters<typeof intakeOpen>[0] & { contactable: boolean },
+): SubmitBlockReason | null {
+  if (!isAdmin(actor) && !ownsApplication(actor, application)) {
+    return "not_owner";
+  }
+  if (!PARENT_EDITABLE.includes(application.status) && !isAdmin(actor)) {
+    return "locked";
+  }
+  if (!isAdmin(actor) && !intakeOpen(ctx)) {
+    return "intake_closed";
+  }
+  if (!ctx.contactable) {
+    // Applies to admins too: an application nobody can act on is not useful.
+    return "no_contact";
+  }
+  return null;
+}
+
+export function canSubmitApplication(
+  actor: MaybeActor,
+  application: Pick<Application, "parentId" | "status">,
+  ctx: Parameters<typeof getSubmitBlockReason>[2],
+): boolean {
+  return getSubmitBlockReason(actor, application, ctx) === null;
+}
+
 // Sensitive child data — current_town, delivery_information, parent_name, the
 // family's Telegram, and the contact field — is visible only to an admin, the
 // owning parent, or the volunteer holding the ACTIVE claim (guardrail).

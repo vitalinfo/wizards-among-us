@@ -27,8 +27,11 @@ export {
   canEditApplication,
   canModerateApplications,
   canStartApplication,
+  canSubmitApplication,
   canViewSensitiveChildData,
+  getSubmitBlockReason,
   ownsApplication,
+  type SubmitBlockReason,
 } from "@/features/applications/authz";
 
 export { type BrowseCard, toBrowseCard } from "@/features/applications/mappers";
