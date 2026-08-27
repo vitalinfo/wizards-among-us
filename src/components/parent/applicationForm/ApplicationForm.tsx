@@ -49,7 +49,7 @@ const STEPS = [
   {
     key: "gift",
     Component: GiftStep,
-    fields: ["giftDescription", "giftUrl", "giftPrice"],
+    fields: ["giftDescription", "giftUrls", "giftPrice"],
   },
   { key: "delivery", Component: DeliveryStep, fields: ["deliveryInformation"] },
   { key: "consent", Component: ConsentStep, fields: [] },

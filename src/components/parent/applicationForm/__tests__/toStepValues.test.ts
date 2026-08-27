@@ -19,7 +19,9 @@ const row = {
   giftDescription: "Лялька",
   giftPrice: "650.00",
   deliveryInformation: "НП №5",
-  typeFields: { giftUrl: "https://rozetka.com.ua/ua/1/p1/" },
+  typeFields: {
+    giftUrls: ["https://rozetka.com.ua/ua/1/p1/", "https://epicentrk.ua/ua/x"],
+  },
   status: "draft",
   rejectionNote: null,
   submittedAt: null,
@@ -32,8 +34,15 @@ describe("toStepValues", () => {
   // type_fields is jsonb, but the form treats a campaign-specific field as just
   // another named input — so it has to arrive flattened alongside the columns.
   it("flattens type_fields alongside the columns", () => {
-    expect(toStepValues(row).giftUrl).toBe("https://rozetka.com.ua/ua/1/p1/");
     expect(toStepValues(row).childName).toBe("Оля");
+  });
+
+  // The links are stored as an array but edited in a textarea, so they have to
+  // round-trip as one per line.
+  it("renders a list of links one per line for the textarea", () => {
+    expect(toStepValues(row).giftUrls).toBe(
+      "https://rozetka.com.ua/ua/1/p1/\nhttps://epicentrk.ua/ua/x",
+    );
   });
 
   // Radios compare against strings; a raw boolean would never match and the

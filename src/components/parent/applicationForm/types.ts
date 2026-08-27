@@ -23,6 +23,11 @@ export function toStepValues(application: ApplicationRow): StepValues {
     ...application,
     ...typeFields,
   })) {
+    // A list of links round-trips through a textarea as one per line.
+    if (Array.isArray(value)) {
+      flat[key] = value.join("\n");
+      continue;
+    }
     if (value === null || value === undefined) {
       flat[key] = undefined;
     } else if (typeof value === "boolean") {

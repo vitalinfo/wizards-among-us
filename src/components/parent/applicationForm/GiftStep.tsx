@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { TextAreaField } from "@/components/forms/TextAreaField";
 import { TextField } from "@/components/forms/TextField";
 
 import type { StepProps } from "./types";
@@ -34,15 +35,17 @@ export function GiftStep({ values, errors, giftPriceCap = null }: StepProps) {
         required
       />
 
-      <TextField
-        id="giftUrl"
-        name="giftUrl"
-        type="url"
-        inputMode="url"
-        label={t("giftUrl.label")}
-        hint={t("giftUrl.hint")}
-        defaultValue={values.giftUrl ?? ""}
-        error={errors.giftUrl}
+      {/* A textarea rather than a repeating input group: one link per line is
+          easier to paste into on a phone than add/remove controls, and it
+          degrades to a plain field without JavaScript. */}
+      <TextAreaField
+        id="giftUrls"
+        name="giftUrls"
+        rows={3}
+        label={t("giftUrls.label")}
+        hint={t("giftUrls.hint")}
+        defaultValue={values.giftUrls ?? ""}
+        error={errors.giftUrls}
         required
       />
 

@@ -74,16 +74,41 @@ export const applicationDraftSchema = z
   });
 export type ApplicationDraftInput = z.infer<typeof applicationDraftSchema>;
 
+// A parent may want several small items that together fit the campaign budget,
+// so the shop links are a LIST while the price stays a single total (that's the
+// number the budget cap is checked against, and what a volunteer will spend).
+//
+// The textarea gives us one string; accept newline- or comma-separated links so
+// a parent pasting from a phone isn't fighting a format.
+export function splitGiftUrls(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim()).filter(Boolean);
+  }
+  if (typeof value !== "string") {
+    return [];
+  }
+  return value
+    .split(/[\n,;]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+export const giftUrlsSchema = z
+  .preprocess(splitGiftUrls, z.array(z.string().url()).min(1))
+  .describe("one or more shop links");
+
 // Campaign-type-specific fields, stored in applications.type_fields (jsonb).
 // Kept out of the base columns because they differ per campaign: St Nicholas
 // requires a shop link for the exact item; New School Year will want school
 // grade and sizes instead.
 export const stNicholasTypeFieldsSchema = z.object({
-  // The 2025 form required a link to the exact item on a Ukrainian shop. We
-  // require a real http(s) URL but do NOT enforce a Ukrainian domain — too many
-  // valid shapes (.ua, .com.ua, .com) to encode as a rule, and admin review
-  // catches the rest.
-  giftUrl: z.string().trim().url(),
+  // One or more links to the exact items. We require real http(s) URLs but do
+  // NOT enforce a Ukrainian domain — too many valid shapes (.ua, .com.ua, .com)
+  // to encode as a rule, and admin review catches the rest.
+  //
+  // The 2025 paper form allowed only one link; we deliberately allow several
+  // (Vital) because a wish is often two or three small things under one budget.
+  giftUrls: giftUrlsSchema,
 });
 export type StNicholasTypeFields = z.infer<typeof stNicholasTypeFieldsSchema>;
 
@@ -129,7 +154,10 @@ export const applicationDraftFormSchema = z.object({
   ),
   familyStory: text(z.string().trim().min(1)),
   giftDescription: text(z.string().trim().min(1)),
-  giftUrl: text(z.string().trim().url()),
+  giftUrls: z.preprocess((value) => {
+    const urls = splitGiftUrls(value);
+    return urls.length === 0 ? undefined : urls;
+  }, z.array(z.string().url()).optional()),
   giftPrice: numeric(z.number().positive().max(99_999_999.99)),
   deliveryInformation: text(z.string().trim().min(1)),
   // Not an application column: the delivery step collects it when the parent

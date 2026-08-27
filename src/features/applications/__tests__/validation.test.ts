@@ -5,6 +5,7 @@ import {
   applicationDraftSchema,
   applicationSubmitSchema,
   applicationSubmitSchemaForCampaign,
+  splitGiftUrls,
   stNicholasTypeFieldsSchema,
 } from "../validation";
 
@@ -97,16 +98,44 @@ describe("applicationDraftSchema", () => {
   });
 });
 
-describe("gift url (campaign type field) and social-media consent", () => {
-  it("requires a real URL for the St Nicholas gift link", () => {
+describe("gift links (campaign type field) and social-media consent", () => {
+  const link = "https://rozetka.com.ua/ua/502764564/p502764564/";
+  const other = "https://epicentrk.ua/ua/shop/item.html";
+
+  // A wish is often two or three small things under one budget, so the links
+  // are a LIST while the price stays a single total.
+  it("accepts several links, one per line, and keeps their order", () => {
+    const parsed = stNicholasTypeFieldsSchema.parse({
+      giftUrls: `${link}\n${other}`,
+    });
+    expect(parsed.giftUrls).toEqual([link, other]);
+  });
+
+  it("also accepts comma-separated links and an already-parsed array", () => {
     expect(
-      stNicholasTypeFieldsSchema.safeParse({ giftUrl: "rozetka" }).success,
+      stNicholasTypeFieldsSchema.parse({ giftUrls: `${link}, ${other}` })
+        .giftUrls,
+    ).toEqual([link, other]);
+    expect(
+      stNicholasTypeFieldsSchema.parse({ giftUrls: [link] }).giftUrls,
+    ).toEqual([link]);
+  });
+
+  it("rejects the whole list if any entry isn't a real URL", () => {
+    expect(
+      stNicholasTypeFieldsSchema.safeParse({ giftUrls: `${link}\nrozetka` })
+        .success,
     ).toBe(false);
-    expect(
-      stNicholasTypeFieldsSchema.safeParse({
-        giftUrl: "https://rozetka.com.ua/ua/502764564/p502764564/",
-      }).success,
-    ).toBe(true);
+    expect(stNicholasTypeFieldsSchema.safeParse({ giftUrls: "" }).success).toBe(
+      false,
+    );
+  });
+
+  it("ignores blank lines and stray separators from pasting", () => {
+    expect(splitGiftUrls(`\n${link}\n\n , ${other} ;\n`)).toEqual([
+      link,
+      other,
+    ]);
   });
 
   // Required to ANSWER, but "no" is a valid answer — it must never be a
@@ -183,7 +212,7 @@ describe("applicationDraftFormSchema (FormData coercion)", () => {
       applicationDraftFormSchema.safeParse({ childAge: "99" }).success,
     ).toBe(false);
     expect(
-      applicationDraftFormSchema.safeParse({ giftUrl: "rozetka" }).success,
+      applicationDraftFormSchema.safeParse({ giftUrls: "rozetka" }).success,
     ).toBe(false);
     expect(
       applicationDraftFormSchema.safeParse({ homeRegion: "atlantis" }).success,

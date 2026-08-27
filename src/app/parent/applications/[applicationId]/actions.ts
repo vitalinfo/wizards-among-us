@@ -86,18 +86,18 @@ async function persistStep(
   application: { typeFields: unknown },
   data: Record<string, unknown>,
 ): Promise<void> {
-  const { giftUrl, phone, ...columns } = data;
+  const { giftUrls, phone, ...columns } = data;
 
   const values: Record<string, unknown> = Object.fromEntries(
     Object.entries(columns).filter(([, value]) => value !== undefined),
   );
 
-  if (giftUrl !== undefined) {
+  if (giftUrls !== undefined) {
     const existing =
       application.typeFields && typeof application.typeFields === "object"
         ? (application.typeFields as Record<string, unknown>)
         : {};
-    values.typeFields = { ...existing, giftUrl };
+    values.typeFields = { ...existing, giftUrls };
   }
 
   if (Object.keys(values).length > 0) {
