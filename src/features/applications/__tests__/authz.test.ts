@@ -7,7 +7,7 @@ import {
   canStartApplication,
   canSubmitApplication,
   canViewSensitiveChildData,
-  submitBlockedBecause,
+  getSubmitBlockReason,
 } from "../authz";
 import { intakeOpen } from "@/features/campaigns/authz";
 
@@ -154,7 +154,7 @@ describe("canViewSensitiveChildData", () => {
 
 // The submit gate combines four rules that each fail for a different reason, so
 // it returns WHICH one blocked — a parent who can't submit deserves to know why.
-describe("submitBlockedBecause (the full submit gate)", () => {
+describe("getSubmitBlockReason (the full submit gate)", () => {
   const own = { parentId: "p1", status: "draft" as const };
   const open = {
     campaign: { status: "active" as const, acceptingApplications: true },
@@ -163,32 +163,32 @@ describe("submitBlockedBecause (the full submit gate)", () => {
   };
 
   it("allows the owning parent when every gate passes", () => {
-    expect(submitBlockedBecause(parent, own, open)).toBeNull();
+    expect(getSubmitBlockReason(parent, own, open)).toBeNull();
     expect(canSubmitApplication(parent, own, open)).toBe(true);
   });
 
   it("blocks a different parent", () => {
-    expect(submitBlockedBecause(otherParent, own, open)).toBe("not_owner");
+    expect(getSubmitBlockReason(otherParent, own, open)).toBe("not_owner");
   });
 
   it("blocks once an admin has approved it (edit lock)", () => {
     expect(
-      submitBlockedBecause(parent, { ...own, status: "approved" }, open),
+      getSubmitBlockReason(parent, { ...own, status: "approved" }, open),
     ).toBe("locked");
   });
 
   it("blocks when intake is closed — campaign, accepting flag, or kill switch", () => {
-    expect(submitBlockedBecause(parent, own, { ...open, campaign: null })).toBe(
+    expect(getSubmitBlockReason(parent, own, { ...open, campaign: null })).toBe(
       "intake_closed",
     );
     expect(
-      submitBlockedBecause(parent, own, {
+      getSubmitBlockReason(parent, own, {
         ...open,
         campaign: { status: "active", acceptingApplications: false },
       }),
     ).toBe("intake_closed");
     expect(
-      submitBlockedBecause(parent, own, {
+      getSubmitBlockReason(parent, own, {
         ...open,
         settings: { applicationsEnabled: false },
       }),
@@ -198,16 +198,16 @@ describe("submitBlockedBecause (the full submit gate)", () => {
   // Contactability is enforced HERE, never at login (Phase 4 decision).
   it("blocks when nobody could reach the family", () => {
     expect(
-      submitBlockedBecause(parent, own, { ...open, contactable: false }),
+      getSubmitBlockReason(parent, own, { ...open, contactable: false }),
     ).toBe("no_contact");
   });
 
   it("lets an admin override the intake gate but never the contact gate", () => {
     expect(
-      submitBlockedBecause(admin, own, { ...open, campaign: null }),
+      getSubmitBlockReason(admin, own, { ...open, campaign: null }),
     ).toBeNull();
     expect(
-      submitBlockedBecause(admin, own, { ...open, contactable: false }),
+      getSubmitBlockReason(admin, own, { ...open, contactable: false }),
     ).toBe("no_contact");
   });
 });

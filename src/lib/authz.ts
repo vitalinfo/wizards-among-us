@@ -29,9 +29,9 @@ export {
   canStartApplication,
   canSubmitApplication,
   canViewSensitiveChildData,
+  getSubmitBlockReason,
   ownsApplication,
-  submitBlockedBecause,
-  type SubmitBlock,
+  type SubmitBlockReason,
 } from "@/features/applications/authz";
 
 export { type BrowseCard, toBrowseCard } from "@/features/applications/mappers";
