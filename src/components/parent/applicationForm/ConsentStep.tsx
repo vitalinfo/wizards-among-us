@@ -4,10 +4,11 @@ import { useTranslations } from "next-intl";
 
 import { CheckboxField } from "@/components/forms/CheckboxField";
 import { RadioGroupField } from "@/components/forms/RadioGroupField";
+import { TurnstileWidget } from "@/components/forms/TurnstileWidget";
 
 import type { StepProps } from "./types";
 
-export function ConsentStep({ values, errors }: StepProps) {
+export function ConsentStep({ values, errors, turnstileSiteKey }: StepProps) {
   const t = useTranslations("parent.form.steps.consent");
 
   return (
@@ -45,6 +46,12 @@ export function ConsentStep({ values, errors }: StepProps) {
         ]}
         required
       />
+
+      {/* Only on the final step — the captcha guards SUBMIT, not each draft
+          save, so a parent isn't challenged repeatedly while filling the form. */}
+      {/* A captcha failure is reported once, in the form's error summary, which
+          also takes focus — repeating it here would announce it twice. */}
+      <TurnstileWidget sitekey={turnstileSiteKey ?? null} />
     </fieldset>
   );
 }

@@ -21,6 +21,7 @@ import {
 import { recordAuditLog } from "@/features/audit/log";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
 import { getResolvedSettings } from "@/features/settings/queries";
+import { verifyTurnstile } from "@/features/turnstile/verify";
 import { resolveUserContact } from "@/features/users/contact";
 import { setUserPhone } from "@/features/users/queries";
 import type {
@@ -132,12 +133,26 @@ export async function submitApplicationAction(
   const stepValues = applicationDraftFormSchema.safeParse(
     Object.fromEntries(
       [...formData.entries()].filter(
-        ([key]) => !["applicationId", "step", "consent"].includes(key),
+        ([key]) =>
+          !["applicationId", "step", "consent", "turnstileToken"].includes(key),
       ),
     ),
   );
   if (stepValues.success) {
     await persistStep(id, actor.id, application, stepValues.data);
+  }
+
+  // Captcha guards SUBMIT only (not each draft save), and is checked before we
+  // spend any work on validation.
+  const captcha = await verifyTurnstile(
+    formData.get("turnstileToken")?.toString() ?? null,
+  );
+  if (!captcha.ok) {
+    return {
+      status: "invalid",
+      errors: { turnstileToken: "captcha" },
+      blockReason: null,
+    };
   }
 
   const [campaign, settings, contactFields, fresh] = await Promise.all([

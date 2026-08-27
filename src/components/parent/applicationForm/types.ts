@@ -53,4 +53,6 @@ export type StepProps = {
   // filled rather than empty when a parent returns to a draft.
   applicationId?: string;
   files?: Record<string, { id: string; kind: string; contentType: string }>;
+  // Read server-side per request — never a NEXT_PUBLIC_ build-time value.
+  turnstileSiteKey?: string | null;
 };

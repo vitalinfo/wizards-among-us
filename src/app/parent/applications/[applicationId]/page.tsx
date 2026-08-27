@@ -13,6 +13,7 @@ import {
 } from "@/features/applications/queries";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
+import { turnstileSiteKey } from "@/features/turnstile/verify";
 import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
 import { getSessionActor } from "@/lib/auth/session";
@@ -95,6 +96,7 @@ export default async function ApplicationPage({
               contact={contact}
               giftPriceCap={campaign?.giftPriceCap ?? null}
               files={files}
+              turnstileSiteKey={turnstileSiteKey()}
             />
           ) : (
             <p className="text-muted-foreground">{tBlocked("locked")}</p>

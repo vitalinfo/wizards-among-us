@@ -73,11 +73,13 @@ export function ApplicationForm({
   contact,
   giftPriceCap,
   files,
+  turnstileSiteKey,
 }: {
   application: ApplicationRow;
   contact: { method: ContactMethod; value: string } | null;
   giftPriceCap: string | null;
   files: Record<string, { id: string; kind: string; contentType: string }>;
+  turnstileSiteKey: string | null;
 }) {
   const t = useTranslations("parent.form");
   const tErrors = useTranslations("parent.form.errors");
@@ -136,6 +138,9 @@ export function ApplicationForm({
     if (code === "gift_price_over_cap" || code === "too_big") {
       return tErrors("out_of_range");
     }
+    if (code === "captcha") {
+      return tErrors("captcha");
+    }
     if (code === "too_small" || code === "invalid_type") {
       return tErrors("required");
     }
@@ -163,9 +168,14 @@ export function ApplicationForm({
           role="alert"
           className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800"
         >
+          {/* Name the actual problem. "Check the highlighted fields" is
+              actively misleading when nothing is highlighted — as with a failed
+              captcha, which isn't a field the parent can fix by re-reading it. */}
           {submitState.blockReason
             ? tBlocked(submitState.blockReason)
-            : t("saveError")}
+            : submitState.errors.turnstileToken
+              ? tErrors("captcha")
+              : t("saveError")}
         </div>
       ) : null}
 
@@ -176,6 +186,7 @@ export function ApplicationForm({
         giftPriceCap={giftPriceCap}
         applicationId={application.id}
         files={files}
+        turnstileSiteKey={turnstileSiteKey}
       />
 
       <div className="flex flex-wrap items-center gap-3">
