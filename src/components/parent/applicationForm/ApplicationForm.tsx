@@ -14,11 +14,7 @@ import {
   initialSubmitState,
 } from "@/features/applications/formState";
 
-import { ChildStep } from "./ChildStep";
-import { ConsentStep } from "./ConsentStep";
-import { DeliveryStep } from "./DeliveryStep";
-import { FamilyStep } from "./FamilyStep";
-import { GiftStep } from "./GiftStep";
+import type { FormStep } from "./steps";
 import { toStepValues, type ApplicationRow, type StepValues } from "./types";
 
 // The multistep application form, mirroring the sections parents already know
@@ -27,45 +23,20 @@ import { toStepValues, type ApplicationRow, type StepValues } from "./types";
 // Every step is a real <form> posting to a server action, so each one SAVES A
 // DRAFT before the next appears — a parent can close the tab on a phone and
 // come back. Only the last step submits.
-const STEPS = [
-  {
-    key: "child",
-    Component: ChildStep,
-    fields: [
-      "childName",
-      "childAge",
-      "homeTown",
-      "homeRegion",
-      "currentTown",
-      "currentRegion",
-      "displacedYear",
-    ],
-  },
-  {
-    key: "family",
-    Component: FamilyStep,
-    fields: ["parentName", "familyStory"],
-  },
-  {
-    key: "gift",
-    Component: GiftStep,
-    fields: ["giftDescription", "giftUrls", "giftPrice"],
-  },
-  { key: "delivery", Component: DeliveryStep, fields: ["deliveryInformation"] },
-  { key: "consent", Component: ConsentStep, fields: [] },
-] as const;
-
 // A parent who closes the tab and comes back should resume where they stopped,
 // not click "Далі" past three completed steps — the whole point of drafts is
 // that stopping is cheap. Lands on the first step with a missing answer.
-function firstIncompleteStep(values: StepValues): number {
-  const index = STEPS.findIndex((step) =>
+function firstIncompleteStep(
+  steps: readonly FormStep[],
+  values: StepValues,
+): number {
+  const index = steps.findIndex((step) =>
     step.fields.some((field) => {
       const value = values[field];
       return value === undefined || value === null || value === "";
     }),
   );
-  return index === -1 ? STEPS.length - 1 : index;
+  return index === -1 ? steps.length - 1 : index;
 }
 
 export function ApplicationForm({
@@ -74,12 +45,16 @@ export function ApplicationForm({
   giftPriceCap,
   files,
   turnstileSiteKey,
+  steps,
 }: {
   application: ApplicationRow;
   contact: { method: ContactMethod; value: string } | null;
   giftPriceCap: string | null;
   files: Record<string, { id: string; kind: string; contentType: string }>;
   turnstileSiteKey: string | null;
+  // The form for THIS campaign's type — the page resolves it, so an
+  // unimplemented type never reaches this component.
+  steps: readonly FormStep[];
 }) {
   const t = useTranslations("parent.form");
   const tErrors = useTranslations("parent.form.errors");
@@ -87,14 +62,16 @@ export function ApplicationForm({
   const tConsent = useTranslations("parent.form.steps.consent");
 
   const values = toStepValues(application);
-  const [stepIndex, setStepIndex] = useState(() => firstIncompleteStep(values));
+  const [stepIndex, setStepIndex] = useState(() =>
+    firstIncompleteStep(steps, values),
+  );
   const [saveState, setSaveState] = useState(initialSaveDraftState);
   const [submitState, setSubmitState] = useState(initialSubmitState);
   const [pending, startTransition] = useTransition();
   const alertRef = useRef<HTMLDivElement>(null);
 
-  const isLast = stepIndex === STEPS.length - 1;
-  const { Component } = STEPS[stepIndex];
+  const isLast = stepIndex === steps.length - 1;
+  const { Component } = steps[stepIndex];
   const failed =
     saveState.status === "invalid" ||
     submitState.status === "invalid" ||
@@ -113,7 +90,7 @@ export function ApplicationForm({
       const result = await saveApplicationDraft(saveState, formData);
       setSaveState(result);
       if (result.status === "saved") {
-        setStepIndex((current) => Math.min(current + 1, STEPS.length - 1));
+        setStepIndex((current) => Math.min(current + 1, steps.length - 1));
       }
     });
   };
@@ -158,7 +135,7 @@ export function ApplicationForm({
       <input type="hidden" name="applicationId" value={application.id} />
 
       <p className="text-muted-foreground text-sm">
-        {t("stepOf", { current: stepIndex + 1, total: STEPS.length })}
+        {t("stepOf", { current: stepIndex + 1, total: steps.length })}
       </p>
 
       {failed ? (

@@ -19,7 +19,10 @@ import {
   TYPE_FIELDS_SCHEMAS,
 } from "@/features/applications/validation";
 import { recordAuditLog } from "@/features/audit/log";
-import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
+import {
+  getActiveCampaignForIntake,
+  getCampaignById,
+} from "@/features/campaigns/queries";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { verifyTurnstile } from "@/features/turnstile/verify";
 import { resolveUserContact } from "@/features/users/contact";
@@ -155,21 +158,32 @@ export async function submitApplicationAction(
     };
   }
 
-  const [campaign, settings, contactFields, fresh] = await Promise.all([
-    getActiveCampaignForIntake(),
-    getResolvedSettings(),
-    getUserContactFields(actor.id),
-    getMyApplication(id, actor.id),
-  ]);
+  const [activeCampaign, campaign, settings, contactFields, fresh] =
+    await Promise.all([
+      getActiveCampaignForIntake(),
+      // The application's OWN campaign decides which type_fields schema and
+      // budget cap apply; the ACTIVE one decides whether intake is open at all.
+      getCampaignById(application.campaignId),
+      getResolvedSettings(),
+      getUserContactFields(actor.id),
+      getMyApplication(id, actor.id),
+    ]);
   const contact = resolveUserContact(contactFields);
 
   const blockReason = getSubmitBlockReason(actor, application, {
-    campaign,
+    campaign: activeCampaign,
     settings,
     contactable: contact !== null,
   });
   if (blockReason || !fresh || !campaign) {
     return { status: "blocked", errors: {}, blockReason };
+  }
+
+  // A draft left over from a previous campaign can't be submitted into the
+  // current one: its answers were written against a different form, and its
+  // budget cap and type fields may differ.
+  if (campaign.id !== activeCampaign?.id) {
+    return { status: "blocked", errors: {}, blockReason: "intake_closed" };
   }
 
   // The complete application, including the campaign's own type fields and its

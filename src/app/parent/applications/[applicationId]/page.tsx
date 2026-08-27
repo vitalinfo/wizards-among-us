@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { ApplicationForm } from "@/components/parent/applicationForm/ApplicationForm";
+import { stepsForCampaignType } from "@/components/parent/applicationForm/steps";
 import { ApplicationStatusBadge } from "@/components/parent/ApplicationStatusBadge";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -12,7 +13,7 @@ import {
   getUserContactFields,
 } from "@/features/applications/queries";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
-import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
+import { getCampaignById } from "@/features/campaigns/queries";
 import { turnstileSiteKey } from "@/features/turnstile/verify";
 import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
@@ -47,11 +48,14 @@ export default async function ApplicationPage({
   // Resolved live rather than copied onto the application: the delivery step
   // only asks for a phone when there's no Telegram handle to use.
   const [campaign, contactFields, uploaded] = await Promise.all([
-    getActiveCampaignForIntake(),
+    // THIS application's campaign, not whichever is active — an application
+    // from a past campaign must render against the form it was written for.
+    getCampaignById(application.campaignId),
     getUserContactFields(actor.id),
     listApplicationFiles(applicationId),
   ]);
   const contact = resolveUserContact(contactFields);
+  const steps = stepsForCampaignType(campaign?.type);
 
   // Keyed by kind: each upload slot is single-file, so the newest wins if a
   // parent somehow has two of a kind.
@@ -90,13 +94,25 @@ export default async function ApplicationPage({
         ) : null}
 
         <div className="mt-8">
-          {editable ? (
+          {!steps ? (
+            // No form is defined for this campaign type. Refuse loudly rather
+            // than falling back to another campaign's questions.
+            <div className="border-border bg-surface-muted rounded-lg border p-4">
+              <h2 className="font-semibold">
+                {t("unsupportedCampaign.title")}
+              </h2>
+              <p className="text-muted-foreground mt-1 text-sm">
+                {t("unsupportedCampaign.body")}
+              </p>
+            </div>
+          ) : editable ? (
             <ApplicationForm
               application={application}
               contact={contact}
               giftPriceCap={campaign?.giftPriceCap ?? null}
               files={files}
               turnstileSiteKey={turnstileSiteKey()}
+              steps={steps}
             />
           ) : (
             <p className="text-muted-foreground">{tBlocked("locked")}</p>
