@@ -1,3 +1,4 @@
+import type { FileKind } from "@/db/enums";
 import type { applications, claims } from "@/db/schema";
 import { intakeOpen } from "@/features/campaigns/authz";
 import { isAdmin, isUser, type MaybeActor } from "@/lib/actor";
@@ -115,6 +116,30 @@ export function canViewSensitiveChildData(
     claim.releasedAt === null &&
     claim.volunteerId === actor.id
   );
+}
+
+// Who may read an uploaded file. The KIND decides, not the application:
+//
+//   idp_certificate         — ADMINS ONLY. A state document about a child; a
+//                             volunteer must never see it, not even the one
+//                             holding the claim, and not even the parent's own
+//                             claiming volunteer.
+//   letter_photo            — same audience as the other sensitive fields:
+//   child_with_letter_photo   admin, the owning parent, or the volunteer
+//                             holding the ACTIVE claim.
+//
+// Separate from canViewSensitiveChildData so the certificate can never be
+// widened by a change to the sensitive-field rule.
+export function canViewApplicationFile(
+  actor: MaybeActor,
+  application: Pick<Application, "parentId">,
+  claim: Pick<Claim, "volunteerId" | "releasedAt"> | null | undefined,
+  kind: FileKind,
+): boolean {
+  if (kind === "idp_certificate") {
+    return isAdmin(actor) || ownsApplication(actor, application);
+  }
+  return canViewSensitiveChildData(actor, application, claim);
 }
 
 // Approve/reject applications, moderate reviews, export — admin only.

@@ -6,6 +6,7 @@ import {
   canEditApplication,
   canStartApplication,
   canSubmitApplication,
+  canViewApplicationFile,
   canViewSensitiveChildData,
   getSubmitBlockReason,
 } from "../authz";
@@ -212,5 +213,52 @@ describe("getSubmitBlockReason (the full submit gate)", () => {
     expect(
       getSubmitBlockReason(admin, own, { ...open, contactable: false }),
     ).toBe("no_contact");
+  });
+});
+
+// The ВПО certificate is a state document about a child. Its rule is separate
+// from the sensitive-field rule on purpose, so widening one can't widen it.
+describe("canViewApplicationFile", () => {
+  const app = { parentId: "p1" };
+  const activeClaim = { volunteerId: "v1", releasedAt: null };
+
+  it("never shows the ВПО certificate to a volunteer — even the claiming one", () => {
+    expect(
+      canViewApplicationFile(volunteer, app, activeClaim, "idp_certificate"),
+    ).toBe(false);
+  });
+
+  it("shows the ВПО certificate to an admin and to the owning parent", () => {
+    expect(canViewApplicationFile(admin, app, null, "idp_certificate")).toBe(
+      true,
+    );
+    expect(canViewApplicationFile(parent, app, null, "idp_certificate")).toBe(
+      true,
+    );
+  });
+
+  it("shows the photos to the claiming volunteer, but not to another one", () => {
+    for (const kind of ["letter_photo", "child_with_letter_photo"] as const) {
+      expect(canViewApplicationFile(volunteer, app, activeClaim, kind)).toBe(
+        true,
+      );
+      expect(
+        canViewApplicationFile(
+          volunteer,
+          app,
+          { volunteerId: "v2", releasedAt: null },
+          kind,
+        ),
+      ).toBe(false);
+      // ...nor after the claim is released.
+      expect(
+        canViewApplicationFile(
+          volunteer,
+          app,
+          { volunteerId: "v1", releasedAt: new Date() },
+          kind,
+        ),
+      ).toBe(false);
+    }
   });
 });
