@@ -49,4 +49,8 @@ export type StepProps = {
   contact?: { method: ContactMethod; value: string } | null;
   // Campaign budget ceiling in UAH, shown up front on the gift step.
   giftPriceCap?: string | null;
+  // Which uploads already exist, keyed by kind — the upload slots render as
+  // filled rather than empty when a parent returns to a draft.
+  applicationId?: string;
+  files?: Record<string, { id: string; kind: string; contentType: string }>;
 };

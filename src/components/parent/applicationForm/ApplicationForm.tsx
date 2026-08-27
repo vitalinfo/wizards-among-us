@@ -72,10 +72,12 @@ export function ApplicationForm({
   application,
   contact,
   giftPriceCap,
+  files,
 }: {
   application: ApplicationRow;
   contact: { method: ContactMethod; value: string } | null;
   giftPriceCap: string | null;
+  files: Record<string, { id: string; kind: string; contentType: string }>;
 }) {
   const t = useTranslations("parent.form");
   const tErrors = useTranslations("parent.form.errors");
@@ -172,6 +174,8 @@ export function ApplicationForm({
         errors={errors}
         contact={contact}
         giftPriceCap={giftPriceCap}
+        applicationId={application.id}
+        files={files}
       />
 
       <div className="flex flex-wrap items-center gap-3">

@@ -4,10 +4,17 @@ import { useTranslations } from "next-intl";
 
 import { TextAreaField } from "@/components/forms/TextAreaField";
 import { TextField } from "@/components/forms/TextField";
+import { UploadField } from "@/components/forms/UploadField";
 
 import type { StepProps } from "./types";
 
-export function GiftStep({ values, errors, giftPriceCap = null }: StepProps) {
+export function GiftStep({
+  values,
+  errors,
+  giftPriceCap = null,
+  applicationId,
+  files,
+}: StepProps) {
   const t = useTranslations("parent.form.steps.gift");
 
   // The campaign's budget ceiling is shown up front rather than only failing at
@@ -62,6 +69,27 @@ export function GiftStep({ values, errors, giftPriceCap = null }: StepProps) {
         error={errors.giftPrice}
         required
       />
+
+      {applicationId ? (
+        <>
+          <UploadField
+            applicationId={applicationId}
+            kind="letter_photo"
+            label={t("letterPhoto.label")}
+            hint={t("letterPhoto.hint")}
+            existing={files?.letter_photo}
+            required
+          />
+          <UploadField
+            applicationId={applicationId}
+            kind="child_with_letter_photo"
+            label={t("childWithLetterPhoto.label")}
+            hint={t("childWithLetterPhoto.hint")}
+            existing={files?.child_with_letter_photo}
+            required
+          />
+        </>
+      ) : null}
     </fieldset>
   );
 }

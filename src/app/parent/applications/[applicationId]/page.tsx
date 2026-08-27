@@ -11,6 +11,7 @@ import {
   getMyApplication,
   getUserContactFields,
 } from "@/features/applications/queries";
+import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
 import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
@@ -44,11 +45,21 @@ export default async function ApplicationPage({
 
   // Resolved live rather than copied onto the application: the delivery step
   // only asks for a phone when there's no Telegram handle to use.
-  const [campaign, contactFields] = await Promise.all([
+  const [campaign, contactFields, uploaded] = await Promise.all([
     getActiveCampaignForIntake(),
     getUserContactFields(actor.id),
+    listApplicationFiles(applicationId),
   ]);
   const contact = resolveUserContact(contactFields);
+
+  // Keyed by kind: each upload slot is single-file, so the newest wins if a
+  // parent somehow has two of a kind.
+  const files = Object.fromEntries(
+    uploaded.map((file) => [
+      file.kind,
+      { id: file.id, kind: file.kind, contentType: file.contentType },
+    ]),
+  );
 
   return (
     <>
@@ -83,6 +94,7 @@ export default async function ApplicationPage({
               application={application}
               contact={contact}
               giftPriceCap={campaign?.giftPriceCap ?? null}
+              files={files}
             />
           ) : (
             <p className="text-muted-foreground">{tBlocked("locked")}</p>
