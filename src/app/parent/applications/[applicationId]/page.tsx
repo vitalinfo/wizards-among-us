@@ -22,10 +22,10 @@ export default async function ApplicationPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ applicationId: string }>;
   searchParams: Promise<{ submitted?: string }>;
 }) {
-  const [{ id }, query] = await Promise.all([params, searchParams]);
+  const [{ applicationId }, query] = await Promise.all([params, searchParams]);
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     redirect("/login");
@@ -33,7 +33,7 @@ export default async function ApplicationPage({
 
   // Scoped to this parent. A wrong id 404s rather than revealing that someone
   // else's application exists.
-  const application = await getMyApplication(id, actor.id);
+  const application = await getMyApplication(applicationId, actor.id);
   if (!application) {
     notFound();
   }

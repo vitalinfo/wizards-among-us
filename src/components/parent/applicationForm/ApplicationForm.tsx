@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import {
   saveApplicationDraft,
   submitApplicationAction,
-} from "@/app/parent/applications/[id]/actions";
+} from "@/app/parent/applications/[applicationId]/actions";
 import { Button } from "@/components/ui/Button";
 import type { ContactMethod } from "@/db/enums";
 import {
