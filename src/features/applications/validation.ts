@@ -93,3 +93,49 @@ export const TYPE_FIELDS_SCHEMAS = {
   saint_nicholas_day: stNicholasTypeFieldsSchema,
   new_school_year: z.record(z.string(), z.unknown()), // fields TBD
 } as const;
+
+// ---------------------------------------------------------------------------
+// FormData → draft values
+//
+// A <form> sends every field as a string, and an untouched field as "". Naive
+// z.coerce.number() turns "" into 0 — which would silently save a child's age
+// as 0 — so empties become undefined first and are simply left unsaved.
+const blankToUndefined = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
+const numeric = (schema: z.ZodTypeAny) =>
+  z.preprocess((value) => {
+    const cleaned = blankToUndefined(value);
+    return typeof cleaned === "string" ? Number(cleaned) : cleaned;
+  }, schema.optional());
+
+const text = (schema: z.ZodTypeAny) =>
+  z.preprocess(blankToUndefined, schema.optional());
+
+// Per-step partial save. Only the keys present in the payload are validated, so
+// a step can save without the later steps' fields existing yet — but a value
+// that IS provided still has to be valid (an age of 99 is rejected in a draft).
+export const applicationDraftFormSchema = z.object({
+  parentName: text(z.string().trim().min(1)),
+  childName: text(z.string().trim().min(1)),
+  childAge: numeric(z.number().int().min(0).max(18)),
+  homeTown: text(z.string().trim().min(1)),
+  homeRegion: text(regionSchema),
+  currentTown: text(z.string().trim().min(1)),
+  currentRegion: text(regionSchema),
+  displacedYear: numeric(
+    z.number().int().min(2014).max(new Date().getFullYear()),
+  ),
+  familyStory: text(z.string().trim().min(1)),
+  giftDescription: text(z.string().trim().min(1)),
+  giftUrl: text(z.string().trim().url()),
+  giftPrice: numeric(z.number().positive().max(99_999_999.99)),
+  deliveryInformation: text(z.string().trim().min(1)),
+  socialMediaConsent: z.preprocess(
+    (value) => (value === undefined ? undefined : value === "true"),
+    z.boolean().optional(),
+  ),
+});
+export type ApplicationDraftFormInput = z.infer<
+  typeof applicationDraftFormSchema
+>;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applicationDraftFormSchema,
   applicationDraftSchema,
   applicationSubmitSchema,
   applicationSubmitSchemaForCampaign,
@@ -148,5 +149,58 @@ describe("applicationSubmitSchemaForCampaign (gift budget cap)", () => {
     expect(schema.safeParse({ ...validSubmit, giftPrice: 5000 }).success).toBe(
       true,
     );
+  });
+});
+
+// A <form> sends "" for an untouched field. Naive coercion turns that into 0,
+// which would silently record a child's age as 0 — the reason this schema
+// preprocesses blanks to undefined.
+describe("applicationDraftFormSchema (FormData coercion)", () => {
+  it("treats an untouched field as absent, not as 0 or an empty string", () => {
+    const parsed = applicationDraftFormSchema.parse({
+      childName: "Оля",
+      childAge: "",
+      homeTown: "   ",
+    });
+    expect(parsed.childName).toBe("Оля");
+    expect(parsed.childAge).toBeUndefined();
+    expect(parsed.homeTown).toBeUndefined();
+  });
+
+  it("coerces numeric strings the browser sends", () => {
+    const parsed = applicationDraftFormSchema.parse({
+      childAge: "7",
+      displacedYear: "2022",
+      giftPrice: "699.50",
+    });
+    expect(parsed.childAge).toBe(7);
+    expect(parsed.displacedYear).toBe(2022);
+    expect(parsed.giftPrice).toBe(699.5);
+  });
+
+  it("still rejects a provided value that is out of range", () => {
+    expect(
+      applicationDraftFormSchema.safeParse({ childAge: "99" }).success,
+    ).toBe(false);
+    expect(
+      applicationDraftFormSchema.safeParse({ giftUrl: "rozetka" }).success,
+    ).toBe(false);
+    expect(
+      applicationDraftFormSchema.safeParse({ homeRegion: "atlantis" }).success,
+    ).toBe(false);
+  });
+
+  it("reads the social-media consent radio as a real boolean", () => {
+    expect(
+      applicationDraftFormSchema.parse({ socialMediaConsent: "true" })
+        .socialMediaConsent,
+    ).toBe(true);
+    expect(
+      applicationDraftFormSchema.parse({ socialMediaConsent: "false" })
+        .socialMediaConsent,
+    ).toBe(false);
+    expect(
+      applicationDraftFormSchema.parse({}).socialMediaConsent,
+    ).toBeUndefined();
   });
 });
