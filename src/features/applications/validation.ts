@@ -2,10 +2,13 @@ import { z } from "zod";
 
 import { regionSchema } from "@/lib/enumSchemas";
 
-// Base fields required for every campaign (§7). Enforced at SUBMIT — drafts save
-// partial data (see applicationDraftSchema), so these are NOT NOT NULL in the DB.
-// The server always re-validates; client-side use is inline feedback only.
-export const applicationSubmitSchema = z.object({
+// Base fields required for every campaign (§7), modelled on the real
+// «Святий Миколай 2025» form (docs/reference/st-nicholas-2025-google-form.pdf).
+// Enforced at SUBMIT — drafts save partial data (see applicationDraftSchema), so
+// these are NOT NOT NULL in the DB. The server always re-validates; client-side
+// use is inline feedback only.
+
+const applicationFields = {
   parentName: z.string().trim().min(1),
   childName: z.string().trim().min(1),
   childAge: z.number().int().min(0).max(18),
@@ -20,16 +23,73 @@ export const applicationSubmitSchema = z.object({
   giftDescription: z.string().trim().min(1),
   giftPrice: z.number().positive().max(99_999_999.99),
   deliveryInformation: z.string().trim().min(1),
-  // Campaign-type-specific extras live here (validated per-type in Phase 4).
+  // Campaign-type-specific extras — e.g. the St Nicholas shop link. Validated
+  // per campaign type (see stNicholasTypeFieldsSchema).
   typeFields: z.record(z.string(), z.unknown()).optional(),
-  // Explicit data-processing consent — must be true on submit (§11).
+  // Required consent to share the application with volunteers (§11). A hard
+  // gate at submit, so it is NOT persisted — a submitted application has it by
+  // definition; applications.submitted_at is the timestamp that carries
+  // information.
   consent: z.literal(true),
-});
+  // SEPARATE, optional-in-substance consent (form Q20): may we use the letter /
+  // child photo on social media? The parent must answer, but either answer is
+  // valid — so it's a boolean, never a literal(true).
+  socialMediaConsent: z.boolean(),
+};
+
+export const applicationSubmitSchema = z.object(applicationFields);
 export type ApplicationSubmitInput = z.infer<typeof applicationSubmitSchema>;
+
+// Per-campaign gift budget ceiling (St Nicholas 2025: 700 UAH). Applied as a
+// refinement rather than baked into the schema so the cap can change without a
+// migration and without invalidating already-submitted applications.
+export function applicationSubmitSchemaForCampaign(campaign: {
+  giftPriceCap: string | null;
+}) {
+  const cap =
+    campaign.giftPriceCap === null ? null : Number(campaign.giftPriceCap);
+  if (cap === null || !Number.isFinite(cap)) {
+    return applicationSubmitSchema;
+  }
+  return applicationSubmitSchema.superRefine((value, ctx) => {
+    if (value.giftPrice > cap) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["giftPrice"],
+        message: "gift_price_over_cap",
+      });
+    }
+  });
+}
 
 // Draft: same shape, everything optional, consent not required yet. Provided
 // fields are still validated (an out-of-range age is rejected even in a draft).
-export const applicationDraftSchema = applicationSubmitSchema
+export const applicationDraftSchema = z
+  .object(applicationFields)
   .partial()
-  .extend({ consent: z.boolean().optional() });
+  .extend({
+    consent: z.boolean().optional(),
+    socialMediaConsent: z.boolean().optional(),
+  });
 export type ApplicationDraftInput = z.infer<typeof applicationDraftSchema>;
+
+// Campaign-type-specific fields, stored in applications.type_fields (jsonb).
+// Kept out of the base columns because they differ per campaign: St Nicholas
+// requires a shop link for the exact item; New School Year will want school
+// grade and sizes instead.
+export const stNicholasTypeFieldsSchema = z.object({
+  // The 2025 form required a link to the exact item on a Ukrainian shop. We
+  // require a real http(s) URL but do NOT enforce a Ukrainian domain — too many
+  // valid shapes (.ua, .com.ua, .com) to encode as a rule, and admin review
+  // catches the rest.
+  giftUrl: z.string().trim().url(),
+});
+export type StNicholasTypeFields = z.infer<typeof stNicholasTypeFieldsSchema>;
+
+// Validate the base application AND the extras for a given campaign type. The
+// per-type schema is applied to type_fields so a St Nicholas submission can't
+// land without its shop link.
+export const TYPE_FIELDS_SCHEMAS = {
+  saint_nicholas_day: stNicholasTypeFieldsSchema,
+  new_school_year: z.record(z.string(), z.unknown()), // fields TBD
+} as const;

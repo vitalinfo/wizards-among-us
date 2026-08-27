@@ -4,6 +4,7 @@ import {
   APPLICATION_STATUSES,
   CAMPAIGN_STATUSES,
   CAMPAIGN_TYPES,
+  CONTACT_METHODS,
   FILE_KINDS,
   UKRAINE_REGIONS,
   USER_ROLES,
@@ -19,3 +20,4 @@ export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
 export const applicationStatusSchema = z.enum(APPLICATION_STATUSES);
 export const fileKindSchema = z.enum(FILE_KINDS);
 export const regionSchema = z.enum(UKRAINE_REGIONS);
+export const contactMethodSchema = z.enum(CONTACT_METHODS);

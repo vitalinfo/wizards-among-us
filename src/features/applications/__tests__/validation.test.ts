@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { applicationDraftSchema, applicationSubmitSchema } from "../validation";
+import {
+  applicationDraftSchema,
+  applicationSubmitSchema,
+  applicationSubmitSchemaForCampaign,
+  stNicholasTypeFieldsSchema,
+} from "../validation";
 
 const validSubmit = {
   parentName: "Ivan",
@@ -16,6 +21,7 @@ const validSubmit = {
   giftPrice: 1200,
   deliveryInformation: "Nova Poshta #5, Lviv",
   consent: true,
+  socialMediaConsent: false,
 } as const;
 
 describe("applicationSubmitSchema", () => {
@@ -86,6 +92,61 @@ describe("applicationDraftSchema", () => {
     ).toBe(true);
     expect(applicationDraftSchema.safeParse({ childAge: 99 }).success).toBe(
       false,
+    );
+  });
+});
+
+describe("gift url (campaign type field) and social-media consent", () => {
+  it("requires a real URL for the St Nicholas gift link", () => {
+    expect(
+      stNicholasTypeFieldsSchema.safeParse({ giftUrl: "rozetka" }).success,
+    ).toBe(false);
+    expect(
+      stNicholasTypeFieldsSchema.safeParse({
+        giftUrl: "https://rozetka.com.ua/ua/502764564/p502764564/",
+      }).success,
+    ).toBe(true);
+  });
+
+  // Required to ANSWER, but "no" is a valid answer — it must never be a
+  // literal(true) like the data-processing consent.
+  it("accepts either answer for social-media consent", () => {
+    for (const socialMediaConsent of [true, false]) {
+      expect(
+        applicationSubmitSchema.safeParse({
+          ...validSubmit,
+          socialMediaConsent,
+        }).success,
+      ).toBe(true);
+    }
+  });
+
+  it("still requires social-media consent to be answered", () => {
+    const withoutAnswer: Record<string, unknown> = { ...validSubmit };
+    delete withoutAnswer.socialMediaConsent;
+    expect(applicationSubmitSchema.safeParse(withoutAnswer).success).toBe(
+      false,
+    );
+  });
+});
+
+describe("applicationSubmitSchemaForCampaign (gift budget cap)", () => {
+  it("rejects a gift over the campaign cap", () => {
+    const schema = applicationSubmitSchemaForCampaign({
+      giftPriceCap: "700.00",
+    });
+    expect(schema.safeParse({ ...validSubmit, giftPrice: 701 }).success).toBe(
+      false,
+    );
+    expect(schema.safeParse({ ...validSubmit, giftPrice: 700 }).success).toBe(
+      true,
+    );
+  });
+
+  it("imposes no cap when the campaign has none", () => {
+    const schema = applicationSubmitSchemaForCampaign({ giftPriceCap: null });
+    expect(schema.safeParse({ ...validSubmit, giftPrice: 5000 }).success).toBe(
+      true,
     );
   });
 });

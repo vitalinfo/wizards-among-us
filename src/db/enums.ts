@@ -30,8 +30,35 @@ export const APPLICATION_STATUSES = [
 ] as const;
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
-export const FILE_KINDS = ["attachment", "confirmation"] as const;
+// Uploads attached to an application. Kinds differ in WHO MAY SEE THEM, so the
+// kind is the authorization input — never widen a check to "any file".
+//   idp_certificate        — довідка ВПО (child's displacement certificate).
+//                            ADMIN ONLY. Never shown to a volunteer.
+//   letter_photo           — photo of the child's letter to St Nicholas.
+//   child_with_letter_photo— photo of the child holding the letter.
+//                            Both: revealed only to the volunteer holding the
+//                            active claim (decided with the St Nicholas 2025
+//                            form — see CLAUDE.md child-data exposure).
+//   confirmation           — parent's proof the gift arrived (Phase 7).
+//   attachment             — generic spare kind for future campaign types.
+export const FILE_KINDS = [
+  "idp_certificate",
+  "letter_photo",
+  "child_with_letter_photo",
+  "confirmation",
+  "attachment",
+] as const;
 export type FileKind = (typeof FILE_KINDS)[number];
+
+// How a family can be reached. The 2025 form asked for "номер телефону у
+// формі +38xxxx або нік @", so exactly these two.
+//
+// APP-LEVEL ONLY — no column stores this. A Telegram handle already lives in
+// users.username and a fallback number in users.phone, so the method is
+// *derived* (see resolveUserContact); persisting it too would be a third copy
+// that can drift.
+export const CONTACT_METHODS = ["telegram", "phone"] as const;
+export type ContactMethod = (typeof CONTACT_METHODS)[number];
 
 export const ACTOR_TYPES = ["user", "admin"] as const;
 export type ActorType = (typeof ACTOR_TYPES)[number];

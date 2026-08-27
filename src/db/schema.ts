@@ -103,7 +103,7 @@ export const applications = pgTable(
     parentId: uuid("parent_id")
       .notNull()
       .references(() => users.id),
-    parentName: text("parent_name"),
+    parentName: text("parent_name"), // [sensitive] claiming volunteer only
     childName: text("child_name"),
     childAge: integer("child_age"),
     homeTown: text("home_town"),
@@ -115,11 +115,27 @@ export const applications = pgTable(
     giftDescription: text("gift_description"), // shown on the browse card
     giftPrice: numeric("gift_price", { precision: 10, scale: 2 }), // UAH (single currency)
     deliveryInformation: text("delivery_information"), // [sensitive] claiming volunteer only
-    typeFields: jsonb("type_fields"), // campaign-type-specific extras
+    // Campaign-type-specific extras — e.g. the St Nicholas shop link, or school
+    // grade / clothing sizes for New School Year. Validated per type in zod.
+    typeFields: jsonb("type_fields"),
     status: text("status", { enum: APPLICATION_STATUSES })
       .notNull()
       .default("draft"),
     rejectionNote: text("rejection_note"),
+    // When the parent actually submitted. NOT derivable from the other
+    // timestamps: created_at is when the draft was started and updated_at moves
+    // on every edit. Needed to honour the "we review within two days" promise
+    // and to order the admin queue.
+    //
+    // Consent is deliberately NOT stored: it's a hard gate at submit, so every
+    // submitted application has it by definition and a column would only record
+    // a foregone conclusion. submitted_at is the timestamp that carries
+    // information.
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    // A genuinely optional, separate consent (form Q20): may we use the letter
+    // or child photo on social media to promote the initiative? Either answer
+    // is valid, so it is a nullable boolean — never a required "true".
+    socialMediaConsent: boolean("social_media_consent"),
     ...timestamps(),
   },
   (t) => [
@@ -177,6 +193,10 @@ export const campaigns = pgTable(
     acceptingApplications: boolean("accepting_applications")
       .notNull()
       .default(true),
+    // Per-campaign gift budget ceiling in UAH (St Nicholas 2025 used 700).
+    // Null = no cap. Enforced at submit in zod, not as a DB CHECK, so changing
+    // the cap never needs a migration and never invalidates existing rows.
+    giftPriceCap: numeric("gift_price_cap", { precision: 10, scale: 2 }),
     startsAt: timestamp("starts_at", { withTimezone: true }),
     endsAt: timestamp("ends_at", { withTimezone: true }),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -310,6 +330,13 @@ export const users = pgTable(
     // name for pre-existing rows or a future provider.
     firstName: text("first_name"),
     lastName: text("last_name"),
+    // Fallback contact for someone with no Telegram @username (it's optional on
+    // Telegram, and a numeric id is usable by our bot, not by a human
+    // volunteer). Asked once at submit/claim, reused by every application of
+    // theirs — deliberately NOT copied onto applications: a snapshot would go
+    // stale exactly when a volunteer needs to reach the family.
+    // [sensitive] revealed only to the volunteer holding the active claim.
+    phone: text("phone"),
     note: text("note"), // optional free-text note from the person (one per user)
     ...timestamps(),
   },
