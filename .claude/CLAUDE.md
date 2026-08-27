@@ -73,12 +73,16 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Fr
 - **⚠️ Contact info is SENSITIVE** — it belongs with `current_town` / `delivery_information` / `parent_name`, revealed only to the volunteer holding the active claim. It must NOT appear on the browse card (`toBrowseCard`), and every reveal is audit-logged.
 - Deferred alternative for later (Phase 7): **bot-mediated contact**, where our bot relays introductions by Telegram id so handles are never exchanged. The Login Widget already requests `data-request-access="write"` with that in mind — but verify the bot can actually message users unsolicited before designing on it.
 
-## Code organization — decide at Phase 4
+## Code organization — **feature-based** (decided Phase 4)
 
-Currently **layered**: one whole file per concern (`src/db/schema.ts`, `src/lib/validation.ts`, `src/lib/authz.ts`). Don't pre-split these while they're small and cohesive — split against real usage.
+Per-resource logic is co-located: `src/features/<resource>/{validation,authz,mappers,queries}.ts` (applications, campaigns, claims — more as they arrive). Schema + validation + authz + queries change together per resource, so they live together.
 
-At the **start of Phase 4** (first real resource flow — parent application), choose how code is organized as resources multiply (applications, claims, campaigns, reviews), since schema + validation + authz + mappers + queries grow per-resource in lockstep:
-- **Layered** — split each layer by resource (`lib/validation/<resource>.ts`, `lib/authz/<resource>.ts`).
-- **Feature-based** (leaning this way) — co-locate per resource: `src/features/<resource>/{schema,validation,authz,mappers,queries}.ts`. Keep the `can*` authz predicates greppable/auditable via a barrel re-export (security boundary).
+**The DB schema stays centralized** in `src/db/schema.ts` — a deliberate exception to "everything per feature". Drizzle and drizzle-kit read one schema module; splitting tables across features would mean a barrel plus real circular-import risk between feature schemas (`applications` → `campaigns`/`users`, `claims` → `applications`/`users`), for no gain. Keep its conventions: plural table names, alphabetical order, unique **indexes**.
 
-Also: `toBrowseCard`/`BrowseCard` is a DTO **mapper**, not authz — move it out of `authz.ts` when we split. And keep `src/db/enums.ts` **pure** (no zod import) so both `schema.ts` and `validation.ts` derive from the one source of truth.
+Two files exist purely to keep the graph acyclic — don't collapse them back:
+- **`src/lib/actor.ts`** — `Actor` types + `isAdmin`/`isUser`/`hasRole`. Features import these; `lib/authz.ts` re-exports the features, so putting both in `authz.ts` would be a cycle.
+- **`src/lib/enumSchemas.ts`** — the zod enum mirrors. Feature schemas import these; `lib/validation.ts` re-exports the features, so importing them from `validation.ts` was a cycle (it bit us: a `.partial()` on a half-initialized schema).
+
+**`src/lib/authz.ts` is a barrel and the audit surface** — it re-exports every `can*` predicate so the security boundary is greppable in one place. Add new predicates to it. `src/lib/validation.ts` does the same for schemas. Existing call sites can keep importing from the barrels; new feature code may import the feature module directly.
+
+`toBrowseCard`/`BrowseCard` is a DTO **mapper**, not authz — it lives in `features/applications/mappers.ts`. Keep `src/db/enums.ts` **pure** (no zod import) so both `schema.ts` and the zod mirrors derive from the one source of truth.
