@@ -96,15 +96,15 @@ ADMIN_ALLOWLIST=        # comma-separated emails allowed to self-provision as ad
 DEV_LOGIN=              # local only: 1 enables /dev/login (see below). Never set in a deploy.
 
 # Captcha (Cloudflare Turnstile)
-TURNSTILE_SITE_KEY=
+TURNSTILE_SITE_KEY=    # not NEXT_PUBLIC_: read server-side, passed as a prop
 TURNSTILE_SECRET_KEY=
 
 # File storage (Cloudflare R2 now; any S3-compatible store later)
-S3_ENDPOINT=
+S3_ENDPOINT=           # R2: https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+S3_REGION=auto         # R2 uses the literal string "auto"
 S3_ACCESS_KEY_ID=
 S3_SECRET_ACCESS_KEY=
-S3_BUCKET=
-S3_PUBLIC_BASE_URL=
+S3_BUCKET=             # a SEPARATE bucket per environment
 ```
 
 External accounts (human task, Phase 0 — see plan §3): domain + DNS (`wizards-among-us.pp.ua` at NIC.UA), Cloudflare (Turnstile + R2), Heroku (app hosting, pipeline `wau`), Neon (Postgres), and a Telegram bot per environment (for the Login Widget).
