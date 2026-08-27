@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { userPhoneSchema } from "@/features/users/contact";
 import { regionSchema } from "@/lib/enumSchemas";
 
 // Base fields required for every campaign (§7), modelled on the real
@@ -131,6 +132,10 @@ export const applicationDraftFormSchema = z.object({
   giftUrl: text(z.string().trim().url()),
   giftPrice: numeric(z.number().positive().max(99_999_999.99)),
   deliveryInformation: text(z.string().trim().min(1)),
+  // Not an application column: the delivery step collects it when the parent
+  // has no Telegram handle, and it's stored on `users` (one contact per person,
+  // never a per-application snapshot).
+  phone: text(userPhoneSchema),
   socialMediaConsent: z.preprocess(
     (value) => (value === undefined ? undefined : value === "true"),
     z.boolean().optional(),
