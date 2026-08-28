@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { ShieldIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 
 const STEPS = ["fill", "review", "match"] as const;
 
@@ -48,12 +48,21 @@ export function ParentInfo() {
         </p>
       </div>
 
-      {/* Auth-gated actions — wired to Telegram login in Phase 3. */}
+      {/* Both lead to «Мої анкети», which is where an application is started
+          and listed. That page requires a session and redirects to /login, so
+          the signed-out case is handled in one place rather than duplicated in
+          every entry point. */}
       <div className="flex flex-col gap-2.5">
-        <Button className="w-full">{t("applyCta")}</Button>
-        <Button variant="outline" className="w-full">
+        <ButtonLink href="/parent/applications" className="w-full">
+          {t("applyCta")}
+        </ButtonLink>
+        <ButtonLink
+          href="/parent/applications"
+          variant="outline"
+          className="w-full"
+        >
           {t("myApplicationsCta")}
-        </Button>
+        </ButtonLink>
       </div>
       <span className="text-muted-foreground text-center text-[13px] leading-normal">
         {t("loginNote")}
