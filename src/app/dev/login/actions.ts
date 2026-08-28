@@ -11,13 +11,17 @@ import {
   DEV_LOGIN_ROLES,
   type DevLoginRoleKey,
 } from "@/lib/auth/devLogin";
+import { safeReturnPath } from "@/lib/auth/returnPath";
 import { createSession } from "@/lib/auth/session";
 
 // Dev-only: find-or-create a deterministic test user for the chosen role preset
 // and open a session as them. Idempotent per role (keyed by a `dev_<role>`
 // username), so repeat logins reuse the same user + its data. Guarded — see
 // devLogin.ts. Never provisions an admin.
-export async function devLogin(roleKey: DevLoginRoleKey): Promise<void> {
+export async function devLogin(
+  roleKey: DevLoginRoleKey,
+  returnTo?: string,
+): Promise<void> {
   assertDevLoginEnabled();
 
   // roleKey is typed, but this action can also be POSTed directly — reject any
@@ -50,5 +54,5 @@ export async function devLogin(roleKey: DevLoginRoleKey): Promise<void> {
   }
 
   await createSession({ actorType: "user", actorId: userId });
-  redirect("/");
+  redirect(safeReturnPath(returnTo));
 }

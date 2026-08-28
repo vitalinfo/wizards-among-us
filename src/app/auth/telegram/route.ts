@@ -5,6 +5,7 @@ import {
   createSessionRecord,
   sessionCookieOptions,
 } from "@/lib/auth/session";
+import { safeReturnPath } from "@/lib/auth/returnPath";
 import { verifyTelegramLogin } from "@/lib/auth/telegram";
 import { findOrCreateTelegramUser } from "@/lib/auth/telegramUser";
 
@@ -33,7 +34,12 @@ export async function GET(request: NextRequest) {
   }
 
   const params = Object.fromEntries(request.nextUrl.searchParams);
-  const result = verifyTelegramLogin(params, botToken);
+  // `next` is ours, not Telegram's — it must NOT take part in the signature
+  // check, and it is re-validated because it round-tripped through a third
+  // party and the browser.
+  const { next, ...signed } = params;
+  const returnTo = safeReturnPath(next);
+  const result = verifyTelegramLogin(signed, botToken);
   if (!result.ok) {
     return redirectTo("/?login=failed");
   }
@@ -44,7 +50,7 @@ export async function GET(request: NextRequest) {
     actorId: userId,
   });
 
-  const response = redirectTo("/");
+  const response = redirectTo(returnTo);
   response.cookies.set(
     SESSION_COOKIE_NAME,
     token,

@@ -15,11 +15,17 @@ const OPTIONS = [
   { key: "both", label: "Sign in as parent + volunteer" },
 ] as const;
 
-export default function DevLoginPage() {
-  // 404 when the gate is off — the route looks like it doesn't exist.
+export default async function DevLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  // 404 when the gate is off — the route looks like it doesn't exist. Checked
+  // before anything else is read.
   if (!isDevLoginEnabled()) {
     notFound();
   }
+  const { next } = await searchParams;
 
   return (
     <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-5 p-6">
@@ -32,7 +38,7 @@ export default function DevLoginPage() {
       </div>
       <div className="flex flex-col gap-3">
         {OPTIONS.map((option) => (
-          <form key={option.key} action={devLogin.bind(null, option.key)}>
+          <form key={option.key} action={devLogin.bind(null, option.key, next)}>
             <button
               type="submit"
               className="border-border hover:bg-surface-muted focus-visible:outline-ring w-full rounded-md border px-4 py-3 text-left text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
