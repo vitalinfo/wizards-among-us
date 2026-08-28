@@ -78,6 +78,25 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Fr
 - **⚠️ Contact info is SENSITIVE** — it belongs with `current_town` / `delivery_information` / `parent_name`, revealed only to the volunteer holding the active claim. It must NOT appear on the browse card (`toBrowseCard`), and every reveal is audit-logged.
 - Deferred alternative for later (Phase 7): **bot-mediated contact**, where our bot relays introductions by Telegram id so handles are never exchanged. The Login Widget already requests `data-request-access="write"` with that in mind — but verify the bot can actually message users unsolicited before designing on it.
 
+## Phase 5 decisions (resolved)
+
+- **Rejection is final** (Vital). A parent can't edit and resubmit — they start a new
+  application. The rejection note is therefore **required**, shown to the parent verbatim, and
+  dropped on approval so a stale note can't ride along on an approved application.
+- **Moderation queue is ordered oldest-submission-first.** We promise a review within two
+  days, so newest-first would starve exactly the applications that are already late.
+- **Decisions are guarded in SQL** (`WHERE status = 'submitted'`), not only in the UI, so two
+  admins working the same queue can't both land a decision.
+- **Export is two scopes, never one.** *Coordination* (child name, age, region, gift, price,
+  status, claimed) carries nothing that identifies a family and is the default; *full* adds
+  parent name, current town, delivery information, family story and contact, and is
+  audit-logged as its own event. **Neither exports a file** — the ВПО certificate stays behind
+  the authorized route. Exports are scoped to **one campaign**.
+- **CSV cells are formula-neutralised.** A value starting `=`, `+`, `-` or `@` executes in
+  Excel/Sheets and every free-text field here is parent-written (`csvCell` in
+  `features/applications/csv.ts`). The file carries a UTF-8 BOM.
+- **Review moderation deferred to Phase 7.**
+
 ## Code organization — **feature-based** (decided Phase 4)
 
 Per-resource logic is co-located: `src/features/<resource>/{validation,authz,mappers,queries}.ts` (applications, campaigns, claims — more as they arrive). Schema + validation + authz + queries change together per resource, so they live together.
