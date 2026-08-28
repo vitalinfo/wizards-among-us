@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { userPhoneSchema } from "@/features/users/contact";
 import { regionSchema } from "@/lib/enumSchemas";
 
 // Base fields required for every campaign (§7), modelled on the real
@@ -73,16 +74,41 @@ export const applicationDraftSchema = z
   });
 export type ApplicationDraftInput = z.infer<typeof applicationDraftSchema>;
 
+// A parent may want several small items that together fit the campaign budget,
+// so the shop links are a LIST while the price stays a single total (that's the
+// number the budget cap is checked against, and what a volunteer will spend).
+//
+// The textarea gives us one string; accept newline- or comma-separated links so
+// a parent pasting from a phone isn't fighting a format.
+export function splitGiftUrls(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim()).filter(Boolean);
+  }
+  if (typeof value !== "string") {
+    return [];
+  }
+  return value
+    .split(/[\n,;]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+export const giftUrlsSchema = z
+  .preprocess(splitGiftUrls, z.array(z.string().url()).min(1))
+  .describe("one or more shop links");
+
 // Campaign-type-specific fields, stored in applications.type_fields (jsonb).
 // Kept out of the base columns because they differ per campaign: St Nicholas
 // requires a shop link for the exact item; New School Year will want school
 // grade and sizes instead.
 export const stNicholasTypeFieldsSchema = z.object({
-  // The 2025 form required a link to the exact item on a Ukrainian shop. We
-  // require a real http(s) URL but do NOT enforce a Ukrainian domain — too many
-  // valid shapes (.ua, .com.ua, .com) to encode as a rule, and admin review
-  // catches the rest.
-  giftUrl: z.string().trim().url(),
+  // One or more links to the exact items. We require real http(s) URLs but do
+  // NOT enforce a Ukrainian domain — too many valid shapes (.ua, .com.ua, .com)
+  // to encode as a rule, and admin review catches the rest.
+  //
+  // The 2025 paper form allowed only one link; we deliberately allow several
+  // (Vital) because a wish is often two or three small things under one budget.
+  giftUrls: giftUrlsSchema,
 });
 export type StNicholasTypeFields = z.infer<typeof stNicholasTypeFieldsSchema>;
 
@@ -93,3 +119,56 @@ export const TYPE_FIELDS_SCHEMAS = {
   saint_nicholas_day: stNicholasTypeFieldsSchema,
   new_school_year: z.record(z.string(), z.unknown()), // fields TBD
 } as const;
+
+// ---------------------------------------------------------------------------
+// FormData → draft values
+//
+// A <form> sends every field as a string, and an untouched field as "". Naive
+// z.coerce.number() turns "" into 0 — which would silently save a child's age
+// as 0 — so empties become undefined first and are simply left unsaved.
+const blankToUndefined = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
+const numeric = (schema: z.ZodTypeAny) =>
+  z.preprocess((value) => {
+    const cleaned = blankToUndefined(value);
+    return typeof cleaned === "string" ? Number(cleaned) : cleaned;
+  }, schema.optional());
+
+const text = (schema: z.ZodTypeAny) =>
+  z.preprocess(blankToUndefined, schema.optional());
+
+// Per-step partial save. Only the keys present in the payload are validated, so
+// a step can save without the later steps' fields existing yet — but a value
+// that IS provided still has to be valid (an age of 99 is rejected in a draft).
+export const applicationDraftFormSchema = z.object({
+  parentName: text(z.string().trim().min(1)),
+  childName: text(z.string().trim().min(1)),
+  childAge: numeric(z.number().int().min(0).max(18)),
+  homeTown: text(z.string().trim().min(1)),
+  homeRegion: text(regionSchema),
+  currentTown: text(z.string().trim().min(1)),
+  currentRegion: text(regionSchema),
+  displacedYear: numeric(
+    z.number().int().min(2014).max(new Date().getFullYear()),
+  ),
+  familyStory: text(z.string().trim().min(1)),
+  giftDescription: text(z.string().trim().min(1)),
+  giftUrls: z.preprocess((value) => {
+    const urls = splitGiftUrls(value);
+    return urls.length === 0 ? undefined : urls;
+  }, z.array(z.string().url()).optional()),
+  giftPrice: numeric(z.number().positive().max(99_999_999.99)),
+  deliveryInformation: text(z.string().trim().min(1)),
+  // Not an application column: the delivery step collects it when the parent
+  // has no Telegram handle, and it's stored on `users` (one contact per person,
+  // never a per-application snapshot).
+  phone: text(userPhoneSchema),
+  socialMediaConsent: z.preprocess(
+    (value) => (value === undefined ? undefined : value === "true"),
+    z.boolean().optional(),
+  ),
+});
+export type ApplicationDraftFormInput = z.infer<
+  typeof applicationDraftFormSchema
+>;

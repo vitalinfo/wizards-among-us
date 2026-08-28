@@ -1,7 +1,7 @@
 import { and, desc, eq, ilike } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { applications, users } from "@/db/schema";
+import { applications, claims, users } from "@/db/schema";
 
 // Data access for the parent application flow. Deliberately thin: every
 // authorization decision is made by the pure predicates in ./authz and passed in
@@ -168,4 +168,31 @@ export async function getUserContactFields(
     .where(eq(users.id, userId))
     .limit(1);
   return row ?? null;
+}
+
+// Everything the file routes need to authorize a read: the application (for
+// ownership) and its ACTIVE claim (for the claiming-volunteer rule). Not scoped
+// to a parent — an admin or a claiming volunteer must be able to reach it, and
+// the authorization decision is made by the predicates, not by this query.
+export async function getApplicationForFileAccess(
+  applicationId: string,
+): Promise<{
+  application: Application;
+  claim: { volunteerId: string; releasedAt: Date | null } | null;
+} | null> {
+  const db = getDb();
+  const [application] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+  if (!application) {
+    return null;
+  }
+  const [claim] = await db
+    .select({ volunteerId: claims.volunteerId, releasedAt: claims.releasedAt })
+    .from(claims)
+    .where(eq(claims.applicationId, applicationId))
+    .limit(1);
+  return { application, claim: claim ?? null };
 }

@@ -51,3 +51,25 @@ export async function getActiveCampaign(): Promise<ActiveCampaign | null> {
     return null;
   }
 }
+
+// The campaign an application belongs to — NOT necessarily the active one. An
+// application from a previous campaign must be read against its OWN campaign's
+// type and budget, or a returning parent would see the current campaign's form
+// over last year's answers.
+export async function getCampaignById(
+  id: string,
+): Promise<ActiveCampaignForIntake | null> {
+  const [row] = await getDb()
+    .select({
+      id: campaigns.id,
+      title: campaigns.title,
+      type: campaigns.type,
+      status: campaigns.status,
+      acceptingApplications: campaigns.acceptingApplications,
+      giftPriceCap: campaigns.giftPriceCap,
+    })
+    .from(campaigns)
+    .where(eq(campaigns.id, id))
+    .limit(1);
+  return row ?? null;
+}

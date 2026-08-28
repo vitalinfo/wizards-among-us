@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applicationDraftFormSchema,
   applicationDraftSchema,
   applicationSubmitSchema,
   applicationSubmitSchemaForCampaign,
+  splitGiftUrls,
   stNicholasTypeFieldsSchema,
 } from "../validation";
 
@@ -96,16 +98,44 @@ describe("applicationDraftSchema", () => {
   });
 });
 
-describe("gift url (campaign type field) and social-media consent", () => {
-  it("requires a real URL for the St Nicholas gift link", () => {
+describe("gift links (campaign type field) and social-media consent", () => {
+  const link = "https://rozetka.com.ua/ua/502764564/p502764564/";
+  const other = "https://epicentrk.ua/ua/shop/item.html";
+
+  // A wish is often two or three small things under one budget, so the links
+  // are a LIST while the price stays a single total.
+  it("accepts several links, one per line, and keeps their order", () => {
+    const parsed = stNicholasTypeFieldsSchema.parse({
+      giftUrls: `${link}\n${other}`,
+    });
+    expect(parsed.giftUrls).toEqual([link, other]);
+  });
+
+  it("also accepts comma-separated links and an already-parsed array", () => {
     expect(
-      stNicholasTypeFieldsSchema.safeParse({ giftUrl: "rozetka" }).success,
+      stNicholasTypeFieldsSchema.parse({ giftUrls: `${link}, ${other}` })
+        .giftUrls,
+    ).toEqual([link, other]);
+    expect(
+      stNicholasTypeFieldsSchema.parse({ giftUrls: [link] }).giftUrls,
+    ).toEqual([link]);
+  });
+
+  it("rejects the whole list if any entry isn't a real URL", () => {
+    expect(
+      stNicholasTypeFieldsSchema.safeParse({ giftUrls: `${link}\nrozetka` })
+        .success,
     ).toBe(false);
-    expect(
-      stNicholasTypeFieldsSchema.safeParse({
-        giftUrl: "https://rozetka.com.ua/ua/502764564/p502764564/",
-      }).success,
-    ).toBe(true);
+    expect(stNicholasTypeFieldsSchema.safeParse({ giftUrls: "" }).success).toBe(
+      false,
+    );
+  });
+
+  it("ignores blank lines and stray separators from pasting", () => {
+    expect(splitGiftUrls(`\n${link}\n\n , ${other} ;\n`)).toEqual([
+      link,
+      other,
+    ]);
   });
 
   // Required to ANSWER, but "no" is a valid answer — it must never be a
@@ -148,5 +178,58 @@ describe("applicationSubmitSchemaForCampaign (gift budget cap)", () => {
     expect(schema.safeParse({ ...validSubmit, giftPrice: 5000 }).success).toBe(
       true,
     );
+  });
+});
+
+// A <form> sends "" for an untouched field. Naive coercion turns that into 0,
+// which would silently record a child's age as 0 — the reason this schema
+// preprocesses blanks to undefined.
+describe("applicationDraftFormSchema (FormData coercion)", () => {
+  it("treats an untouched field as absent, not as 0 or an empty string", () => {
+    const parsed = applicationDraftFormSchema.parse({
+      childName: "Оля",
+      childAge: "",
+      homeTown: "   ",
+    });
+    expect(parsed.childName).toBe("Оля");
+    expect(parsed.childAge).toBeUndefined();
+    expect(parsed.homeTown).toBeUndefined();
+  });
+
+  it("coerces numeric strings the browser sends", () => {
+    const parsed = applicationDraftFormSchema.parse({
+      childAge: "7",
+      displacedYear: "2022",
+      giftPrice: "699.50",
+    });
+    expect(parsed.childAge).toBe(7);
+    expect(parsed.displacedYear).toBe(2022);
+    expect(parsed.giftPrice).toBe(699.5);
+  });
+
+  it("still rejects a provided value that is out of range", () => {
+    expect(
+      applicationDraftFormSchema.safeParse({ childAge: "99" }).success,
+    ).toBe(false);
+    expect(
+      applicationDraftFormSchema.safeParse({ giftUrls: "rozetka" }).success,
+    ).toBe(false);
+    expect(
+      applicationDraftFormSchema.safeParse({ homeRegion: "atlantis" }).success,
+    ).toBe(false);
+  });
+
+  it("reads the social-media consent radio as a real boolean", () => {
+    expect(
+      applicationDraftFormSchema.parse({ socialMediaConsent: "true" })
+        .socialMediaConsent,
+    ).toBe(true);
+    expect(
+      applicationDraftFormSchema.parse({ socialMediaConsent: "false" })
+        .socialMediaConsent,
+    ).toBe(false);
+    expect(
+      applicationDraftFormSchema.parse({}).socialMediaConsent,
+    ).toBeUndefined();
   });
 });

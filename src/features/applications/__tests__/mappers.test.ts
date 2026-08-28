@@ -23,7 +23,7 @@ describe("toBrowseCard redaction (guardrail)", () => {
       giftPrice: "1200.00",
       deliveryInformation: "Nova Poshta #5 — private",
       typeFields: {
-        giftUrl: "https://rozetka.com.ua/ua/502764564/p502764564/",
+        giftUrls: ["https://rozetka.com.ua/ua/502764564/p502764564/"],
       },
       status: "approved",
       rejectionNote: null,
