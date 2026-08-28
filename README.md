@@ -243,6 +243,24 @@ Opening an application detail page writes an `application.viewed_full` audit ent
 decisions themselves (`application.approved` / `application.rejected`). Queue links carry
 `prefetch={false}` so a hover never logs a view that nobody made.
 
+#### Export
+
+`/admin/export` offers **two** CSVs per campaign, and the split is deliberate:
+
+- **Coordination** (the default) — child name, age, region, gift + price, status, claimed
+  yes/no. Answers the day-to-day questions without carrying anything that identifies a
+  family, so the dangerous file isn't the one that falls to hand.
+- **Full** — adds parent name, current town, delivery details, family story and the
+  family's contact. A separate action, audit-logged as its own event.
+
+Neither exports a file, and the ВПО certificate in particular is reachable only through the
+authorized route that logs each read. Exports are scoped to **one campaign**; a file spanning
+all of them would resurrect years of archived families into one spreadsheet.
+
+Cells that begin with `=`, `+`, `-` or `@` are prefixed with an apostrophe: Excel and Google
+Sheets otherwise execute them as formulas, and every free-text field here is parent-written.
+The file carries a UTF-8 BOM so Excel on Windows reads the Ukrainian correctly.
+
 ### Project layout & scripts (Phase 0)
 
 ```
