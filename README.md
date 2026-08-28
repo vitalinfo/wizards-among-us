@@ -218,6 +218,31 @@ pnpm db:migrate               # apply pending migrations
 pnpm db:seed                  # one draft campaign + settings row (idempotent)
 ```
 
+### Admin (Phase 5)
+
+Sign in at `/admin/login` (email + password; the address must be in `ADMIN_ALLOWLIST`).
+Three surfaces, linked from the shared nav:
+
+- **`/admin/campaigns`** — create campaigns, activate one (activating archives the incumbent
+  in the same transaction, so the "one active campaign" index can never be tripped),
+  open/close intake, and the global kill switch.
+- **`/admin/applications`** — the moderation queue. Ordered **oldest submission first**: we
+  promise parents a review within two days, so newest-first would starve exactly the
+  applications that are already late. Filter by status; the default view is everything
+  awaiting a decision.
+- **`/admin/applications/<id>`** — every field, the family's resolved contact, and links to
+  the uploaded files (including the ВПО certificate, which **only** an admin may open —
+  never a volunteer, not even the one holding the claim).
+
+Approve / reject is one form with two submit buttons, so it works without JS. **Rejection is
+final** — the parent cannot edit and resubmit, they start a new application — which is why a
+note is required on rejection and is shown to the parent verbatim. The `UPDATE` is guarded on
+`status = 'submitted'`, so two admins working the same queue can't both land a decision.
+
+Opening an application detail page writes an `application.viewed_full` audit entry, as do the
+decisions themselves (`application.approved` / `application.rejected`). Queue links carry
+`prefetch={false}` so a hover never logs a view that nobody made.
+
 ### Project layout & scripts (Phase 0)
 
 ```

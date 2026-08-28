@@ -3,7 +3,7 @@ import { useFormatter, useTranslations } from "next-intl";
 
 import type { MyApplicationSummary } from "@/features/applications/queries";
 
-import { ApplicationStatusBadge } from "./ApplicationStatusBadge";
+import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 
 // A record collection, so it's a <ul>/<li> — screen readers announce the count
 // and let the user step through items (accessibility rules).

@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ApplicationForm } from "@/components/parent/applicationForm/ApplicationForm";
 import { stepsForCampaignType } from "@/components/parent/applicationForm/steps";
-import { ApplicationStatusBadge } from "@/components/parent/ApplicationStatusBadge";
+import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { canEditApplication } from "@/features/applications/authz";
@@ -44,6 +44,7 @@ export default async function ApplicationPage({
 
   const t = await getTranslations("parent.form");
   const tBlocked = await getTranslations("parent.applications.blocked");
+  const tRejected = await getTranslations("parent.applications.rejected");
   const editable = canEditApplication(actor, application);
 
   // Resolved live rather than copied onto the application: the delivery step
@@ -126,6 +127,22 @@ export default async function ApplicationPage({
               turnstileSiteKey={turnstileSiteKey()}
               steps={steps}
             />
+          ) : application.status === "rejected" ? (
+            // Rejection is final: the parent can't edit and resubmit, so the
+            // note is the only explanation they get and the way forward is a
+            // fresh application.
+            <div className="border-border bg-surface-muted rounded-lg border p-4">
+              <h2 className="font-semibold">{tRejected("title")}</h2>
+              <p className="text-body mt-1 text-sm whitespace-pre-wrap">
+                {application.rejectionNote ?? tRejected("noNote")}
+              </p>
+              <Link
+                href="/parent/applications"
+                className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
+              >
+                {tRejected("cta")}
+              </Link>
+            </div>
           ) : (
             <p className="text-muted-foreground">{tBlocked("locked")}</p>
           )}

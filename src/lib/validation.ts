@@ -36,6 +36,11 @@ export {
 } from "@/features/campaigns/validation";
 
 export {
+  moderationDecisionSchema,
+  type ModerationDecisionInput,
+} from "@/features/applications/moderation";
+
+export {
   applicationDraftSchema,
   applicationSubmitSchema,
   type ApplicationDraftInput,
