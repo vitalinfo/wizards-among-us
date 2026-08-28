@@ -17,6 +17,7 @@ import { getCampaignById } from "@/features/campaigns/queries";
 import { turnstileSiteKey } from "@/features/turnstile/verify";
 import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
+import { loginPathFor } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ export default async function ApplicationPage({
   const [{ applicationId }, query] = await Promise.all([params, searchParams]);
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect("/login");
+    redirect(loginPathFor(`/parent/applications/${applicationId}`));
   }
 
   // Scoped to this parent. A wrong id 404s rather than revealing that someone

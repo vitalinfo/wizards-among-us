@@ -13,8 +13,12 @@ import { useEffect, useRef } from "react";
 // build promoted to production would ship the staging bot's username.
 export function TelegramLoginButton({
   botUsername,
+  returnTo,
 }: {
   botUsername: string | null;
+  // Where to land after a successful login. Passed through to the callback as a
+  // query param; the route re-validates it before redirecting.
+  returnTo?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,13 +37,14 @@ export function TelegramLoginButton({
     // callback mode (data-onauth), which we don't define — so authorizing does
     // nothing and the button just flips to its "logged in" state. Built from the
     // live origin so it works on localhost, staging, and prod without config.
-    script.setAttribute(
-      "data-auth-url",
-      new URL("/auth/telegram", window.location.origin).toString(),
-    );
+    const authUrl = new URL("/auth/telegram", window.location.origin);
+    if (returnTo && returnTo !== "/") {
+      authUrl.searchParams.set("next", returnTo);
+    }
+    script.setAttribute("data-auth-url", authUrl.toString());
     script.setAttribute("data-request-access", "write");
     container.appendChild(script);
-  }, [botUsername]);
+  }, [botUsername, returnTo]);
 
   if (!botUsername) {
     return null;

@@ -10,6 +10,7 @@ import { listMyApplications } from "@/features/applications/queries";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { isUser } from "@/lib/actor";
+import { loginPathFor } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
 
 import { startApplication } from "./actions";
@@ -20,7 +21,8 @@ export const dynamic = "force-dynamic";
 export default async function MyApplicationsPage() {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect("/login");
+    // Carry the destination so signing in returns here, not to the home page.
+    redirect(loginPathFor("/parent/applications"));
   }
 
   const t = await getTranslations("parent.applications");

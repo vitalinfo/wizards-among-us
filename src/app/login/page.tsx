@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { TelegramLoginButton } from "@/components/auth/TelegramLoginButton";
 import { CheckIcon } from "@/components/icons";
 import { isDevLoginEnabled } from "@/lib/auth/devLogin";
+import { safeReturnPath } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
 
 // Session-dependent → dynamic; inherits the root noindex default.
@@ -12,9 +13,18 @@ export const dynamic = "force-dynamic";
 
 const POINTS = ["dataPoint", "privacyPoint"] as const;
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  // Validated here as well as on the way back — never trust it in either
+  // direction (open redirect).
+  const returnTo = safeReturnPath(next);
+
   if (await getSessionActor()) {
-    redirect("/");
+    redirect(returnTo);
   }
   const t = await getTranslations("login");
 
@@ -25,6 +35,7 @@ export default async function LoginPage() {
         <p className="text-muted-foreground leading-relaxed">{t("body")}</p>
         <TelegramLoginButton
           botUsername={process.env.TELEGRAM_BOT_USERNAME ?? null}
+          returnTo={returnTo}
         />
         <ul className="flex flex-col gap-2">
           {POINTS.map((key) => (
@@ -37,7 +48,7 @@ export default async function LoginPage() {
         <p className="text-muted-foreground text-xs">{t("consent")}</p>
         {isDevLoginEnabled() && (
           <Link
-            href="/dev/login"
+            href={`/dev/login?next=${encodeURIComponent(returnTo)}`}
             className="text-muted-foreground hover:text-foreground text-xs underline"
           >
             Dev login (local only)
