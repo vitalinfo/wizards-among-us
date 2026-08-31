@@ -188,6 +188,14 @@ fixed. A distinct port per project sidesteps that entirely.
 Heroku sets `PORT` itself and runs the `Procfile` through a shell, so `${PORT:-3003}` resolves
 to Heroku's value in a deploy; the fallback only ever applies locally.
 
+**Changing the port breaks the Telegram Login Widget locally.** BotFather's `/setdomain` is
+validated against the exact origin the page is served from, port included, so moving the dev
+server invalidates the registration and the widget answers `Bot domain invalid`. We don't chase
+that: **use [`/dev/login`](http://localhost:3003/dev/login) locally** and exercise the real
+widget on staging, where the domain is stable and registered. If you do want the widget against
+a local server, re-run `/setdomain` with the full `host:port` and expect to redo it whenever the
+port moves.
+
 ### Browsing the dev server from another origin
 
 If you open the dev server as anything other than `http://localhost:3003` — a tunnel, an
