@@ -4,6 +4,7 @@ import {
   ageBand,
   browseHref,
   browsePageCount,
+  BROWSE_ANCHOR,
   BROWSE_PAGE_SIZE,
   parseBrowseQuery,
 } from "../browseFilters";
@@ -69,7 +70,17 @@ describe("parseBrowseQuery", () => {
 
 describe("browseHref", () => {
   it("omits defaults so the plain url stays clean", () => {
-    expect(browseHref(empty)).toBe("/volunteer/children");
+    expect(browseHref(empty)).toBe(`/volunteer/children#${BROWSE_ANCHOR}`);
+  });
+
+  // Filtering and paging must return to the results, not to the page heading —
+  // otherwise every click scrolls the list you were reading off the screen.
+  it("always anchors to the results", () => {
+    expect(browseHref(empty)).toContain(`#${BROWSE_ANCHOR}`);
+    expect(browseHref(empty, { page: 2 })).toContain(`#${BROWSE_ANCHOR}`);
+    expect(browseHref(empty, { region: "lviv" })).toContain(
+      `#${BROWSE_ANCHOR}`,
+    );
   });
 
   it("round-trips a full query", () => {

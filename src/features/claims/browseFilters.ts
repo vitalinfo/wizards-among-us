@@ -6,6 +6,9 @@ import { UKRAINE_REGIONS, type UkraineRegion } from "@/db/enums";
 
 export const BROWSE_PAGE_SIZE = 24;
 
+// The results list, so filter/pager navigation returns to it.
+export const BROWSE_ANCHOR = "children";
+
 export type Availability = "all" | "available" | "claimed";
 
 // Age is picked as a BAND, not two free-text numbers: a volunteer thinks "a
@@ -93,8 +96,10 @@ export function browseHref(
   if (page > 1) {
     params.set("page", String(page));
   }
+  // The fragment keeps paging and filtering anchored to the results instead of
+  // scrolling back to the page heading every time.
   const qs = params.toString();
-  return qs ? `/volunteer/children?${qs}` : "/volunteer/children";
+  return `/volunteer/children${qs ? `?${qs}` : ""}#${BROWSE_ANCHOR}`;
 }
 
 export function browsePageCount(total: number): number {

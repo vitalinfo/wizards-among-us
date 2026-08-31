@@ -99,7 +99,7 @@ export default async function AdminApplicationPage({
   const holder =
     query.release === "1" ? await getClaimHolder(applicationId) : null;
   const overlayOpen = assignTarget !== null || holder !== null;
-  const claimHref = `/admin/applications/${applicationId}${search ? `?volunteer=${encodeURIComponent(search)}` : ""}`;
+  const claimHref = `/admin/applications/${applicationId}${search ? `?volunteer=${encodeURIComponent(search)}` : ""}#claim`;
   const giftUrls = Array.isArray(
     (application.typeFields as { giftUrls?: unknown } | null)?.giftUrls,
   )

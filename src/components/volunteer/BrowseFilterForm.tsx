@@ -7,7 +7,15 @@ import { regionOptions } from "@/lib/regionOptions";
 // A plain GET form: the browser turns it into the query string the page already
 // parses, so filtering needs no client JavaScript and every result set stays a
 // shareable url.
-export async function BrowseFilterForm({ query }: { query: BrowseQuery }) {
+export async function BrowseFilterForm({
+  query,
+  anchor,
+}: {
+  query: BrowseQuery;
+  // Applying a filter returns to the results rather than the top of the page.
+  // A GET form keeps the fragment from its action (verified in a browser).
+  anchor: string;
+}) {
   const t = await getTranslations("volunteer.children.filters");
   const tRegions = await getTranslations("regions");
   // Sorted by the Ukrainian label — the enum's slug order reads as random to
@@ -20,7 +28,7 @@ export async function BrowseFilterForm({ query }: { query: BrowseQuery }) {
   return (
     <form
       method="get"
-      action="/volunteer/children"
+      action={`/volunteer/children#${anchor}`}
       className="border-border bg-surface-muted flex flex-wrap items-end gap-3 rounded-lg border p-4"
     >
       <div className="flex flex-col gap-1">
@@ -84,7 +92,7 @@ export async function BrowseFilterForm({ query }: { query: BrowseQuery }) {
         {t("apply")}
       </button>
       <Link
-        href="/volunteer/children"
+        href={`/volunteer/children#${anchor}`}
         className="text-primary text-sm font-semibold underline underline-offset-4"
       >
         {t("reset")}

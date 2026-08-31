@@ -32,11 +32,20 @@ export async function ClaimSection({
   const assignable = status === "approved" || status === "claimed";
 
   const base = `/admin/applications/${applicationId}`;
+  // Every control here returns to THIS section rather than the top of a long
+  // page. A GET form keeps the fragment from its action (verified in a
+  // browser), so searching lands back on the results instead of scrolling away
+  // from them — and the same anchor is appended to the assign/release links so
+  // cancelling a confirmation returns here too.
+  const anchor = "claim";
   const withSearch = (extra: string) =>
-    `${base}?${search ? `volunteer=${encodeURIComponent(search)}&` : ""}${extra}`;
+    `${base}?${search ? `volunteer=${encodeURIComponent(search)}&` : ""}${extra}#${anchor}`;
 
   return (
-    <section className="border-border bg-surface rounded-lg border p-4">
+    <section
+      id={anchor}
+      className="border-border bg-surface scroll-mt-4 rounded-lg border p-4"
+    >
       <h2 className="font-semibold">{t("title")}</h2>
 
       {holder ? (
@@ -84,9 +93,11 @@ export async function ClaimSection({
             </p>
           ) : null}
 
+          {/* The fragment survives a GET submit (verified in a browser), so
+              searching lands back on these results instead of the page top. */}
           <form
             method="get"
-            action={base}
+            action={`${base}#${anchor}`}
             className="mt-3 flex flex-wrap gap-2"
           >
             <label htmlFor="volunteer" className="sr-only">

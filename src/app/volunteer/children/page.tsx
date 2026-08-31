@@ -11,6 +11,7 @@ import {
   ageBand,
   browseHref,
   browsePageCount,
+  BROWSE_ANCHOR,
   BROWSE_PAGE_SIZE,
   parseBrowseQuery,
 } from "@/features/claims/browseFilters";
@@ -114,8 +115,12 @@ export default async function BrowseChildrenPage({
         <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>
 
         <div className="mt-6">
-          <BrowseFilterForm query={query} />
+          <BrowseFilterForm query={query} anchor={BROWSE_ANCHOR} />
         </div>
+
+        {/* scroll-mt clears the sticky site header, or the anchor lands under
+            it and the first card is hidden. */}
+        <div id={BROWSE_ANCHOR} className="scroll-mt-20" />
 
         {rows.length === 0 ? (
           <p className="text-muted-foreground mt-8">{t("empty")}</p>
