@@ -42,6 +42,7 @@ describe("toBrowseCard redaction (guardrail)", () => {
       currentRegion: "lviv",
       homeRegion: "donetsk",
       homeTown: "Bakhmut",
+      currentTown: "Lviv",
       giftDescription: "Backpack",
       giftPrice: "1200.00",
       // On the card by a deliberate decision (Vital, Phase 6): it is what a
@@ -50,16 +51,13 @@ describe("toBrowseCard redaction (guardrail)", () => {
       familyStory: "Виїхали з Дружківки навесні 2022.",
       status: "approved",
     });
-    // Anything a volunteer must not see before claiming. CURRENT town, the
-    // address, the parent's name and the contact stay post-claim — widening
-    // tier 1 to the story and to the family's ORIGIN did not widen it to these.
-    // current_town is the one that matters most: origin is where they no longer
-    // are, but the current town is where the child can actually be found. typeFields carries the
+    // Anything a volunteer must not see before claiming. The DELIVERY address,
+    // the parent's name and the contact stay post-claim; the card was widened
+    // to the story, the origin and the current town, but not to these. typeFields carries the
     // St Nicholas shop link, which is only needed once you've actually claimed
     // the child.
     for (const leaked of [
       "deliveryInformation",
-      "currentTown",
       "parentName",
       "typeFields",
       "submittedAt",

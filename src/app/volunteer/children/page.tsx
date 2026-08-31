@@ -58,7 +58,7 @@ export default async function BrowseChildrenPage({
     return (
       <>
         <SiteHeader />
-        <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-10 sm:px-8">
+        <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8">
           <h1 className="text-3xl font-semibold">{t("title")}</h1>
           <p className="text-muted-foreground mt-4">{t("noCampaign")}</p>
         </main>
@@ -108,7 +108,7 @@ export default async function BrowseChildrenPage({
       <SiteHeader />
       <main
         inert={pendingClaim !== null}
-        className="mx-auto w-full max-w-4xl flex-1 px-5 py-10 sm:px-8"
+        className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8"
       >
         <h1 className="text-3xl font-semibold">{t("title")}</h1>
         <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>
@@ -120,7 +120,7 @@ export default async function BrowseChildrenPage({
         {rows.length === 0 ? (
           <p className="text-muted-foreground mt-8">{t("empty")}</p>
         ) : (
-          <ul className="mt-6 grid items-start gap-3 sm:grid-cols-2">
+          <ul className="mt-6 flex flex-col gap-3">
             {rows.map((row) => (
               <ChildCard
                 key={row.id}

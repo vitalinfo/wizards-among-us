@@ -12,8 +12,8 @@ type Application = typeof applications.$inferSelect;
 // after the commitment inverts the order. It is consistent with what we already
 // promise parents on the form: «це читає чарівник, який обиратиме дитину».
 // Note this widens tier 1, so it is the one free-text field any signed-in user
-// can read; the CURRENT town, address, parent name and contact remain
-// post-claim only.
+// can read; the delivery address, parent name and contact remain post-claim
+// only.
 //
 // `home_region` + `home_town` are also on the card (Vital, Phase 6) so a
 // volunteer sees the journey — «Донецька область (м. Донецьк) → Львівська
@@ -29,11 +29,15 @@ export type BrowseCard = {
   // they can be found, so it carries far less risk than the destination.
   homeRegion: Application["homeRegion"];
   homeTown: Application["homeTown"];
-  // Destination at OBLAST level only. `current_town` stays tier 2: it is the
-  // "where does this child physically live now" field, and combined with a
-  // first name, an age and a family story it is enough to find one displaced
-  // family in a small town. It is revealed to the claiming volunteer, as before.
   currentRegion: Application["currentRegion"];
+  // Where the family lives NOW. On the card by an explicit decision (Vital,
+  // Phase 6) after I argued against it twice: combined with a first name, an
+  // age and the family story it can identify one displaced family in a small
+  // town, and any signed-in user can browse — there is no volunteer approval
+  // gate (§11). The parent-facing copy was rewritten in the same change so we
+  // no longer promise families it is post-claim only. If abuse appears, this
+  // and family_story are the two fields to pull back first.
+  currentTown: Application["currentTown"];
   giftDescription: Application["giftDescription"];
   giftPrice: Application["giftPrice"];
   familyStory: Application["familyStory"];
@@ -48,6 +52,7 @@ export function toBrowseCard(application: Application): BrowseCard {
     homeRegion: application.homeRegion,
     homeTown: application.homeTown,
     currentRegion: application.currentRegion,
+    currentTown: application.currentTown,
     giftDescription: application.giftDescription,
     giftPrice: application.giftPrice,
     familyStory: application.familyStory,
