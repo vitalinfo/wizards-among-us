@@ -3,21 +3,32 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
-import { CampaignRow } from "@/components/admin/CampaignRow";
+import { CampaignRow, isCampaignConfirm } from "@/components/admin/CampaignRow";
 import { listCampaigns } from "@/features/campaigns/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminCampaignsPage() {
+export default async function AdminCampaignsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ confirm?: string; id?: string }>;
+}) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
   }
 
   const t = await getTranslations("admin.campaigns");
-  const campaigns = await listCampaigns();
+  const [query, campaigns] = await Promise.all([searchParams, listCampaigns()]);
+
+  // Which row (if any) is currently asking for confirmation. Both halves must
+  // match, so a stale link can't put a different campaign into the confirm
+  // state — and the action itself is still re-authorized server-side.
+  const pendingConfirm = isCampaignConfirm(query.confirm)
+    ? query.confirm
+    : null;
 
   return (
     <>
@@ -41,7 +52,11 @@ export default async function AdminCampaignsPage() {
         ) : (
           <ul className="flex flex-col gap-3">
             {campaigns.map((campaign) => (
-              <CampaignRow key={campaign.id} campaign={campaign} />
+              <CampaignRow
+                key={campaign.id}
+                campaign={campaign}
+                pending={query.id === campaign.id ? pendingConfirm : null}
+              />
             ))}
           </ul>
         )}

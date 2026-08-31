@@ -1,4 +1,4 @@
-import { useFormatter, useTranslations } from "next-intl";
+import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 import {
@@ -6,8 +6,22 @@ import {
   archiveCampaignAction,
   setIntakeAction,
 } from "@/app/admin/campaigns/actions";
-import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import type { AdminCampaign } from "@/features/campaigns/adminQueries";
+
+import { InlineConfirm } from "./InlineConfirm";
+
+// Which action this row is currently asking about, read from the query string.
+export const CAMPAIGN_CONFIRMS = [
+  "activate",
+  "archive",
+  "openIntake",
+  "closeIntake",
+] as const;
+export type CampaignConfirm = (typeof CAMPAIGN_CONFIRMS)[number];
+
+export function isCampaignConfirm(value: unknown): value is CampaignConfirm {
+  return CAMPAIGN_CONFIRMS.includes(value as CampaignConfirm);
+}
 
 const ACTION =
   "border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -20,16 +34,34 @@ const STATUS_TONE: Record<AdminCampaign["status"], string> = {
 
 // One campaign with the actions valid for its current state.
 //
-// Every state change asks first: each of these decides whether families can
-// apply or whether a whole campaign's applications stay visible, and none of it
-// is obvious from a one-word button. The dialog says what will actually happen.
-export function CampaignRow({ campaign }: { campaign: AdminCampaign }) {
-  const t = useTranslations("admin.campaigns");
-  const format = useFormatter();
+// Every state change confirms first: each decides whether families can apply,
+// or whether a whole campaign's applications stay visible, and none of that is
+// obvious from a one-word button. The confirmation is a page state
+// (?confirm=…&id=…), not a dialog, so it works with no client JavaScript.
+export async function CampaignRow({
+  campaign,
+  pending,
+}: {
+  campaign: AdminCampaign;
+  // The confirmation this row is showing, if the query string names this row.
+  pending: CampaignConfirm | null;
+}) {
+  const t = await getTranslations("admin.campaigns");
+  const format = await getFormatter();
 
   const isActive = campaign.status === "active";
   const isArchived = campaign.status === "archived";
   const accepting = campaign.acceptingApplications;
+  const anchorId = `confirm-${campaign.id}`;
+
+  // Where a trigger points, and where "cancel" returns to.
+  const confirmHref = (confirm: CampaignConfirm) =>
+    `/admin/campaigns?confirm=${confirm}&id=${campaign.id}#${anchorId}`;
+
+  const intakeConfirm: CampaignConfirm = accepting
+    ? "closeIntake"
+    : "openIntake";
+  const intakeLabel = accepting ? t("closeIntake") : t("openIntake");
 
   return (
     <li className="border-border bg-surface flex flex-col gap-3 rounded-lg border p-4">
@@ -58,52 +90,58 @@ export function CampaignRow({ campaign }: { campaign: AdminCampaign }) {
         {format.dateTime(campaign.createdAt, "short")}
       </p>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Link href={`/admin/campaigns/${campaign.id}/edit`} className={ACTION}>
-          {t("editCta")}
-        </Link>
-
-        {!isActive ? (
-          <ConfirmSubmitButton
-            action={activateCampaignAction.bind(null, campaign.id)}
-            label={t("activate")}
-            title={t("confirm.activate.title")}
-            message={t("confirm.activate.body")}
-            confirmLabel={t("activate")}
+      {pending === "activate" ? (
+        <InlineConfirm
+          action={activateCampaignAction.bind(null, campaign.id)}
+          title={t("confirm.activate.title")}
+          message={t("confirm.activate.body")}
+          confirmLabel={t("activate")}
+          cancelHref="/admin/campaigns"
+          anchorId={anchorId}
+        />
+      ) : pending === "archive" ? (
+        <InlineConfirm
+          action={archiveCampaignAction.bind(null, campaign.id)}
+          title={t("confirm.archive.title")}
+          message={t("confirm.archive.body")}
+          confirmLabel={t("archive")}
+          cancelHref="/admin/campaigns"
+          anchorId={anchorId}
+        />
+      ) : pending === "openIntake" || pending === "closeIntake" ? (
+        <InlineConfirm
+          action={setIntakeAction.bind(null, campaign.id, !accepting)}
+          title={t(`confirm.${intakeConfirm}.title`)}
+          message={t(`confirm.${intakeConfirm}.body`)}
+          confirmLabel={intakeLabel}
+          cancelHref="/admin/campaigns"
+          anchorId={anchorId}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/admin/campaigns/${campaign.id}/edit`}
             className={ACTION}
-          />
-        ) : null}
-
-        {isActive ? (
-          <ConfirmSubmitButton
-            action={setIntakeAction.bind(null, campaign.id, !accepting)}
-            label={accepting ? t("closeIntake") : t("openIntake")}
-            title={
-              accepting
-                ? t("confirm.closeIntake.title")
-                : t("confirm.openIntake.title")
-            }
-            message={
-              accepting
-                ? t("confirm.closeIntake.body")
-                : t("confirm.openIntake.body")
-            }
-            confirmLabel={accepting ? t("closeIntake") : t("openIntake")}
-            className={ACTION}
-          />
-        ) : null}
-
-        {!isArchived ? (
-          <ConfirmSubmitButton
-            action={archiveCampaignAction.bind(null, campaign.id)}
-            label={t("archive")}
-            title={t("confirm.archive.title")}
-            message={t("confirm.archive.body")}
-            confirmLabel={t("archive")}
-            className={ACTION}
-          />
-        ) : null}
-      </div>
+          >
+            {t("editCta")}
+          </Link>
+          {!isActive ? (
+            <Link href={confirmHref("activate")} className={ACTION}>
+              {t("activate")}
+            </Link>
+          ) : null}
+          {isActive ? (
+            <Link href={confirmHref(intakeConfirm)} className={ACTION}>
+              {intakeLabel}
+            </Link>
+          ) : null}
+          {!isArchived ? (
+            <Link href={confirmHref("archive")} className={ACTION}>
+              {t("archive")}
+            </Link>
+          ) : null}
+        </div>
+      )}
     </li>
   );
 }

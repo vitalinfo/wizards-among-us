@@ -241,18 +241,18 @@ Three surfaces, linked from the shared nav:
   the uploaded files (including the ВПО certificate, which **only** an admin may open —
   never a volunteer, not even the one holding the claim).
 
-Every campaign state change — activate, archive, open/close intake, kill switch — goes
-through `ConfirmSubmitButton`, which asks first and says what will actually happen rather
-than "are you sure?". It's built on the native `<dialog>` + `showModal()`, so focus entry,
-focus trapping, Escape, and focus return to the trigger are browser behaviour rather than
-hand-rolled (verified: a submit button inside a top-layer dialog still submits its enclosing
-form).
+Every campaign state change — activate, archive, open/close intake, kill switch — confirms
+first, and the confirmation is a **page state, not a dialog**: the trigger is a plain `<Link>`
+carrying `?confirm=<action>&id=<id>`, the page re-renders with the question in place of the
+buttons, and the confirm control is an ordinary `<form>` posting a server action
+(`InlineConfirm`). The prompt says what will actually happen rather than "are you sure?".
 
-The trigger is a real `type="submit"` button whose handler cancels the submit and opens the
-dialog instead — **not** a `type="button"`. That matters: these were plain forms that worked
-without JS until the dialog arrived, and with `type="button"` a stale or unloaded client
-bundle turns every admin action into a silent no-op. Now a click with broken JS still acts;
-the admin loses the prompt, not the button. Every action behind it is reversible.
+It needs **no client JavaScript**, deliberately. The first version used a native `<dialog>` +
+`showModal()`, which was correct in every browser we could test and still silently did nothing
+on the reviewer's machine — the handler never ran, so a destructive action either no-oped or
+(after a fallback was added) fired with no prompt at all, archiving a live campaign. A
+confirmation whose entire job is to prevent a mistake must not depend on hydration succeeding.
+If the page rendered, the confirmation works.
 
 Approve / reject is one form with two submit buttons, so it works without JS. **Rejection is
 final** — the parent cannot edit and resubmit, they start a new application — which is why a
