@@ -56,7 +56,12 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Fr
 - **Indexing:** only `/` is indexable; everything else `noindex`. All data-bearing routes are behind auth + server-layer authz regardless.
 - **Campaigns:** one `active` campaign at a time (partial unique index). Parents can submit a *new* application only when there's an active campaign AND `accepting_applications` AND the global kill switch is on. Archive is **derived** (an app is "archived" because its campaign isn't active) — scope all parent/volunteer queries to the active campaign; don't build a separate archive store.
 - **Edit lock:** a parent may edit an application only while `draft`/`submitted`; admin approval locks it (server-enforced, not just UI).
-- **Claims are atomic:** prevent double-claim via a unique constraint + transaction.
+- **Claims are atomic:** prevent double-claim via a unique constraint + transaction. This
+  includes **admin manual assignment** (plan §9 Phase 6, Vital) — an admin picking a volunteer
+  by hand goes through the same transaction and the same unique index, and reassignment
+  releases the incumbent. Never add a second write path to `claims`. Log it distinctly
+  (`claim.assigned_by_admin`), because "who decided this volunteer gets this child" is the
+  question the audit trail exists for.
 - **Never commit secrets.** Use env vars (see README).
 
 ## Phase 1 decisions (resolved)
