@@ -39,9 +39,21 @@ export async function ChildCard({
         </span>
       </div>
 
-      {row.currentRegion ? (
+      {/* The journey: where the family came from → where they are now. Origin
+          includes the town; the destination is oblast-level only, because
+          current_town is tier 2 (see toBrowseCard). */}
+      {row.homeRegion || row.currentRegion ? (
         <p className="text-muted-foreground text-sm">
-          {tRegions(row.currentRegion)}
+          {row.homeRegion ? (
+            <>
+              {tRegions(row.homeRegion)}
+              {row.homeTown ? ` (${t("town", { town: row.homeTown })})` : null}
+            </>
+          ) : null}
+          {row.homeRegion && row.currentRegion ? (
+            <span aria-label={t("movedTo")}> → </span>
+          ) : null}
+          {row.currentRegion ? tRegions(row.currentRegion) : null}
         </p>
       ) : null}
 

@@ -10,6 +10,7 @@ import { toBrowseCard, type BrowseCard } from "@/features/applications/mappers";
 
 export type BrowseFilters = {
   campaignId: string;
+  // Matches home_region: the region the family left.
   region?: UkraineRegion;
   minAge?: number;
   maxAge?: number;
@@ -39,7 +40,7 @@ function browseConditions(filters: BrowseFilters) {
     // surface to volunteers.
     eq(applications.campaignId, filters.campaignId),
     BROWSABLE,
-    filters.region ? eq(applications.currentRegion, filters.region) : undefined,
+    filters.region ? eq(applications.homeRegion, filters.region) : undefined,
     filters.minAge !== undefined
       ? gte(applications.childAge, filters.minAge)
       : undefined,

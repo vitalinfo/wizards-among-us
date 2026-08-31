@@ -12,7 +12,12 @@ type Application = typeof applications.$inferSelect;
 // after the commitment inverts the order. It is consistent with what we already
 // promise parents on the form: «це читає чарівник, який обиратиме дитину».
 // Note this widens tier 1, so it is the one free-text field any signed-in user
-// can read; the town, address, parent name and contact remain post-claim only.
+// can read; the CURRENT town, address, parent name and contact remain
+// post-claim only.
+//
+// `home_region` + `home_town` are also on the card (Vital, Phase 6) so a
+// volunteer sees the journey — «Донецька область (м. Донецьк) → Львівська
+// область». Origin is where the family no longer is, so it locates nobody.
 //
 // This is a DTO mapper, not authorization — it lives beside the resource rather
 // than in authz.ts (CLAUDE.md).
@@ -20,6 +25,14 @@ export type BrowseCard = {
   id: Application["id"];
   childFirstName: string | null;
   childAge: Application["childAge"];
+  // Where the family came FROM — both parts. A child's origin is not where
+  // they can be found, so it carries far less risk than the destination.
+  homeRegion: Application["homeRegion"];
+  homeTown: Application["homeTown"];
+  // Destination at OBLAST level only. `current_town` stays tier 2: it is the
+  // "where does this child physically live now" field, and combined with a
+  // first name, an age and a family story it is enough to find one displaced
+  // family in a small town. It is revealed to the claiming volunteer, as before.
   currentRegion: Application["currentRegion"];
   giftDescription: Application["giftDescription"];
   giftPrice: Application["giftPrice"];
@@ -32,6 +45,8 @@ export function toBrowseCard(application: Application): BrowseCard {
     id: application.id,
     childFirstName: firstName(application.childName),
     childAge: application.childAge,
+    homeRegion: application.homeRegion,
+    homeTown: application.homeTown,
     currentRegion: application.currentRegion,
     giftDescription: application.giftDescription,
     giftPrice: application.giftPrice,

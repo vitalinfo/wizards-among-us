@@ -29,6 +29,8 @@ export function ageBand(key: AgeBandKey | null) {
 }
 
 export type BrowseQuery = {
+  // The region the family LEFT (applications.home_region), not where they are
+  // now — volunteers look for families from a place they have a tie to.
   region: UkraineRegion | null;
   availability: Availability;
   age: AgeBandKey | null;
