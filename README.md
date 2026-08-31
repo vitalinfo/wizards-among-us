@@ -248,6 +248,12 @@ focus trapping, Escape, and focus return to the trigger are browser behaviour ra
 hand-rolled (verified: a submit button inside a top-layer dialog still submits its enclosing
 form).
 
+The trigger is a real `type="submit"` button whose handler cancels the submit and opens the
+dialog instead — **not** a `type="button"`. That matters: these were plain forms that worked
+without JS until the dialog arrived, and with `type="button"` a stale or unloaded client
+bundle turns every admin action into a silent no-op. Now a click with broken JS still acts;
+the admin loses the prompt, not the button. Every action behind it is reversible.
+
 Approve / reject is one form with two submit buttons, so it works without JS. **Rejection is
 final** — the parent cannot edit and resubmit, they start a new application — which is why a
 note is required on rejection and is shown to the parent verbatim. The `UPDATE` is guarded on

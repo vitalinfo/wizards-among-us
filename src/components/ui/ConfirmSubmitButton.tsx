@@ -13,6 +13,20 @@ import { useFormStatus } from "react-dom";
 // trapped while open, Escape closes it, and focus returns to the trigger — all
 // browser behaviour we'd otherwise have to hand-roll and get subtly wrong
 // (accessibility rules: prefer native behaviour over custom keyboard handlers).
+//
+// PROGRESSIVELY ENHANCED, and deliberately so. The trigger is a real
+// type="submit" button whose click handler cancels the submit and opens the
+// dialog instead. So if the client JS hasn't loaded, hasn't hydrated, or is a
+// stale bundle, the click still submits the form — the admin loses the
+// confirmation, not the ability to act.
+//
+// The alternative (type="button" + onClick) makes the button silently DEAD
+// whenever JS is unavailable, which is exactly the failure we hit: these were
+// plain forms that worked without JS until the dialog was added, and a
+// half-loaded dev bundle turned every one of them into a no-op with no error to
+// explain it. Every action wired to this is reversible (archive ⇄ activate,
+// intake and kill switch toggle), so acting without the prompt is a far better
+// degraded state than a button that does nothing.
 
 function ConfirmButton({ label }: { label: string }) {
   // useFormStatus reads the enclosing form, so this has to be its own component.
@@ -54,8 +68,17 @@ export function ConfirmSubmitButton({
   return (
     <form action={action}>
       <button
-        type="button"
-        onClick={() => dialogRef.current?.showModal()}
+        type="submit"
+        onClick={(event) => {
+          const dialog = dialogRef.current;
+          // No dialog element (or no showModal support) — let the submit run
+          // rather than swallowing the click.
+          if (!dialog?.showModal) {
+            return;
+          }
+          event.preventDefault();
+          dialog.showModal();
+        }}
         className={className}
       >
         {label}

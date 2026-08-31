@@ -82,6 +82,37 @@ describe("ConfirmSubmitButton", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  // Regression: the trigger used to be type="button" with an onClick, which
+  // made it a silent no-op whenever the client JS wasn't there — a stale dev
+  // bundle turned every admin action into a dead button with nothing to
+  // explain it. It is now a real submit button that the handler intercepts, so
+  // a broken-JS click still acts.
+  it("submits directly when the dialog cannot be opened", async () => {
+    const original = HTMLDialogElement.prototype.showModal;
+    // Simulate no dialog support / no hydration of the dialog element.
+    // @ts-expect-error deliberately removing the method for this test
+    HTMLDialogElement.prototype.showModal = undefined;
+    try {
+      const action = vi.fn(async () => {});
+      const user = userEvent.setup();
+      renderButton(action);
+
+      await user.click(screen.getByRole("button", { name: "Архівувати" }));
+
+      expect(action).toHaveBeenCalledTimes(1);
+    } finally {
+      HTMLDialogElement.prototype.showModal = original;
+    }
+  });
+
+  it("keeps the trigger a submit button so it degrades to a plain form post", () => {
+    renderButton(vi.fn(async () => {}));
+    expect(screen.getByRole("button", { name: "Архівувати" })).toHaveAttribute(
+      "type",
+      "submit",
+    );
+  });
+
   // The dialog's accessible name is what a screen reader announces on open.
   it("names the dialog", async () => {
     const user = userEvent.setup();
