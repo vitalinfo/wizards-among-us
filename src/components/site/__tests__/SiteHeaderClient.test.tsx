@@ -7,10 +7,11 @@ import { SiteHeaderClient } from "../SiteHeaderClient";
 
 function renderHeader(
   user: { username: string | null; firstName: string | null } | null,
+  isAdmin = false,
 ) {
   return render(
     <NextIntlClientProvider locale="uk" messages={messages}>
-      <SiteHeaderClient user={user} />
+      <SiteHeaderClient user={user} isAdmin={isAdmin} />
     </NextIntlClientProvider>,
   );
 }
@@ -57,5 +58,32 @@ describe("SiteHeaderClient auth state", () => {
     expect(
       screen.getByRole("button", { name: messages.common.signOut }),
     ).toBeInTheDocument();
+  });
+});
+
+// An admin holds a session but is not a `user`, so `user` is null for them.
+// Showing «Увійти» sent them to a page they were already past — and, with the
+// parent pages' guard, into an infinite redirect loop.
+describe("SiteHeaderClient for an admin", () => {
+  it("links to the admin panel instead of offering sign-in", () => {
+    renderHeader(null, true);
+
+    expect(
+      screen.getByRole("link", { name: messages.common.adminPanel }),
+    ).toHaveAttribute("href", "/admin");
+    expect(
+      screen.queryByRole("link", { name: messages.common.login }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still offers sign-in to an anonymous visitor", () => {
+    renderHeader(null, false);
+
+    expect(
+      screen.getByRole("link", { name: messages.common.login }),
+    ).toHaveAttribute("href", "/login");
+    expect(
+      screen.queryByRole("link", { name: messages.common.adminPanel }),
+    ).not.toBeInTheDocument();
   });
 });
