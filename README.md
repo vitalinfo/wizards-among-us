@@ -296,22 +296,19 @@ become a second copy of that data with a different retention story. Queue links 
 
 #### Export
 
-Export is a per-campaign action **on the campaigns list**: the «Експорт» button opens a modal
-through the same `?export=<id>` page-state mechanism as the confirmations, so there is no
-separate page and no client JS. It offers **two** CSVs, and the split is deliberate:
+One export per campaign: the «Повний список» button on the campaigns list downloads the full
+working CSV (`/admin/export/download?campaignId=…`), admin-gated and audit-logged as
+`campaign.exported`.
 
-- **Coordination** (the default) — child name, age, region, gift + price, status, claimed
-  yes/no. Answers the day-to-day questions without carrying anything that identifies a
-  family, so the dangerous file isn't the one that falls to hand.
-- **Full** — adds parent name, current town, delivery details, family story and the
-  family's contact. A separate action, audit-logged as its own event.
+It carries the fields the child-data invariant calls sensitive — parent name, current town,
+delivery information, family story and the family's contact — so **the file itself is the most
+dangerous artifact this system produces**. Treat it accordingly: keep it only where it is
+genuinely needed and delete it after the campaign.
 
-Neither exports a file, and the ВПО certificate in particular is reachable only through the
-authorized route that logs each read. Each scope is described next to its own button, because
-that is the moment the choice is made — whether a leaked file can identify a family does not
-belong on a page an admin read once. The download itself stays at `/admin/export/download`,
-admin-gated and audit-logged per scope. Exports are scoped to **one campaign**; a file spanning
-all of them would resurrect years of archived families into one spreadsheet.
+It exports no files. The ВПО certificate stays behind the authorized route that logs each read:
+a state document about a child does not belong in a spreadsheet that gets emailed around.
+Exports are scoped to **one campaign**; a file spanning all of them would resurrect years of
+archived families into one spreadsheet.
 
 Cells that begin with `=`, `+`, `-` or `@` are prefixed with an apostrophe: Excel and Google
 Sheets otherwise execute them as formulas, and every free-text field here is parent-written.

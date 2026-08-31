@@ -94,15 +94,15 @@ export async function CampaignRow({ campaign }: { campaign: AdminCampaign }) {
             {t("archive")}
           </Link>
         ) : null}
-        {/* Export lives here rather than on its own page: it is per-campaign,
-            so this is where you already are when you want it. The scope choice
-            is in the modal, next to what each scope exposes. */}
-        <Link
-          href={`/admin/campaigns?export=${campaign.id}`}
+        {/* A plain <a>, not <Link>: the route answers with
+            Content-Disposition: attachment, so the browser saves the file and
+            leaves the page where it is. Admin-gated and audit-logged there. */}
+        <a
+          href={`/admin/export/download?campaignId=${campaign.id}`}
           className={ACTION}
         >
           {t("exportCta")}
-        </Link>
+        </a>
       </div>
     </li>
   );

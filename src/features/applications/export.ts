@@ -6,29 +6,16 @@ import { resolveUserContact } from "@/features/users/contact";
 
 import { toCsv } from "./csv";
 
-// Two deliberately different exports.
+// One export per campaign: the full working list a coordinator runs a campaign
+// from (Vital). It carries the fields the child-data invariant calls
+// sensitive — parent name, current town, delivery information, family story and
+// the family's contact — so the file itself is the most dangerous artifact this
+// system produces. Every download is audit-logged.
 //
-// COORDINATION answers the day-to-day questions — how many children are still
-// unclaimed, what does the campaign cost, which wishes are outstanding — and
-// carries nothing that identifies a family. It is the default because it is the
-// one people actually need, and the dangerous variant should not be the one
-// that falls to hand.
-//
-// FULL adds the fields the child-data invariant calls sensitive: parent name,
-// current town, delivery details, the family's contact. It is a separate,
-// explicit action and is audit-logged as its own event.
-//
-// NEITHER exports a file, and the ВПО certificate in particular is reachable
-// only through the authorized route that logs each read. A copy of a state
-// document about a child does not belong in a spreadsheet that gets emailed.
-export const EXPORT_SCOPES = ["coordination", "full"] as const;
-export type ExportScope = (typeof EXPORT_SCOPES)[number];
-
-export function isExportScope(value: unknown): value is ExportScope {
-  return EXPORT_SCOPES.includes(value as ExportScope);
-}
-
-const COORDINATION_HEADERS = [
+// It still exports NO files. The ВПО certificate stays behind the authorized
+// route that logs each read: a state document about a child does not belong in
+// a spreadsheet that gets emailed around.
+const HEADERS = [
   "id",
   "child_name",
   "child_age",
@@ -38,9 +25,6 @@ const COORDINATION_HEADERS = [
   "status",
   "submitted_at",
   "claimed",
-] as const;
-
-const FULL_EXTRA_HEADERS = [
   "parent_name",
   "current_town",
   "home_town",
@@ -53,17 +37,10 @@ const FULL_EXTRA_HEADERS = [
   "social_media_consent",
 ] as const;
 
-export function headersFor(scope: ExportScope): readonly string[] {
-  return scope === "full"
-    ? [...COORDINATION_HEADERS, ...FULL_EXTRA_HEADERS]
-    : COORDINATION_HEADERS;
-}
-
 // One campaign at a time. An export that silently spanned every campaign would
 // resurrect years of archived families into a single file.
 export async function exportApplicationsCsv(
   campaignId: string,
-  scope: ExportScope,
 ): Promise<string> {
   const rows = await getDb()
     .select({
@@ -85,7 +62,9 @@ export async function exportApplicationsCsv(
 
   const body = rows.map((row) => {
     const a = row.application;
-    const base = [
+    const contact = resolveUserContact(row);
+    const giftUrls = (a.typeFields as { giftUrls?: unknown } | null)?.giftUrls;
+    return [
       a.id,
       a.childName,
       a.childAge,
@@ -95,15 +74,6 @@ export async function exportApplicationsCsv(
       a.status,
       a.submittedAt,
       row.claimId ? "yes" : "no",
-    ];
-    if (scope !== "full") {
-      return base;
-    }
-
-    const contact = resolveUserContact(row);
-    const giftUrls = (a.typeFields as { giftUrls?: unknown } | null)?.giftUrls;
-    return [
-      ...base,
       a.parentName,
       a.currentTown,
       a.homeTown,
@@ -121,5 +91,5 @@ export async function exportApplicationsCsv(
     ];
   });
 
-  return toCsv(headersFor(scope), body);
+  return toCsv(HEADERS, body);
 }
