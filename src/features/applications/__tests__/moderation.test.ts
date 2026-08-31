@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import { moderationDecisionSchema } from "../moderation";
 import {
   filterToStatus,
+  moderationPageCount,
   moderationQueueHref,
   parseModerationFilter,
+  parseModerationPage,
+  MODERATION_PAGE_SIZE,
 } from "../moderationFilter";
 
 const APPLICATION_ID = "11111111-2222-3333-4444-555555555555";
@@ -102,5 +105,45 @@ describe("moderation queue filter", () => {
       const status = new URL(href, "http://x").searchParams.get("status");
       expect(parseModerationFilter(status ?? undefined)).toBe(filter);
     }
+  });
+});
+
+describe("moderation queue paging", () => {
+  it("treats anything unparseable as page 1", () => {
+    for (const value of [undefined, "", "0", "-3", "abc", "1.5", "NaN"]) {
+      expect(parseModerationPage(value)).toBe(1);
+    }
+    expect(parseModerationPage("4")).toBe(4);
+  });
+
+  // An empty queue still has one page, so the view renders coherently.
+  it("always reports at least one page", () => {
+    expect(moderationPageCount(0)).toBe(1);
+    expect(moderationPageCount(1)).toBe(1);
+  });
+
+  it("counts pages by the page size", () => {
+    expect(moderationPageCount(MODERATION_PAGE_SIZE)).toBe(1);
+    expect(moderationPageCount(MODERATION_PAGE_SIZE + 1)).toBe(2);
+    expect(moderationPageCount(MODERATION_PAGE_SIZE * 3)).toBe(3);
+  });
+
+  it("omits page=1 but keeps later pages in the url", () => {
+    expect(moderationQueueHref("submitted")).toBe(
+      "/admin/applications?status=submitted",
+    );
+    expect(moderationQueueHref("all", 3)).toBe(
+      "/admin/applications?status=all&page=3",
+    );
+  });
+
+  // The back link from an application must return to the exact view left.
+  it("round-trips filter and page together", () => {
+    const href = moderationQueueHref("approved", 2);
+    const params = new URL(href, "http://x").searchParams;
+    expect(parseModerationFilter(params.get("status") ?? undefined)).toBe(
+      "approved",
+    );
+    expect(parseModerationPage(params.get("page") ?? undefined)).toBe(2);
   });
 });

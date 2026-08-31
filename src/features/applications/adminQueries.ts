@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import type { ApplicationStatus } from "@/db/enums";
@@ -21,36 +21,67 @@ export type ModerationRow = {
   campaignTitle: string;
 };
 
-// The queue. Ordered OLDEST FIRST by submission: we promise parents a review
-// within two days, so the one waiting longest is the one to look at next.
-// Newest-first would quietly starve exactly the applications that are late.
-export async function listForModeration(filter: {
+type ModerationFilterInput = {
   campaignId?: string;
   status?: ApplicationStatus;
-}): Promise<ModerationRow[]> {
-  const conditions = [
+};
+
+function moderationConditions(filter: ModerationFilterInput) {
+  return [
     filter.campaignId
       ? eq(applications.campaignId, filter.campaignId)
       : undefined,
     filter.status ? eq(applications.status, filter.status) : undefined,
   ].filter(Boolean);
+}
 
-  return getDb()
-    .select({
-      id: applications.id,
-      childName: applications.childName,
-      childAge: applications.childAge,
-      currentRegion: applications.currentRegion,
-      giftDescription: applications.giftDescription,
-      giftPrice: applications.giftPrice,
-      status: applications.status,
-      submittedAt: applications.submittedAt,
-      campaignTitle: campaigns.title,
-    })
+// Total matching the same filter, for the pager. A separate COUNT rather than
+// counting returned rows — the whole point of paging is not to fetch them all.
+export async function countForModeration(
+  filter: ModerationFilterInput,
+): Promise<number> {
+  const conditions = moderationConditions(filter);
+  const [row] = await getDb()
+    .select({ total: count() })
     .from(applications)
-    .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(asc(applications.submittedAt), desc(applications.updatedAt));
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+  return row?.total ?? 0;
+}
+
+// The queue. Ordered OLDEST FIRST by submission: we promise parents a review
+// within two days, so the one waiting longest is the one to look at next.
+// Newest-first would quietly starve exactly the applications that are late.
+export async function listForModeration(
+  filter: ModerationFilterInput & { limit: number; offset: number },
+): Promise<ModerationRow[]> {
+  const conditions = moderationConditions(filter);
+
+  return (
+    getDb()
+      .select({
+        id: applications.id,
+        childName: applications.childName,
+        childAge: applications.childAge,
+        currentRegion: applications.currentRegion,
+        giftDescription: applications.giftDescription,
+        giftPrice: applications.giftPrice,
+        status: applications.status,
+        submittedAt: applications.submittedAt,
+        campaignTitle: campaigns.title,
+      })
+      .from(applications)
+      .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      // id is the tiebreaker: without a total order, two rows sharing a
+      // submitted_at could swap between pages and one would never be seen.
+      .orderBy(
+        asc(applications.submittedAt),
+        desc(applications.updatedAt),
+        asc(applications.id),
+      )
+      .limit(filter.limit)
+      .offset(filter.offset)
+  );
 }
 
 // Full detail for review: the application, its campaign, and the parent's live

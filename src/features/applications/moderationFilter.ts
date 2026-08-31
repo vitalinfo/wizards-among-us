@@ -32,9 +32,32 @@ export function filterToStatus(
   return filter === "all" ? undefined : filter;
 }
 
-// The queue url for a filter. The default is spelled out rather than omitted so
-// a "back" link always returns to the same view the admin left, even if the
-// default ever changes.
-export function moderationQueueHref(filter: ModerationFilter): string {
-  return `/admin/applications?status=${filter}`;
+// How many applications a page shows. Deliberately modest: the rows are dense
+// and an admin works the queue top-down, so a bigger page mostly means markup
+// nobody scrolls to.
+export const MODERATION_PAGE_SIZE = 50;
+
+// Pages are 1-based because they appear in the url, where "page=0" reads as a
+// mistake. Anything unparseable is page 1 rather than an error — a bad page
+// number should never be able to blank the queue.
+export function parseModerationPage(value: string | undefined): number {
+  const page = Number(value);
+  return Number.isInteger(page) && page >= 1 ? page : 1;
+}
+
+export function moderationPageCount(total: number): number {
+  // Always at least one page, so an empty queue still renders coherently.
+  return Math.max(1, Math.ceil(total / MODERATION_PAGE_SIZE));
+}
+
+// The queue url for a filter and page. The filter is spelled out rather than
+// omitted so a "back" link always returns to the same view the admin left, even
+// if the default ever changes; page is omitted at 1 to keep the common url
+// clean and to keep older links working.
+export function moderationQueueHref(
+  filter: ModerationFilter,
+  page = 1,
+): string {
+  const base = `/admin/applications?status=${filter}`;
+  return page > 1 ? `${base}&page=${page}` : base;
 }

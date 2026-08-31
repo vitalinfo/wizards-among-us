@@ -472,6 +472,13 @@
         "gift_price_over_cap": "Вартість перевищує бюджет кампанії.",
         "invalid": "Некоректне значення.",
         "not_found": "Анкету не знайдено."
+      },
+      "pager": {
+        "label": "Сторінки черги",
+        "range": "Показано {from}–{to} з {total}",
+        "position": "Сторінка {page} з {pageCount}",
+        "previous": "← Попередня",
+        "next": "Наступна →"
       }
     },
     "settings": {

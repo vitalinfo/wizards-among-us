@@ -9,6 +9,7 @@ import { getApplicationForAdmin } from "@/features/applications/adminQueries";
 import {
   moderationQueueHref,
   parseModerationFilter,
+  parseModerationPage,
 } from "@/features/applications/moderationFilter";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { recordAuditLog } from "@/features/audit/log";
@@ -34,12 +35,15 @@ export default async function AdminApplicationPage({
   searchParams,
 }: {
   params: Promise<{ applicationId: string }>;
-  // Carries the queue filter the admin came from, so "back" returns there
-  // instead of resetting to the default view.
-  searchParams: Promise<{ status?: string }>;
+  // Carries the queue filter AND page the admin came from, so "back" returns to
+  // the exact view they left instead of the default queue's first page.
+  searchParams: Promise<{ status?: string; page?: string }>;
 }) {
   const [{ applicationId }, query] = await Promise.all([params, searchParams]);
-  const backHref = moderationQueueHref(parseModerationFilter(query.status));
+  const backHref = moderationQueueHref(
+    parseModerationFilter(query.status),
+    parseModerationPage(query.page),
+  );
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");

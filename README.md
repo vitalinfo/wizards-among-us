@@ -253,9 +253,13 @@ Three surfaces, linked from the shared nav:
 - **`/admin/applications`** — the moderation queue. Ordered **oldest submission first**: we
   promise parents a review within two days, so newest-first would starve exactly the
   applications that are already late. Filter by status; the default view is everything
-  awaiting a decision. The filter lives in the url and is carried into each application and
-  back out again (`moderationFilter.ts`), so returning from one lands on the queue you were
-  working rather than resetting to the default.
+  awaiting a decision. Paged at 50 (`MODERATION_PAGE_SIZE`). Filter *and* page live in the url
+  and are carried into each application and back out again (`moderationFilter.ts`), so
+  returning from one lands on the exact view you left rather than the default queue's first
+  page. Changing the filter resets to page 1 — a filter with three results has no page four —
+  and a `?page=` beyond the end clamps to the last page instead of showing an empty queue that
+  reads as "nothing to review". Ordering breaks ties on `id`: without a total order two rows
+  sharing a `submitted_at` could swap between pages and one would never be seen.
 - **`/admin/applications/<id>`** — every field, the family's resolved contact, and links to
   the uploaded files (including the ВПО certificate, which **only** an admin may open —
   never a volunteer, not even the one holding the claim).

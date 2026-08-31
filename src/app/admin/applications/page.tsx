@@ -5,11 +5,17 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 import { APPLICATION_STATUSES } from "@/db/enums";
-import { listForModeration } from "@/features/applications/adminQueries";
+import {
+  countForModeration,
+  listForModeration,
+} from "@/features/applications/adminQueries";
 import {
   filterToStatus,
+  moderationPageCount,
   moderationQueueHref,
   parseModerationFilter,
+  parseModerationPage,
+  MODERATION_PAGE_SIZE,
   type ModerationFilter,
 } from "@/features/applications/moderationFilter";
 import { getSessionActor } from "@/lib/auth/session";
@@ -20,7 +26,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string }>;
 }) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
@@ -31,13 +37,21 @@ export default async function AdminApplicationsPage({
   const filter = parseModerationFilter(query.status);
   const status = filterToStatus(filter);
 
+  // Count first: the requested page has to be clamped to what exists before we
+  // fetch, or a stale ?page= (say, after a batch was approved away) shows an
+  // empty queue that looks like "nothing to review".
+  const total = await countForModeration({ status });
+  const pageCount = moderationPageCount(total);
+  const page = Math.min(parseModerationPage(query.page), pageCount);
+  const offset = (page - 1) * MODERATION_PAGE_SIZE;
+
   const [t, tStatus, tList, tRegions, format, rows] = await Promise.all([
     getTranslations("admin.applications"),
     getTranslations("parent.applications.status"),
     getTranslations("parent.applications"),
     getTranslations("regions"),
     getFormatter(),
-    listForModeration({ status }),
+    listForModeration({ status, limit: MODERATION_PAGE_SIZE, offset }),
   ]);
 
   const filterOptions: {
@@ -118,7 +132,7 @@ export default async function AdminApplicationsPage({
                     child's data, and a hover must never write an audit entry
                     for something nobody looked at. */}
                 <Link
-                  href={`/admin/applications/${row.id}?status=${filter}`}
+                  href={`/admin/applications/${row.id}?status=${filter}&page=${page}`}
                   prefetch={false}
                   className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
                 >
@@ -128,6 +142,47 @@ export default async function AdminApplicationsPage({
             ))}
           </ul>
         )}
+        {total > 0 ? (
+          <nav
+            aria-label={t("pager.label")}
+            className="flex flex-wrap items-center justify-between gap-3 text-sm"
+          >
+            <p className="text-muted-foreground">
+              {t("pager.range", {
+                from: offset + 1,
+                to: offset + rows.length,
+                total,
+              })}
+            </p>
+            {pageCount > 1 ? (
+              <div className="flex items-center gap-3">
+                {/* Links, not buttons: each page is addressable and this works
+                    with no client JS, like the rest of the admin surface. */}
+                {page > 1 ? (
+                  <Link
+                    href={moderationQueueHref(filter, page - 1)}
+                    rel="prev"
+                    className="border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+                  >
+                    {t("pager.previous")}
+                  </Link>
+                ) : null}
+                <span className="text-muted-foreground">
+                  {t("pager.position", { page, pageCount })}
+                </span>
+                {page < pageCount ? (
+                  <Link
+                    href={moderationQueueHref(filter, page + 1)}
+                    rel="next"
+                    className="border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+                  >
+                    {t("pager.next")}
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
+          </nav>
+        ) : null}
       </main>
     </>
   );
