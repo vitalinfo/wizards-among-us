@@ -4,9 +4,16 @@ import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CampaignRow, isCampaignConfirm } from "@/components/admin/CampaignRow";
+import { ConfirmModal } from "@/components/admin/ConfirmModal";
 import { listCampaigns } from "@/features/campaigns/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
+
+import {
+  activateCampaignAction,
+  archiveCampaignAction,
+  setIntakeAction,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,17 +30,39 @@ export default async function AdminCampaignsPage({
   const t = await getTranslations("admin.campaigns");
   const [query, campaigns] = await Promise.all([searchParams, listCampaigns()]);
 
-  // Which row (if any) is currently asking for confirmation. Both halves must
-  // match, so a stale link can't put a different campaign into the confirm
-  // state — and the action itself is still re-authorized server-side.
+  // Which action is being confirmed, from the query string. Both halves must
+  // match a real row, so a crafted or stale link resolves to "nothing pending"
+  // rather than a modal for a campaign that isn't there.
   const pendingConfirm = isCampaignConfirm(query.confirm)
     ? query.confirm
     : null;
+  const target =
+    pendingConfirm && query.id
+      ? (campaigns.find((campaign) => campaign.id === query.id) ?? null)
+      : null;
+
+  // The action comes from the CONFIRM value, not from the campaign's current
+  // state: if it changed under the admin between opening the prompt and
+  // confirming, the action they actually agreed to is the one that runs.
+  const confirmAction =
+    target && pendingConfirm
+      ? {
+          activate: activateCampaignAction.bind(null, target.id),
+          archive: archiveCampaignAction.bind(null, target.id),
+          openIntake: setIntakeAction.bind(null, target.id, true),
+          closeIntake: setIntakeAction.bind(null, target.id, false),
+        }[pendingConfirm]
+      : null;
 
   return (
     <>
       <AdminNav />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
+      {/* inert while the modal is up: without it Tab walks into the buttons
+          underneath the overlay — the classic fake-modal bug. Needs no JS. */}
+      <main
+        inert={confirmAction !== null}
+        className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6"
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-3xl font-semibold">{t("title")}</h1>
@@ -52,15 +81,21 @@ export default async function AdminCampaignsPage({
         ) : (
           <ul className="flex flex-col gap-3">
             {campaigns.map((campaign) => (
-              <CampaignRow
-                key={campaign.id}
-                campaign={campaign}
-                pending={query.id === campaign.id ? pendingConfirm : null}
-              />
+              <CampaignRow key={campaign.id} campaign={campaign} />
             ))}
           </ul>
         )}
       </main>
+
+      {confirmAction && pendingConfirm ? (
+        <ConfirmModal
+          action={confirmAction}
+          title={t(`confirm.${pendingConfirm}.title`)}
+          message={t(`confirm.${pendingConfirm}.body`)}
+          confirmLabel={t(pendingConfirm)}
+          cancelHref="/admin/campaigns"
+        />
+      ) : null}
     </>
   );
 }

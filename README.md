@@ -242,17 +242,27 @@ Three surfaces, linked from the shared nav:
   never a volunteer, not even the one holding the claim).
 
 Every campaign state change — activate, archive, open/close intake, kill switch — confirms
-first, and the confirmation is a **page state, not a dialog**: the trigger is a plain `<Link>`
-carrying `?confirm=<action>&id=<id>`, the page re-renders with the question in place of the
-buttons, and the confirm control is an ordinary `<form>` posting a server action
-(`InlineConfirm`). The prompt says what will actually happen rather than "are you sure?".
+first, in a modal that needs **no client JavaScript**. The trigger is a plain `<Link>` carrying
+`?confirm=<action>&id=<id>`; the page re-renders with `ConfirmModal` as a fixed overlay and the
+page content marked `inert`; confirming is an ordinary `<form>` posting a server action. The
+prompt states what will actually happen rather than asking "are you sure?".
 
-It needs **no client JavaScript**, deliberately. The first version used a native `<dialog>` +
-`showModal()`, which was correct in every browser we could test and still silently did nothing
-on the reviewer's machine — the handler never ran, so a destructive action either no-oped or
-(after a fallback was added) fired with no prompt at all, archiving a live campaign. A
-confirmation whose entire job is to prevent a mistake must not depend on hydration succeeding.
-If the page rendered, the confirmation works.
+`inert` on the content behind is what makes it a real modal rather than a floating box — without
+it, Tab walks into the buttons underneath. Focus starts on the dialog (`autofocus` +
+`tabIndex={-1}`), deliberately *not* on the confirm button, so Enter can't complete a
+destructive action. The one thing a native `<dialog>` would add is Escape-to-close; that needs a
+key handler, so cancelling is a visible control instead.
+
+Why not `<dialog>` + `showModal()`: that version was correct in every browser we could test and
+still never ran on the reviewer's machine. Once a submit fallback was added so the button
+wasn't dead, it fired with no prompt at all and archived a live campaign. A confirmation whose
+only job is to prevent a mistake must not depend on hydration succeeding — if the page
+rendered, the confirmation works.
+
+The `?confirm=` value is validated (`isCampaignConfirm`) and must name a real row, so a crafted
+or stale link resolves to "nothing pending". The action is chosen from the confirm value, not
+from the campaign's current state, so what the admin agreed to is what runs. Actions are
+re-authorized server-side regardless.
 
 Approve / reject is one form with two submit buttons, so it works without JS. **Rejection is
 final** — the parent cannot edit and resubmit, they start a new application — which is why a
