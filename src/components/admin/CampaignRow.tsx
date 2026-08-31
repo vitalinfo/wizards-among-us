@@ -94,6 +94,15 @@ export async function CampaignRow({ campaign }: { campaign: AdminCampaign }) {
             {t("archive")}
           </Link>
         ) : null}
+        {/* Export lives here rather than on its own page: it is per-campaign,
+            so this is where you already are when you want it. The scope choice
+            is in the modal, next to what each scope exposes. */}
+        <Link
+          href={`/admin/campaigns?export=${campaign.id}`}
+          className={ACTION}
+        >
+          {t("exportCta")}
+        </Link>
       </div>
     </li>
   );

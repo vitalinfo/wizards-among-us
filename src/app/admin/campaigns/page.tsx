@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CampaignRow, isCampaignConfirm } from "@/components/admin/CampaignRow";
 import { ConfirmModal } from "@/components/admin/ConfirmModal";
+import { ExportModal } from "@/components/admin/ExportModal";
 import { listCampaigns } from "@/features/campaigns/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminCampaignsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ confirm?: string; id?: string }>;
+  searchParams: Promise<{ confirm?: string; id?: string; export?: string }>;
 }) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
@@ -54,13 +55,20 @@ export default async function AdminCampaignsPage({
         }[pendingConfirm]
       : null;
 
+  // Export is a page state too, so the whole admin surface has one mechanism.
+  // Only a real campaign opens it, so a stale link resolves to nothing.
+  const exportTarget = query.export
+    ? (campaigns.find((campaign) => campaign.id === query.export) ?? null)
+    : null;
+  const overlayOpen = confirmAction !== null || exportTarget !== null;
+
   return (
     <>
       <AdminNav />
       {/* inert while the modal is up: without it Tab walks into the buttons
           underneath the overlay — the classic fake-modal bug. Needs no JS. */}
       <main
-        inert={confirmAction !== null}
+        inert={overlayOpen}
         className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -86,6 +94,14 @@ export default async function AdminCampaignsPage({
           </ul>
         )}
       </main>
+
+      {exportTarget ? (
+        <ExportModal
+          campaignId={exportTarget.id}
+          campaignTitle={exportTarget.title}
+          cancelHref="/admin/campaigns"
+        />
+      ) : null}
 
       {confirmAction && pendingConfirm ? (
         <ConfirmModal

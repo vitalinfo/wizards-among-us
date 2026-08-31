@@ -296,7 +296,9 @@ become a second copy of that data with a different retention story. Queue links 
 
 #### Export
 
-`/admin/export` offers **two** CSVs per campaign, and the split is deliberate:
+Export is a per-campaign action **on the campaigns list**: the «Експорт» button opens a modal
+through the same `?export=<id>` page-state mechanism as the confirmations, so there is no
+separate page and no client JS. It offers **two** CSVs, and the split is deliberate:
 
 - **Coordination** (the default) — child name, age, region, gift + price, status, claimed
   yes/no. Answers the day-to-day questions without carrying anything that identifies a
@@ -305,7 +307,10 @@ become a second copy of that data with a different retention story. Queue links 
   family's contact. A separate action, audit-logged as its own event.
 
 Neither exports a file, and the ВПО certificate in particular is reachable only through the
-authorized route that logs each read. Exports are scoped to **one campaign**; a file spanning
+authorized route that logs each read. Each scope is described next to its own button, because
+that is the moment the choice is made — whether a leaked file can identify a family does not
+belong on a page an admin read once. The download itself stays at `/admin/export/download`,
+admin-gated and audit-logged per scope. Exports are scoped to **one campaign**; a file spanning
 all of them would resurrect years of archived families into one spreadsheet.
 
 Cells that begin with `=`, `+`, `-` or `@` are prefixed with an apostrophe: Excel and Google
