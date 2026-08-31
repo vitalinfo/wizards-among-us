@@ -236,7 +236,9 @@ Three surfaces, linked from the shared nav:
 - **`/admin/applications`** — the moderation queue. Ordered **oldest submission first**: we
   promise parents a review within two days, so newest-first would starve exactly the
   applications that are already late. Filter by status; the default view is everything
-  awaiting a decision.
+  awaiting a decision. The filter lives in the url and is carried into each application and
+  back out again (`moderationFilter.ts`), so returning from one lands on the queue you were
+  working rather than resetting to the default.
 - **`/admin/applications/<id>`** — every field, the family's resolved contact, and links to
   the uploaded files (including the ВПО certificate, which **only** an admin may open —
   never a volunteer, not even the one holding the claim).

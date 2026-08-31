@@ -6,6 +6,10 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { ModerationDecision } from "@/components/admin/ModerationDecision";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 import { getApplicationForAdmin } from "@/features/applications/adminQueries";
+import {
+  moderationQueueHref,
+  parseModerationFilter,
+} from "@/features/applications/moderationFilter";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { recordAuditLog } from "@/features/audit/log";
 import { resolveUserContact } from "@/features/users/contact";
@@ -27,10 +31,15 @@ function Field({ label, value }: { label: string; value: string | null }) {
 
 export default async function AdminApplicationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ applicationId: string }>;
+  // Carries the queue filter the admin came from, so "back" returns there
+  // instead of resetting to the default view.
+  searchParams: Promise<{ status?: string }>;
 }) {
-  const { applicationId } = await params;
+  const [{ applicationId }, query] = await Promise.all([params, searchParams]);
+  const backHref = moderationQueueHref(parseModerationFilter(query.status));
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
@@ -42,9 +51,8 @@ export default async function AdminApplicationPage({
   }
 
   const { application, campaignTitle, parent } = detail;
-  const [t, tStatus, tRegions, format, files] = await Promise.all([
+  const [t, tRegions, format, files] = await Promise.all([
     getTranslations("admin.applications"),
-    getTranslations("parent.applications.status"),
     getTranslations("regions"),
     getFormatter(),
     listApplicationFiles(applicationId),
@@ -147,7 +155,7 @@ export default async function AdminApplicationPage({
       <AdminNav />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
         <Link
-          href="/admin/applications"
+          href={backHref}
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
           {t("backCta")}
@@ -229,9 +237,9 @@ export default async function AdminApplicationPage({
             <ModerationDecision applicationId={applicationId} />
           </section>
         ) : (
-          <p className="text-muted-foreground text-sm">
-            {tStatus(application.status)}
-          </p>
+          // NOT a repeat of the status badge above — this explains why there is
+          // no decision to make here.
+          <p className="text-muted-foreground text-sm">{t("alreadyDecided")}</p>
         )}
       </main>
     </>

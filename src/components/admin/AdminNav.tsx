@@ -9,8 +9,8 @@ export async function AdminNav() {
     { href: "/admin", label: t("dashboard") },
     { href: "/admin/campaigns", label: t("campaigns") },
     { href: "/admin/applications", label: t("applications") },
-    { href: "/admin/export", label: t("export") },
     { href: "/admin/settings", label: t("settings") },
+    { href: "/admin/export", label: t("export") },
   ];
 
   return (

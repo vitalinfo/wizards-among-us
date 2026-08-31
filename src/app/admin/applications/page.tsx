@@ -4,18 +4,18 @@ import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
-import { APPLICATION_STATUSES, type ApplicationStatus } from "@/db/enums";
+import { APPLICATION_STATUSES } from "@/db/enums";
 import { listForModeration } from "@/features/applications/adminQueries";
+import {
+  filterToStatus,
+  moderationQueueHref,
+  parseModerationFilter,
+  type ModerationFilter,
+} from "@/features/applications/moderationFilter";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
-
-function parseStatus(value: string | undefined): ApplicationStatus | undefined {
-  return APPLICATION_STATUSES.includes(value as ApplicationStatus)
-    ? (value as ApplicationStatus)
-    : undefined;
-}
 
 export default async function AdminApplicationsPage({
   searchParams,
@@ -28,12 +28,8 @@ export default async function AdminApplicationsPage({
   }
 
   const query = await searchParams;
-  // Default to the queue that actually needs an admin: everything waiting for a
-  // decision. "all" is an explicit choice, not the landing state.
-  const status =
-    query.status === "all"
-      ? undefined
-      : (parseStatus(query.status) ?? "submitted");
+  const filter = parseModerationFilter(query.status);
+  const status = filterToStatus(filter);
 
   const [t, tStatus, tList, tRegions, format, rows] = await Promise.all([
     getTranslations("admin.applications"),
@@ -44,12 +40,16 @@ export default async function AdminApplicationsPage({
     listForModeration({ status }),
   ]);
 
-  const filters: { key: string; label: string; active: boolean }[] = [
-    { key: "all", label: t("filter.all"), active: status === undefined },
+  const filterOptions: {
+    key: ModerationFilter;
+    label: string;
+    active: boolean;
+  }[] = [
+    { key: "all", label: t("filter.all"), active: filter === "all" },
     ...APPLICATION_STATUSES.map((value) => ({
       key: value,
       label: tStatus(value),
-      active: status === value,
+      active: filter === value,
     })),
   ];
 
@@ -66,14 +66,14 @@ export default async function AdminApplicationsPage({
             is shareable, bookmarkable and works without JS. */}
         <nav aria-label={t("filter.legend")}>
           <ul className="flex flex-wrap gap-2 text-sm">
-            {filters.map((filter) => (
-              <li key={filter.key}>
+            {filterOptions.map((option) => (
+              <li key={option.key}>
                 <Link
-                  href={`/admin/applications?status=${filter.key}`}
-                  aria-current={filter.active ? "page" : undefined}
+                  href={moderationQueueHref(option.key)}
+                  aria-current={option.active ? "page" : undefined}
                   className="border-border hover:bg-surface-muted focus-visible:outline-ring aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground aria-[current=page]:border-primary rounded-full border px-3 py-1 focus-visible:outline-2 focus-visible:outline-offset-2"
                 >
-                  {filter.label}
+                  {option.label}
                 </Link>
               </li>
             ))}
@@ -112,11 +112,13 @@ export default async function AdminApplicationsPage({
                       })
                     : t("notSubmitted")}
                 </p>
-                {/* prefetch={false}: opening this page logs a full view of a
-                    child's data. A hover must never write an audit entry for
-                    something nobody looked at. */}
+                {/* The filter rides along so "back" returns to this view
+                    rather than resetting to the default queue.
+                    prefetch={false}: opening that page logs a full view of a
+                    child's data, and a hover must never write an audit entry
+                    for something nobody looked at. */}
                 <Link
-                  href={`/admin/applications/${row.id}`}
+                  href={`/admin/applications/${row.id}?status=${filter}`}
                   prefetch={false}
                   className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
                 >

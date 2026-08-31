@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { moderationDecisionSchema } from "../moderation";
+import {
+  filterToStatus,
+  moderationQueueHref,
+  parseModerationFilter,
+} from "../moderationFilter";
 
 const APPLICATION_ID = "11111111-2222-3333-4444-555555555555";
 
@@ -67,5 +72,35 @@ describe("moderationDecisionSchema", () => {
         decision: "approved",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("moderation queue filter", () => {
+  it("defaults to the applications waiting for a decision", () => {
+    expect(parseModerationFilter(undefined)).toBe("submitted");
+    expect(parseModerationFilter("")).toBe("submitted");
+    // Not a status, so it must not silently become a filter.
+    expect(parseModerationFilter("everything")).toBe("submitted");
+  });
+
+  it("keeps a real status and the explicit 'all'", () => {
+    expect(parseModerationFilter("approved")).toBe("approved");
+    expect(parseModerationFilter("all")).toBe("all");
+  });
+
+  // "all" means no status constraint; every other filter constrains the query.
+  it("maps only 'all' to an unconstrained query", () => {
+    expect(filterToStatus("all")).toBeUndefined();
+    expect(filterToStatus("rejected")).toBe("rejected");
+  });
+
+  // The back link from an application must return to the queue the admin was
+  // working, so the href is built from the same value the queue read.
+  it("round-trips through the queue href", () => {
+    for (const filter of ["all", "submitted", "approved"] as const) {
+      const href = moderationQueueHref(filter);
+      const status = new URL(href, "http://x").searchParams.get("status");
+      expect(parseModerationFilter(status ?? undefined)).toBe(filter);
+    }
   });
 });
