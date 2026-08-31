@@ -368,6 +368,32 @@ values** — these fields hold a child's address and the family's story, and `au
 become a second copy of that data with a different retention story. Queue links carry
 `prefetch={false}` so a hover never logs a view that nobody made.
 
+#### Assigning a volunteer by hand
+
+On an application's detail page an admin can search existing volunteers by `@username` or name,
+assign one, reassign to someone else, or release the claim. Search, assignment and release are
+all links and forms plus the same page-state confirm modal — no client JavaScript.
+
+It goes through the **same write path as a self-claim** (`writeClaim` in
+`features/claims/queries.ts`): one transaction, the same unique index on
+`claims.application_id`. The only difference is a `takeover` flag — a volunteer may never
+overwrite an active claim, an admin reassignment is exactly that. With one claim row per
+application, the overwrite *is* the release of the incumbent; who held it before survives in
+`audit_log`, not in the row.
+
+Never add a second writer to `claims`. The invariant that double-claiming is impossible is one
+index and one transaction, and a "quick admin override" is how that gets lost.
+
+The contact gate applies here too: a volunteer with no `@username` and no phone cannot be
+assigned, because the point is that the *family* can reach them and that is unaffected by who
+recorded the assignment. Unreachable volunteers appear in search results with the reason shown,
+rather than an Assign button that fails.
+
+Assignment and release are audit-logged **distinctly** from a self-claim
+(`claim.assigned_by_admin` / `claim.released_by_admin`) — "who decided this volunteer gets this
+child" is the question the trail exists to answer, and an admin choosing is a different answer
+from a volunteer choosing.
+
 #### Export
 
 One export per campaign: the «Експорт» button on the campaigns list downloads the full

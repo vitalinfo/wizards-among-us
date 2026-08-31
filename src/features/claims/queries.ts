@@ -1,4 +1,14 @@
-import { and, asc, count, eq, gte, isNull, lte, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  sql,
+} from "drizzle-orm";
 
 import { getDb } from "@/db";
 import type { UkraineRegion } from "@/db/enums";
@@ -104,60 +114,88 @@ export async function getActiveClaim(applicationId: string) {
 
 export type ClaimOutcome = "claimed" | "taken";
 
-// Claim, atomically.
+// THE single write path into `claims`. Both a volunteer claiming for themselves
+// and an admin assigning by hand come through here, because the invariant that
+// makes double-claiming impossible is one unique index plus one transaction —
+// a second writer is exactly how that gets broken.
 //
 // The unique index on claims.application_id is the real guard: two volunteers
-// pressing the button at the same instant both reach here, and exactly one
-// INSERT survives. The ON CONFLICT branch handles re-claiming an application
-// whose previous claim was RELEASED — that row already exists, so it is an
-// UPDATE (the Phase 1 decision: one claim row per application, reused).
+// pressing the button at the same instant both reach the INSERT and exactly one
+// survives. The ON CONFLICT branch handles re-claiming an application whose
+// previous claim was RELEASED — that row already exists, so it is an UPDATE
+// (the Phase 1 decision: one claim row per application, reused).
 //
-// `setWhere` is what makes it safe: the update only applies to a row that is
-// actually released, so a conflict against an ACTIVE claim changes nothing and
-// returns no rows — which we report as "taken" rather than silently stealing a
-// child from another volunteer.
+// `takeover` is the ONLY difference between the two callers:
+//   false (a volunteer) — setWhere refuses to touch an ACTIVE claim, so a
+//                         conflict changes nothing and is reported as "taken"
+//                         rather than silently stealing a child.
+//   true  (an admin)    — reassignment is the point, so an active claim is
+//                         overwritten. That IS the release of the incumbent:
+//                         with one row per application there is nothing to
+//                         release separately. Who held it before survives in
+//                         audit_log (their claim.created), not in this row.
 //
 // The application's status moves in the SAME transaction: a claim that didn't
-// flip the status would leave the child visible as available.
-export async function claimApplication(
+// flip the status would leave the child listed as available.
+async function writeClaim(
   applicationId: string,
   volunteerId: string,
+  takeover: boolean,
 ): Promise<ClaimOutcome> {
   return getDb().transaction(async (tx) => {
-    const inserted = await tx
+    const written = await tx
       .insert(claims)
       .values({ applicationId, volunteerId })
       .onConflictDoUpdate({
         target: claims.applicationId,
         set: { volunteerId, claimedAt: new Date(), releasedAt: null },
-        setWhere: sql`${claims.releasedAt} is not null`,
+        ...(takeover
+          ? {}
+          : { setWhere: sql`${claims.releasedAt} is not null` }),
       })
       .returning({ id: claims.id });
 
-    if (inserted.length === 0) {
+    if (written.length === 0) {
       return "taken";
     }
 
-    // Guarded on `approved` for the same reason the moderation decision is:
-    // two requests must not both believe they moved it.
+    // An admin may assign a child whose application is already `claimed` (that
+    // is a reassignment), so both states are acceptable targets. The guard
+    // still excludes draft/submitted/rejected/fulfilled.
+    const claimable = takeover
+      ? inArray(applications.status, ["approved", "claimed"])
+      : eq(applications.status, "approved");
+
     const updated = await tx
       .update(applications)
       .set({ status: "claimed" })
-      .where(
-        and(
-          eq(applications.id, applicationId),
-          eq(applications.status, "approved"),
-        ),
-      )
+      .where(and(eq(applications.id, applicationId), claimable))
       .returning({ id: applications.id });
 
     if (updated.length === 0) {
-      // The application was not claimable after all (moderated in between).
-      // Roll the claim back rather than leaving a claim on a non-approved row.
+      // Not claimable after all (moderated in between). Roll the claim back
+      // rather than leaving one on a non-approved row.
       tx.rollback();
     }
     return "claimed";
   });
+}
+
+// A volunteer claiming for themselves: never takes over an active claim.
+export async function claimApplication(
+  applicationId: string,
+  volunteerId: string,
+): Promise<ClaimOutcome> {
+  return writeClaim(applicationId, volunteerId, false);
+}
+
+// An admin assigning by hand (plan §9 Phase 6). Same transaction, same unique
+// index — reassignment replaces the incumbent instead of inserting a second row.
+export async function assignVolunteer(
+  applicationId: string,
+  volunteerId: string,
+): Promise<ClaimOutcome> {
+  return writeClaim(applicationId, volunteerId, true);
 }
 
 // Release a claim. ADMIN only (Phase 6 decision) — the predicate is enforced by
@@ -211,4 +249,60 @@ export async function listMyClaims(volunteerId: string, campaignId: string) {
       ),
     )
     .orderBy(asc(claims.claimedAt));
+}
+
+// Who currently holds this application, for the admin detail page.
+export async function getClaimHolder(applicationId: string): Promise<{
+  claimedAt: Date;
+  volunteerId: string;
+  username: string | null;
+  firstName: string | null;
+  phone: string | null;
+} | null> {
+  const [row] = await getDb()
+    .select({
+      claimedAt: claims.claimedAt,
+      volunteerId: users.id,
+      username: users.username,
+      firstName: users.firstName,
+      phone: users.phone,
+    })
+    .from(claims)
+    .innerJoin(users, eq(users.id, claims.volunteerId))
+    .where(
+      and(eq(claims.applicationId, applicationId), isNull(claims.releasedAt)),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+// Find a volunteer to assign by hand.
+//
+// Searches EXISTING users only — there are no placeholder volunteers (Vital,
+// Phase 6): claims.volunteer_id is a real FK, one human is one identity, and
+// the contact stays fresh because users.username re-syncs from Telegram on
+// every login. Someone who has never signed in cannot be assigned; the
+// coordinator sends them a login link first.
+export async function searchVolunteers(term: string, limit = 10) {
+  const needle = `%${term.trim().replace(/^@/, "").toLowerCase()}%`;
+  return getDb()
+    .select({
+      id: users.id,
+      username: users.username,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      phone: users.phone,
+    })
+    .from(users)
+    .where(
+      and(
+        // Only people who have opted in as volunteers.
+        sql`${users.role} @> ARRAY['volunteer']::text[]`,
+        sql`(lower(coalesce(${users.username}, '')) like ${needle}
+          or lower(coalesce(${users.firstName}, '')) like ${needle}
+          or lower(coalesce(${users.lastName}, '')) like ${needle})`,
+      ),
+    )
+    .orderBy(asc(users.username))
+    .limit(limit);
 }

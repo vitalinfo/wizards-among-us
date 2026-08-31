@@ -147,3 +147,36 @@ describe("canReleaseClaim / canAssignVolunteer", () => {
     }
   });
 });
+
+// Manual assignment reveals the family's town, address, name and contact to
+// the assigned volunteer. That is the same disclosure a self-claim makes, so it
+// goes through the same predicate — an admin override must not become a way
+// around the gates.
+describe("admin assignment uses the same gate as a self-claim", () => {
+  it("refuses an application that isn't approved", () => {
+    expect(
+      getClaimBlockReason(admin, { status: "rejected" }, null, reachable),
+    ).toBe("not_available");
+  });
+
+  it("refuses an unreachable volunteer", () => {
+    expect(
+      getClaimBlockReason(admin, { status: "approved" }, null, unreachable),
+    ).toBe("no_contact");
+  });
+
+  // Reassignment is the one thing an admin may do that a volunteer may not:
+  // taking over an ACTIVE claim. The predicate still reports it as unavailable,
+  // which is why the admin path passes `takeover` to the write layer rather
+  // than bypassing this check — the DB transaction is what allows it.
+  it("still reports an actively claimed application as unavailable", () => {
+    expect(
+      getClaimBlockReason(
+        admin,
+        { status: "claimed" },
+        { releasedAt: null },
+        reachable,
+      ),
+    ).toBe("not_available");
+  });
+});
