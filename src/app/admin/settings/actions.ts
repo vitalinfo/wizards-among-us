@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { recordAuditLog } from "@/features/audit/log";
 import { setApplicationsEnabled } from "@/features/settings/adminQueries";
@@ -23,4 +24,8 @@ export async function setKillSwitchAction(enabled: boolean): Promise<void> {
   // The parent entry point renders an "closed for now" state from this.
   revalidatePath("/parent");
   revalidatePath("/parent/applications");
+  // Clears ?confirm= from the url — the form posts to the current one, so
+  // without this the prompt renders again over an action that already ran. Also
+  // makes it POST → redirect → GET, so a reload can't re-fire the switch.
+  redirect("/admin/settings");
 }

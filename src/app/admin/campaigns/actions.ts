@@ -24,6 +24,15 @@ import { requireAdmin } from "@/lib/auth/session";
 // action is a public endpoint, so hiding the UI proves nothing. requireAdmin
 // throws rather than returning, so a non-admin can't fall through to the work.
 //
+// Every action ends in redirect("/admin/campaigns"). That is not cosmetic:
+//   1. The confirmation is a page state (?confirm=…&id=…) and the form posts to
+//      the CURRENT url, so without this the prompt renders again over an action
+//      that already ran — which is exactly what it looked like the first time.
+//   2. POST → redirect → GET, so a reload after acting re-requests the list
+//      instead of re-posting the action.
+// redirect() throws, so nothing after it runs and the void return is satisfied
+// by the throw.
+//
 // Each action that changes what parents can do is audit-logged: opening or
 // closing intake decides whether families can apply at all, and we want to be
 // able to answer "who closed it, and when".
@@ -115,6 +124,7 @@ export async function activateCampaignAction(id: string): Promise<void> {
   // to it — both go stale the moment this changes.
   revalidatePath("/admin/campaigns");
   revalidatePath("/");
+  redirect("/admin/campaigns");
 }
 
 export async function archiveCampaignAction(id: string): Promise<void> {
@@ -128,6 +138,7 @@ export async function archiveCampaignAction(id: string): Promise<void> {
   });
   revalidatePath("/admin/campaigns");
   revalidatePath("/");
+  redirect("/admin/campaigns");
 }
 
 export async function setIntakeAction(
@@ -143,4 +154,8 @@ export async function setIntakeAction(
     targetId: id,
   });
   revalidatePath("/admin/campaigns");
+  // The parent entry point renders "we are not accepting applications" from this.
+  revalidatePath("/parent");
+  revalidatePath("/parent/applications");
+  redirect("/admin/campaigns");
 }
