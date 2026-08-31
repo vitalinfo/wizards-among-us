@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { CampaignType } from "@/db/enums";
 import { userPhoneSchema } from "@/features/users/contact";
 import { regionSchema } from "@/lib/enumSchemas";
 
@@ -171,4 +172,113 @@ export const applicationDraftFormSchema = z.object({
 });
 export type ApplicationDraftFormInput = z.infer<
   typeof applicationDraftFormSchema
+>;
+
+// ---------------------------------------------------------------------------
+// Admin edit
+//
+// An operational override: an admin fixes a wrong address or a typo in a
+// child's name that the parent can no longer correct themselves (approval locks
+// the parent out — see canEditApplication).
+//
+// It reuses the parent's field rules rather than inventing looser ones, so an
+// admin cannot save an age of 99 or a negative price either. Two differences:
+//   - `phone` is absent. The contact lives on `users`, not the application, and
+//     a per-application copy is exactly what we decided against in Phase 4.
+//   - completeness is conditional. A DRAFT may legitimately have empty fields;
+//     anything past draft was submitted complete and must stay that way, so an
+//     admin can't blank out a field a volunteer is relying on.
+const ADMIN_REQUIRED_FIELDS = [
+  "parentName",
+  "childName",
+  "childAge",
+  "homeTown",
+  "homeRegion",
+  "currentTown",
+  "currentRegion",
+  "displacedYear",
+  "familyStory",
+  "giftDescription",
+  "giftPrice",
+  "deliveryInformation",
+  "socialMediaConsent",
+] as const;
+
+// A <select> sends "" for "not answered", and the parent form's preprocess maps
+// only `undefined` to undefined — so "" would land as `false` ("No") rather than
+// "unanswered". An admin editing a draft must be able to leave it unanswered.
+const triStateBoolean = z.preprocess((value) => {
+  if (value === undefined || value === "" || value === null) {
+    return undefined;
+  }
+  return value === "true" || value === true;
+}, z.boolean().optional());
+
+export function adminApplicationEditSchema(context: {
+  // Draft applications may stay incomplete; everything else must remain whole.
+  requireComplete: boolean;
+  campaignType: CampaignType | null;
+  giftPriceCap: string | null;
+  // The price already stored. The cap is only enforced when the admin actually
+  // CHANGES the price: caps change mid-campaign, and an application submitted
+  // under an older, higher cap must not become unfixable — an admin correcting
+  // a delivery address would otherwise be blocked by a price they never
+  // touched. Same reasoning as the parent submit schema keeping the cap as a
+  // refinement so it never invalidates already-submitted applications.
+  currentGiftPrice: string | null;
+}) {
+  const base = applicationDraftFormSchema
+    .omit({ phone: true, socialMediaConsent: true })
+    .extend({ socialMediaConsent: triStateBoolean });
+
+  return base.superRefine((value, ctx) => {
+    const cap =
+      context.giftPriceCap === null ? null : Number(context.giftPriceCap);
+    const priceUnchanged =
+      context.currentGiftPrice !== null &&
+      value.giftPrice !== undefined &&
+      Number(context.currentGiftPrice) === value.giftPrice;
+    if (
+      cap !== null &&
+      Number.isFinite(cap) &&
+      value.giftPrice !== undefined &&
+      !priceUnchanged &&
+      value.giftPrice > cap
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["giftPrice"],
+        message: "gift_price_over_cap",
+      });
+    }
+
+    if (!context.requireComplete) {
+      return;
+    }
+    for (const field of ADMIN_REQUIRED_FIELDS) {
+      if (value[field] === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: "required",
+        });
+      }
+    }
+    // The shop link is what a volunteer actually buys from, so a St Nicholas
+    // application must not lose it.
+    if (
+      context.campaignType === "saint_nicholas_day" &&
+      (value.giftUrls === undefined || value.giftUrls.length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["giftUrls"],
+        message: "required",
+      });
+    }
+  });
+}
+
+export type AdminApplicationEditInput = z.infer<
+  ReturnType<typeof adminApplicationEditSchema>
 >;

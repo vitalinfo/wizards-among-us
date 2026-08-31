@@ -127,7 +127,7 @@ pnpm db:migrate              # apply Drizzle migrations
 pnpm db:seed                 # optional: seed a draft campaign
 
 # 4. Run
-pnpm dev                     # http://localhost:3000
+pnpm dev                     # http://localhost:3003
 ```
 
 ### Local services (Docker)
@@ -178,12 +178,47 @@ System: PostgreSQL · Server: `db` · Username / Password: `wau`.
 keeps your data; only `db:reset` (or `docker compose down -v`) erases it. Postgres is only
 actually *used* from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
 
+### Ports
+
+`pnpm dev` and `pnpm start` listen on **3003** (`PORT` overrides). Not 3000 — that port
+collects state across every Next project on the machine, and a browser that has cached a broken
+chunk graph or an HSTS entry for `host:3000` keeps serving it back long after the cause is
+fixed. A distinct port per project sidesteps that entirely.
+
+Heroku sets `PORT` itself and runs the `Procfile` through a shell, so `${PORT:-3003}` resolves
+to Heroku's value in a deploy; the fallback only ever applies locally.
+
+**Changing the port breaks the Telegram Login Widget locally.** BotFather's `/setdomain` is
+validated against the exact origin the page is served from, port included, so moving the dev
+server invalidates the registration and the widget answers `Bot domain invalid`. We don't chase
+that: **use [`/dev/login`](http://localhost:3003/dev/login) locally** and exercise the real
+widget on staging, where the domain is stable and registered. If you do want the widget against
+a local server, re-run `/setdomain` with the full `host:port` and expect to redo it whenever the
+port moves.
+
+### Browsing the dev server from another origin
+
+If you open the dev server as anything other than `http://localhost:3003` — a tunnel, an
+internal DNS name, another machine on your LAN — set `DEV_ORIGINS` in `.env.local`:
+
+```
+DEV_ORIGINS=my-tunnel.example.com
+```
+
+Next blocks cross-origin access to its **dev** resources by default. Without this, HMR
+(`/_next/webpack-hmr`) is refused, the browser stops receiving module updates, and Turbopack's
+client chunk graph goes stale — you get `module factory is not available` or `Module not found`
+for files that plainly exist. The insidious part is that pages still **server-render perfectly**,
+so the app looks fine while **nothing hydrates**: every client component is inert, buttons do
+nothing, and there is no visible error. We lost a long session to exactly that. Dev only; Next
+ignores it in a production build.
+
 ### Signing in locally (dev login)
 
 The Telegram Login Widget can't render on `localhost` — it only appears on a domain you've
 authorized with BotFather (`/setdomain`). To develop the signed-in parent/volunteer flows
 locally **without** a tunnel, set `DEV_LOGIN=1` in `.env.local` and visit
-[`/dev/login`](http://localhost:3000/dev/login) (also linked from `/login` when enabled).
+[`/dev/login`](http://localhost:3003/dev/login) (also linked from `/login` when enabled).
 It creates a deterministic test user for the role you pick (parent, volunteer, or both) and
 starts a real session — same cookie/session machinery as Telegram, just skipping the widget.
 
@@ -217,6 +252,106 @@ pnpm db:generate              # edit schema.ts → regenerate migration SQL (rev
 pnpm db:migrate               # apply pending migrations
 pnpm db:seed                  # one draft campaign + settings row (idempotent)
 ```
+
+### Admin (Phase 5)
+
+Sign in at `/admin/login` (email + password; the address must be in `ADMIN_ALLOWLIST`).
+Three surfaces, linked from the shared nav:
+
+- **`/admin/campaigns`** — the list. Activate one (activating archives the incumbent in the
+  same transaction, so the "one active campaign" index can never be tripped), open/close
+  intake, archive. `/admin/campaigns/new` creates one; `/admin/campaigns/<id>/edit` changes
+  title, description and gift cap. The **type** is editable only while the campaign is a
+  draft: past that, applications carry `type_fields` validated against it, so changing it
+  would leave them describing a form nobody fills in. Enforced in the action *and* in SQL.
+- **`/admin/settings`** — the global kill switch. It lives apart from campaigns on purpose:
+  `accepting_applications` is a routine per-campaign toggle, this is the emergency stop, and
+  it's the only one that stays off across a campaign activation (`accepting_applications`
+  defaults to `true`, so activating a campaign otherwise reopens intake immediately).
+- **`/admin/applications`** — the moderation queue. Ordered **oldest submission first**: we
+  promise parents a review within two days, so newest-first would starve exactly the
+  applications that are already late. Filter by status; the default view is everything
+  awaiting a decision. Paged at 50 (`MODERATION_PAGE_SIZE`). Filter *and* page live in the url
+  and are carried into each application and back out again (`moderationFilter.ts`), so
+  returning from one lands on the exact view you left rather than the default queue's first
+  page. Changing the filter resets to page 1 — a filter with three results has no page four —
+  and a `?page=` beyond the end clamps to the last page instead of showing an empty queue that
+  reads as "nothing to review". Ordering breaks ties on `id`: without a total order two rows
+  sharing a `submitted_at` could swap between pages and one would never be seen.
+- **`/admin/applications/<id>`** — every field, the family's resolved contact, and links to
+  the uploaded files (including the ВПО certificate, which **only** an admin may open —
+  never a volunteer, not even the one holding the claim).
+
+Every campaign state change — activate, archive, open/close intake, kill switch — confirms
+first, in a modal that needs **no client JavaScript**. The trigger is a plain `<Link>` carrying
+`?confirm=<action>&id=<id>`; the page re-renders with `ConfirmModal` as a fixed overlay and the
+page content marked `inert`; confirming is an ordinary `<form>` posting a server action. The
+prompt states what will actually happen rather than asking "are you sure?".
+
+`inert` on the content behind is what makes it a real modal rather than a floating box — without
+it, Tab walks into the buttons underneath. Focus starts on the dialog (`autofocus` +
+`tabIndex={-1}`), deliberately *not* on the confirm button, so Enter can't complete a
+destructive action. The one thing a native `<dialog>` would add is Escape-to-close; that needs a
+key handler, so cancelling is a visible control instead.
+
+Why not `<dialog>` + `showModal()`: that version was correct in every browser we could test and
+still never ran on the reviewer's machine. Once a submit fallback was added so the button
+wasn't dead, it fired with no prompt at all and archived a live campaign. A confirmation whose
+only job is to prevent a mistake must not depend on hydration succeeding — if the page
+rendered, the confirmation works.
+
+The `?confirm=` value is validated (`isCampaignConfirm`) and must name a real row, so a crafted
+or stale link resolves to "nothing pending". The action is chosen from the confirm value, not
+from the campaign's current state, so what the admin agreed to is what runs. Actions are
+re-authorized server-side regardless.
+
+Approve / reject is one form with two submit buttons, so it works without JS. **Rejection is
+final** — the parent cannot edit and resubmit, they start a new application — which is why a
+note is required on rejection and is shown to the parent verbatim. The `UPDATE` is guarded on
+`status = 'submitted'`, so two admins working the same queue can't both land a decision.
+
+`/admin/applications/<id>/edit` is an **operational override**: approval locks the parent out,
+so an admin has to be able to fix a wrong delivery address or a misspelled name. It edits
+content fields only — status, campaign and parent are absent, so a typo fix can never move an
+application through the workflow. It reuses the parent's zod field rules rather than looser
+ones, so an admin can't save an age of 99 either. Two conditional rules:
+
+- **Completeness** is required for anything past `draft`. A draft may legitimately have holes;
+  a submitted application was complete and must stay that way, so an admin can't blank out a
+  field a volunteer is relying on.
+- **The gift cap** is enforced only when the price is actually *changed*. Caps move
+  mid-campaign, and an application submitted under an older, higher cap must stay fixable —
+  otherwise correcting an address is blocked by a price nobody touched.
+
+Editing a `claimed` application warns first: a volunteer has already seen the old details and
+may be out buying the gift.
+
+Opening an application detail page writes an `application.viewed_full` audit entry, as do the
+decisions (`application.approved` / `application.rejected`) and edits
+(`application.updated_by_admin:<changed,field,names>`). That trail records field **names, never
+values** — these fields hold a child's address and the family's story, and `audit_logs` must not
+become a second copy of that data with a different retention story. Queue links carry
+`prefetch={false}` so a hover never logs a view that nobody made.
+
+#### Export
+
+One export per campaign: the «Експорт» button on the campaigns list downloads the full
+working CSV (`/admin/export/download?campaignId=…`), admin-gated and audit-logged as
+`campaign.exported`.
+
+It carries the fields the child-data invariant calls sensitive — parent name, current town,
+delivery information, family story and the family's contact — so **the file itself is the most
+dangerous artifact this system produces**. Treat it accordingly: keep it only where it is
+genuinely needed and delete it after the campaign.
+
+It exports no files. The ВПО certificate stays behind the authorized route that logs each read:
+a state document about a child does not belong in a spreadsheet that gets emailed around.
+Exports are scoped to **one campaign**; a file spanning all of them would resurrect years of
+archived families into one spreadsheet.
+
+Cells that begin with `=`, `+`, `-` or `@` are prefixed with an apostrophe: Excel and Google
+Sheets otherwise execute them as formulas, and every free-text field here is parent-written.
+The file carries a UTF-8 BOM so Excel on Windows reads the Ukrainian correctly.
 
 ### Project layout & scripts (Phase 0)
 

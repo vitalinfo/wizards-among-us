@@ -31,6 +31,16 @@ export {
 } from "./enumSchemas";
 
 export {
+  campaignCreateSchema,
+  type CampaignCreateInput,
+} from "@/features/campaigns/validation";
+
+export {
+  moderationDecisionSchema,
+  type ModerationDecisionInput,
+} from "@/features/applications/moderation";
+
+export {
   applicationDraftSchema,
   applicationSubmitSchema,
   type ApplicationDraftInput,

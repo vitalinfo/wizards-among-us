@@ -17,7 +17,7 @@ Operating guide for Claude Code in this repo. Keep it loaded; follow it every se
 ## Commands
 
 Package manager: **pnpm**. (Scaffolded in Phase 0 with Next.js 16 App Router + TS + Tailwind v4 + next-intl.)
-- `pnpm dev` — local dev server (http://localhost:3000)
+- `pnpm dev` — local dev server (http://localhost:3003; override with `PORT`)
 - `pnpm build` — production build · `pnpm start` — serve the build
 - `pnpm lint` / `pnpm typecheck` / `pnpm format:check` — quality gates (also run in CI)
 - `pnpm test` — Vitest + React Testing Library (`pnpm test:watch` to watch)
@@ -56,7 +56,12 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Fr
 - **Indexing:** only `/` is indexable; everything else `noindex`. All data-bearing routes are behind auth + server-layer authz regardless.
 - **Campaigns:** one `active` campaign at a time (partial unique index). Parents can submit a *new* application only when there's an active campaign AND `accepting_applications` AND the global kill switch is on. Archive is **derived** (an app is "archived" because its campaign isn't active) — scope all parent/volunteer queries to the active campaign; don't build a separate archive store.
 - **Edit lock:** a parent may edit an application only while `draft`/`submitted`; admin approval locks it (server-enforced, not just UI).
-- **Claims are atomic:** prevent double-claim via a unique constraint + transaction.
+- **Claims are atomic:** prevent double-claim via a unique constraint + transaction. This
+  includes **admin manual assignment** (plan §9 Phase 6, Vital) — an admin picking a volunteer
+  by hand goes through the same transaction and the same unique index, and reassignment
+  releases the incumbent. Never add a second write path to `claims`. Log it distinctly
+  (`claim.assigned_by_admin`), because "who decided this volunteer gets this child" is the
+  question the audit trail exists for.
 - **Never commit secrets.** Use env vars (see README).
 
 ## Phase 1 decisions (resolved)
@@ -77,6 +82,25 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Fr
 - **The contact lives on `users`, not `applications`** (revised — Vital). A parent filing three applications has one contact, and a copy taken at submit would go stale exactly when a volunteer needs it. `users.username` syncs from Telegram every login; `users.phone` is the fallback for someone with no handle. `resolveUserContact()` in `features/users/contact.ts` is the single place that answers "how do we reach this family?".
 - **⚠️ Contact info is SENSITIVE** — it belongs with `current_town` / `delivery_information` / `parent_name`, revealed only to the volunteer holding the active claim. It must NOT appear on the browse card (`toBrowseCard`), and every reveal is audit-logged.
 - Deferred alternative for later (Phase 7): **bot-mediated contact**, where our bot relays introductions by Telegram id so handles are never exchanged. The Login Widget already requests `data-request-access="write"` with that in mind — but verify the bot can actually message users unsolicited before designing on it.
+
+## Phase 5 decisions (resolved)
+
+- **Rejection is final** (Vital). A parent can't edit and resubmit — they start a new
+  application. The rejection note is therefore **required**, shown to the parent verbatim, and
+  dropped on approval so a stale note can't ride along on an approved application.
+- **Moderation queue is ordered oldest-submission-first.** We promise a review within two
+  days, so newest-first would starve exactly the applications that are already late.
+- **Decisions are guarded in SQL** (`WHERE status = 'submitted'`), not only in the UI, so two
+  admins working the same queue can't both land a decision.
+- **Export is two scopes, never one.** *Coordination* (child name, age, region, gift, price,
+  status, claimed) carries nothing that identifies a family and is the default; *full* adds
+  parent name, current town, delivery information, family story and contact, and is
+  audit-logged as its own event. **Neither exports a file** — the ВПО certificate stays behind
+  the authorized route. Exports are scoped to **one campaign**.
+- **CSV cells are formula-neutralised.** A value starting `=`, `+`, `-` or `@` executes in
+  Excel/Sheets and every free-text field here is parent-written (`csvCell` in
+  `features/applications/csv.ts`). The file carries a UTF-8 BOM.
+- **Review moderation deferred to Phase 7.**
 
 ## Code organization — **feature-based** (decided Phase 4)
 

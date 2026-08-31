@@ -9,9 +9,9 @@
   "scripts": {
     "prepare": "sh git-hooks/install",
     "hooks:install": "sh git-hooks/install",
-    "dev": "next dev",
+    "dev": "next dev -p ${PORT:-3003}",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3003}",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",

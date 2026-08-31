@@ -94,6 +94,9 @@
 | Claim a child | — | — | ✅ | ✅ |
 | View own claimed children (with Telegram) | — | — | ✅ | ✅ |
 | Approve/reject applications | — | — | — | ✅ |
+| Edit any application (operational override; content fields only) | — | — | — | ✅ |
+| **Assign a volunteer to an application by hand and mark it claimed** | — | — | — | ✅ |
+| Release / reassign any claim | — | — | — | ✅ |
 | Create campaigns; set type; activate / archive; open/close intake; global kill switch | — | — | — | ✅ |
 | Global "disable all applications" switch | — | — | — | ✅ |
 | Manage/export all data | — | — | — | ✅ |
@@ -284,10 +287,15 @@ robots.txt (allow /), sitemap.xml (landing page only)                           
 - Multistep application form per campaign type (hardcoded forms, shared base fields), inline validation, required-field enforcement, file upload to R2, and Turnstile verification on submit. "My applications" list with statuses. Enforce one-application-per-child; allow a parent to file multiple applications (one per child). Allow parents to edit an application only while `draft`/`submitted`; lock it on admin approval (enforced in both server-layer authorization and UI).
 
 **Phase 5 — Admin flow**
-- Campaign management (create, set type, `status` lifecycle draft→active→archived, **open/close new-application intake** (`accepting_applications`), browse past campaigns, global kill switch). Scope all parent/volunteer queries to the active campaign so prior-year applications are hidden from users. Gate the parent "Start application" action on active + accepting + global-switch. Application moderation queue (approve/reject with note, view all fields + files). Review moderation. Data export.
+- Campaign management (create, set type, `status` lifecycle draft→active→archived, **open/close new-application intake** (`accepting_applications`), browse past campaigns, global kill switch). Scope all parent/volunteer queries to the active campaign so prior-year applications are hidden from users. Gate the parent "Start application" action on active + accepting + global-switch. Application moderation queue (approve/reject with note, view all fields + files). Admin edit of any application (content fields only — never status/campaign/parent). Review moderation. Data export. Note: manual volunteer assignment is an admin capability but lands in **Phase 6**, since it writes `claims`.
 
 **Phase 6 — Volunteer flow**
 - Approved-children list with filters: Telegram data, availability (claimed/unclaimed), age, current region. Cards show non-sensitive fields incl. `gift_description` + `gift_price`; `current_town`, `delivery_information`, `parent_name`, and parent Telegram are revealed only to the volunteer who claims. Claim action (atomic — prevent double-claim via a unique constraint + transaction). "My claims" view exposing the claimed families' delivery info + Telegram for coordination. Optional un-claim/release.
+- **Manual assignment by an admin** (Vital, during Phase 5 review). Plenty of matches happen off-platform — a volunteer messages the coordinator directly, or an organisation takes ten children at once — and the coordinator then needs the system to reflect reality rather than the reverse. So: an admin can pick a volunteer for an approved application, which creates the claim and moves the application to `claimed`, and can release or reassign any existing claim.
+  - It must go through the **same** claim path as a self-claim: one transaction, the `claims` unique index on `application_id`, and reassignment releases the incumbent rather than inserting a second row. No second write path to a table whose whole point is that double-claiming is impossible.
+  - Audit-logged **distinctly** from a self-claim (`claim.assigned_by_admin` / `claim.released_by_admin`), because "who decided this volunteer gets this child" is exactly the question an audit trail exists to answer.
+  - Assigning a volunteer reveals that family's `current_town`, `delivery_information`, `parent_name` and contact to them (tier 2 of the child-data invariant). An admin doing it by hand is taking that decision on the family's behalf, so the UI must say so.
+  - **Open question — offline volunteers.** `claims.volunteer_id` is a FK to `users`, so a volunteer who has never signed in has no row to point at. Either they sign in once (simplest, keeps one identity model, but blocks the phone-call case this feature exists for) or we allow an admin-created placeholder user. Decide before building; do **not** relax the FK.
 
 **Phase 7 — Fulfilment loop**
 - Parent uploads gift-confirmation (photo/video) → application status → `fulfilled`. "Look up my volunteer" for parents. Reviews publishing.

@@ -18,10 +18,15 @@ const ACTION_CLASS =
 
 export function SiteHeaderClient({
   user,
+  isAdmin = false,
 }: {
   // The current Telegram user (for display), or null when signed out. Resolved
   // server-side by SiteHeader (the server entry that wraps this island).
   user: { username: string | null; firstName: string | null } | null;
+  // An admin holds a session but is NOT a user, so `user` is null for them.
+  // Showing them «Увійти» is a lie that leads somewhere confusing — they are
+  // signed in, just not to this side of the app — so point at their own panel.
+  isAdmin?: boolean;
 }) {
   const t = useTranslations("common");
 
@@ -71,6 +76,10 @@ export function SiteHeaderClient({
               </button>
             </form>
           </div>
+        ) : isAdmin ? (
+          <Link href="/admin" className={ACTION_CLASS}>
+            {t("adminPanel")}
+          </Link>
         ) : (
           <Link href="/login" className={ACTION_CLASS}>
             <TelegramIcon className="size-4" />

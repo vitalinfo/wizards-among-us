@@ -48,3 +48,22 @@ export function loginPathFor(returnTo: string): string {
     ? "/login"
     : `/login?next=${encodeURIComponent(safe)}`;
 }
+
+// Where to send an actor that reached a parent/volunteer page without being a
+// signed-in USER.
+//
+// The admin case is the reason this exists. An admin holds a session but is not
+// a `user` — admins live in their own table and never appear as a parent_id —
+// so a page guarded with `isUser` bounces them to /login, and /login (which
+// only asked "is there an actor?") bounced them straight back. That is an
+// infinite redirect loop, and we shipped it: an admin opening
+// /parent/applications spun forever.
+//
+// Admins have their own surface, so send them there instead of to a sign-in
+// page they are already past.
+export function signedOutRedirect(
+  actor: { kind: "user" | "admin" } | null | undefined,
+  returnTo: string,
+): string {
+  return actor?.kind === "admin" ? "/admin" : loginPathFor(returnTo);
+}
