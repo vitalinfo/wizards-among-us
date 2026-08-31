@@ -178,6 +178,23 @@ System: PostgreSQL · Server: `db` · Username / Password: `wau`.
 keeps your data; only `db:reset` (or `docker compose down -v`) erases it. Postgres is only
 actually *used* from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
 
+### Browsing the dev server from another origin
+
+If you open the dev server as anything other than `http://localhost:3000` — a tunnel, an
+internal DNS name, another machine on your LAN — set `DEV_ORIGINS` in `.env.local`:
+
+```
+DEV_ORIGINS=my-tunnel.example.com
+```
+
+Next blocks cross-origin access to its **dev** resources by default. Without this, HMR
+(`/_next/webpack-hmr`) is refused, the browser stops receiving module updates, and Turbopack's
+client chunk graph goes stale — you get `module factory is not available` or `Module not found`
+for files that plainly exist. The insidious part is that pages still **server-render perfectly**,
+so the app looks fine while **nothing hydrates**: every client component is inert, buttons do
+nothing, and there is no visible error. We lost a long session to exactly that. Dev only; Next
+ignores it in a production build.
+
 ### Signing in locally (dev login)
 
 The Telegram Login Widget can't render on `localhost` — it only appears on a domain you've
