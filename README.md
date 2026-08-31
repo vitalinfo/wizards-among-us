@@ -223,9 +223,16 @@ pnpm db:seed                  # one draft campaign + settings row (idempotent)
 Sign in at `/admin/login` (email + password; the address must be in `ADMIN_ALLOWLIST`).
 Three surfaces, linked from the shared nav:
 
-- **`/admin/campaigns`** — create campaigns, activate one (activating archives the incumbent
-  in the same transaction, so the "one active campaign" index can never be tripped),
-  open/close intake, and the global kill switch.
+- **`/admin/campaigns`** — the list. Activate one (activating archives the incumbent in the
+  same transaction, so the "one active campaign" index can never be tripped), open/close
+  intake, archive. `/admin/campaigns/new` creates one; `/admin/campaigns/<id>/edit` changes
+  title, description and gift cap. The **type** is editable only while the campaign is a
+  draft: past that, applications carry `type_fields` validated against it, so changing it
+  would leave them describing a form nobody fills in. Enforced in the action *and* in SQL.
+- **`/admin/settings`** — the global kill switch. It lives apart from campaigns on purpose:
+  `accepting_applications` is a routine per-campaign toggle, this is the emergency stop, and
+  it's the only one that stays off across a campaign activation (`accepting_applications`
+  defaults to `true`, so activating a campaign otherwise reopens intake immediately).
 - **`/admin/applications`** — the moderation queue. Ordered **oldest submission first**: we
   promise parents a review within two days, so newest-first would starve exactly the
   applications that are already late. Filter by status; the default view is everything
@@ -233,6 +240,13 @@ Three surfaces, linked from the shared nav:
 - **`/admin/applications/<id>`** — every field, the family's resolved contact, and links to
   the uploaded files (including the ВПО certificate, which **only** an admin may open —
   never a volunteer, not even the one holding the claim).
+
+Every campaign state change — activate, archive, open/close intake, kill switch — goes
+through `ConfirmSubmitButton`, which asks first and says what will actually happen rather
+than "are you sure?". It's built on the native `<dialog>` + `showModal()`, so focus entry,
+focus trapping, Escape, and focus return to the trigger are browser behaviour rather than
+hand-rolled (verified: a submit button inside a top-layer dialog still submits its enclosing
+form).
 
 Approve / reject is one form with two submit buttons, so it works without JS. **Rejection is
 final** — the parent cannot edit and resubmit, they start a new application — which is why a

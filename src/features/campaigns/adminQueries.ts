@@ -1,9 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import type { CampaignType } from "@/db/enums";
-import { SETTING_KEYS } from "@/db/enums";
-import { campaigns, settings } from "@/db/schema";
+import { campaigns } from "@/db/schema";
 
 // Admin-side campaign data access. Authorization happens in the server actions
 // (requireAdmin); these functions execute, they don't adjudicate.
@@ -12,6 +11,17 @@ export type AdminCampaign = typeof campaigns.$inferSelect;
 
 export async function listCampaigns(): Promise<AdminCampaign[]> {
   return getDb().select().from(campaigns).orderBy(desc(campaigns.createdAt));
+}
+
+export async function getAdminCampaign(
+  id: string,
+): Promise<AdminCampaign | null> {
+  const [row] = await getDb()
+    .select()
+    .from(campaigns)
+    .where(eq(campaigns.id, id))
+    .limit(1);
+  return row ?? null;
 }
 
 export async function createCampaign(values: {
@@ -27,6 +37,34 @@ export async function createCampaign(values: {
     .values({ ...values, status: "draft" })
     .returning({ id: campaigns.id });
   return row.id;
+}
+
+// Editing the descriptive fields. The TYPE is deliberately not here: it
+// decides which form a parent fills in and how type_fields is validated, so
+// changing it after applications exist would orphan every one of them. The
+// action allows a type change only while the campaign is still a draft, which
+// is the only state in which it can have no applications.
+export async function updateCampaign(
+  id: string,
+  values: {
+    title: string;
+    description: string | null;
+    giftPriceCap: string | null;
+  },
+): Promise<void> {
+  await getDb().update(campaigns).set(values).where(eq(campaigns.id, id));
+}
+
+export async function updateDraftCampaignType(
+  id: string,
+  type: CampaignType,
+): Promise<void> {
+  // Guarded in SQL, not only in the action: a draft that was activated between
+  // the read and the write must not have its type rewritten.
+  await getDb()
+    .update(campaigns)
+    .set({ type })
+    .where(and(eq(campaigns.id, id), eq(campaigns.status, "draft")));
 }
 
 // Activating is the one operation that can fail on a constraint: a partial
@@ -66,16 +104,4 @@ export async function setAcceptingApplications(
     .update(campaigns)
     .set({ acceptingApplications: accepting })
     .where(eq(campaigns.id, id));
-}
-
-// The global kill switch, orthogonal to any campaign: stops all new intake
-// instantly without touching campaign state.
-export async function setApplicationsEnabled(enabled: boolean): Promise<void> {
-  await getDb()
-    .insert(settings)
-    .values({ key: SETTING_KEYS.applicationsEnabled, value: enabled })
-    .onConflictDoUpdate({
-      target: settings.key,
-      set: { value: enabled, updatedAt: new Date() },
-    });
 }

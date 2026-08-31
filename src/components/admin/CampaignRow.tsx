@@ -1,10 +1,12 @@
 import { useFormatter, useTranslations } from "next-intl";
+import Link from "next/link";
 
 import {
   activateCampaignAction,
   archiveCampaignAction,
   setIntakeAction,
 } from "@/app/admin/campaigns/actions";
+import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 import type { AdminCampaign } from "@/features/campaigns/adminQueries";
 
 const ACTION =
@@ -16,15 +18,18 @@ const STATUS_TONE: Record<AdminCampaign["status"], string> = {
   archived: "bg-surface-muted text-body border-border",
 };
 
-// One campaign with the actions valid for its current state. Each is a <form>
-// posting to a server action, so it works without JavaScript and the
-// authorization check runs server-side regardless of what the UI shows.
+// One campaign with the actions valid for its current state.
+//
+// Every state change asks first: each of these decides whether families can
+// apply or whether a whole campaign's applications stay visible, and none of it
+// is obvious from a one-word button. The dialog says what will actually happen.
 export function CampaignRow({ campaign }: { campaign: AdminCampaign }) {
   const t = useTranslations("admin.campaigns");
   const format = useFormatter();
 
   const isActive = campaign.status === "active";
   const isArchived = campaign.status === "archived";
+  const accepting = campaign.acceptingApplications;
 
   return (
     <li className="border-border bg-surface flex flex-col gap-3 rounded-lg border p-4">
@@ -40,9 +45,7 @@ export function CampaignRow({ campaign }: { campaign: AdminCampaign }) {
         </span>
         {isActive ? (
           <span className="text-muted-foreground text-xs">
-            {campaign.acceptingApplications
-              ? t("intakeOpen")
-              : t("intakeClosed")}
+            {accepting ? t("intakeOpen") : t("intakeClosed")}
           </span>
         ) : null}
       </div>
@@ -55,37 +58,50 @@ export function CampaignRow({ campaign }: { campaign: AdminCampaign }) {
         {format.dateTime(campaign.createdAt, "short")}
       </p>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Link href={`/admin/campaigns/${campaign.id}/edit`} className={ACTION}>
+          {t("editCta")}
+        </Link>
+
         {!isActive ? (
-          <form action={activateCampaignAction.bind(null, campaign.id)}>
-            <button type="submit" className={ACTION}>
-              {t("activate")}
-            </button>
-          </form>
+          <ConfirmSubmitButton
+            action={activateCampaignAction.bind(null, campaign.id)}
+            label={t("activate")}
+            title={t("confirm.activate.title")}
+            message={t("confirm.activate.body")}
+            confirmLabel={t("activate")}
+            className={ACTION}
+          />
         ) : null}
 
         {isActive ? (
-          <form
-            action={setIntakeAction.bind(
-              null,
-              campaign.id,
-              !campaign.acceptingApplications,
-            )}
-          >
-            <button type="submit" className={ACTION}>
-              {campaign.acceptingApplications
-                ? t("closeIntake")
-                : t("openIntake")}
-            </button>
-          </form>
+          <ConfirmSubmitButton
+            action={setIntakeAction.bind(null, campaign.id, !accepting)}
+            label={accepting ? t("closeIntake") : t("openIntake")}
+            title={
+              accepting
+                ? t("confirm.closeIntake.title")
+                : t("confirm.openIntake.title")
+            }
+            message={
+              accepting
+                ? t("confirm.closeIntake.body")
+                : t("confirm.openIntake.body")
+            }
+            confirmLabel={accepting ? t("closeIntake") : t("openIntake")}
+            className={ACTION}
+          />
         ) : null}
 
         {!isArchived ? (
-          <form action={archiveCampaignAction.bind(null, campaign.id)}>
-            <button type="submit" className={ACTION}>
-              {t("archive")}
-            </button>
-          </form>
+          <ConfirmSubmitButton
+            action={archiveCampaignAction.bind(null, campaign.id)}
+            label={t("archive")}
+            title={t("confirm.archive.title")}
+            message={t("confirm.archive.body")}
+            confirmLabel={t("archive")}
+            className={ACTION}
+          />
         ) : null}
       </div>
     </li>

@@ -26,3 +26,9 @@ export const campaignCreateSchema = z.object({
   ),
 });
 export type CampaignCreateInput = z.infer<typeof campaignCreateSchema>;
+
+// Editing reuses the same field rules. `type` stays in the schema because a
+// DRAFT campaign may still change it; the action refuses a change once the
+// campaign has left draft, where applications may already depend on it.
+export const campaignUpdateSchema = campaignCreateSchema;
+export type CampaignUpdateInput = z.infer<typeof campaignUpdateSchema>;
