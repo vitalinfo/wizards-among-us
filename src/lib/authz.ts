@@ -26,6 +26,7 @@ export {
 export {
   canEditApplication,
   canModerateApplications,
+  canViewApplicationFile,
   canStartApplication,
   canSubmitApplication,
   canViewSensitiveChildData,
@@ -39,7 +40,11 @@ export { type BrowseCard, toBrowseCard } from "@/features/applications/mappers";
 export { intakeOpen, type ResolvedSettings } from "@/features/campaigns/authz";
 
 export {
+  canAssignVolunteer,
   canBrowseChildren,
   canClaim,
+  canReleaseClaim,
+  getClaimBlockReason,
   isClaimed,
+  type ClaimBlockReason,
 } from "@/features/claims/authz";

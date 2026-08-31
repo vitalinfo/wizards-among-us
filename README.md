@@ -253,6 +253,41 @@ pnpm db:migrate               # apply pending migrations
 pnpm db:seed                  # one draft campaign + settings row (idempotent)
 ```
 
+### Volunteer flow (Phase 6)
+
+`/volunteer` resolves its call to action from the session — sign in → opt in → browse. The
+**volunteer role is self-serve**: nothing else grants it and `canBrowseChildren` requires it,
+which is the same circular-role trap `canStartApplication` hit in Phase 4.
+
+`/volunteer/children` browses the **active campaign only**, paged at 24, filtered by region,
+age range and availability through a plain GET form (no client JS, every result set is a
+shareable url). Rows come from `toBrowseCard`, so the redaction is done at the data layer —
+a card physically cannot carry an address or a contact to the client. Claimed children stay
+visible, marked, so volunteers can see how the campaign is going.
+
+**Claiming is atomic.** The unique index on `claims.application_id` is the real guard: two
+volunteers pressing the button at the same instant both reach the insert and exactly one
+survives; the loser is told, not silently ignored. Re-claiming a released application reuses
+that row (`ON CONFLICT … setWhere released_at IS NOT NULL`), so an *active* claim can never be
+stolen. The application's status moves in the same transaction — a claim that didn't flip the
+status would leave the child listed as available.
+
+Two gates before a claim lands, both server-enforced:
+
+- **Contactability.** A volunteer with no `@username` and no phone is someone the family
+  cannot reach, so claiming sends them to `/volunteer/contact` first. Same rule parents hit at
+  submit, and it applies to admin assignment too.
+- **Availability.** Approved, and not already held.
+
+`/volunteer/claims` is the only place a volunteer sees tier-2 data — current town, delivery
+information, parent name, the family's contact — and every render is audit-logged
+(`claim.details_viewed`), as are browsing (`children.browsed`) and the claim itself
+(`claim.created`).
+
+**No self-release.** A volunteer who cannot follow through contacts the coordinator, who
+releases the claim in the admin UI, so a human sees every drop-out instead of children quietly
+returning to the pool.
+
 ### Admin (Phase 5)
 
 Sign in at `/admin/login` (email + password; the address must be in `ADMIN_ALLOWLIST`).

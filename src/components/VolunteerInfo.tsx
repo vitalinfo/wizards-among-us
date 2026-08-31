@@ -1,14 +1,14 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 
 import { CheckIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 
 const POINTS = ["cost", "one", "direct"] as const;
 
-export function VolunteerInfo() {
+export function VolunteerInfo({ cta }: { cta: ReactNode }) {
   const t = useTranslations("volunteer");
 
   return (
@@ -57,8 +57,9 @@ export function VolunteerInfo() {
         </p>
       </div>
 
-      {/* Auth-gated action — wired to Telegram login in Phase 3. */}
-      <Button className="w-full">{t("browseCta")}</Button>
+      {/* The CTA depends on where the visitor stands, so the server entry
+          (VolunteerCta) resolves it: sign in → opt in → browse. */}
+      {cta}
       <span className="text-muted-foreground text-center text-[13px] leading-normal">
         {t("loginNote")}
       </span>
