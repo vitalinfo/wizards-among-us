@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ageBand,
   browseHref,
   browsePageCount,
   BROWSE_PAGE_SIZE,
@@ -14,8 +15,7 @@ describe("parseBrowseQuery", () => {
     expect(empty).toEqual({
       region: null,
       availability: "all",
-      minAge: null,
-      maxAge: null,
+      age: null,
       page: 1,
     });
   });
@@ -25,15 +25,13 @@ describe("parseBrowseQuery", () => {
       parseBrowseQuery({
         region: "lviv",
         availability: "available",
-        minAge: "5",
-        maxAge: "12",
+        age: "5-8",
         page: "3",
       }),
     ).toEqual({
       region: "lviv",
       availability: "available",
-      minAge: 5,
-      maxAge: 12,
+      age: "5-8",
       page: 3,
     });
   });
@@ -44,24 +42,28 @@ describe("parseBrowseQuery", () => {
     const q = parseBrowseQuery({
       region: "atlantis",
       availability: "maybe",
-      minAge: "-4",
-      maxAge: "99",
+      age: "7-9",
       page: "0",
     });
     expect(q).toEqual({
       region: null,
       availability: "all",
-      minAge: null,
-      maxAge: null,
+      age: null,
       page: 1,
     });
   });
 
-  // A reversed range matches nothing and reads as "no children here", which is
-  // a lie about the data — swap it instead.
-  it("swaps a reversed age range", () => {
-    const q = parseBrowseQuery({ minAge: "12", maxAge: "5" });
-    expect([q.minAge, q.maxAge]).toEqual([5, 12]);
+  // Bands replaced two free-text age inputs, which invited an empty result set
+  // from a range nobody meant.
+  it("resolves a band to its bounds", () => {
+    expect(ageBand("5-8")).toMatchObject({ min: 5, max: 8 });
+    expect(ageBand(null)).toBeNull();
+  });
+
+  // The application form accepts an age up to 18, so a hard 17 ceiling on the
+  // top band would make eighteen-year-olds invisible whenever a band is chosen.
+  it("leaves the top band open-ended so nobody is filtered out of existence", () => {
+    expect(ageBand("13+")).toMatchObject({ min: 13, max: null });
   });
 });
 
@@ -74,8 +76,7 @@ describe("browseHref", () => {
     const q = parseBrowseQuery({
       region: "kyiv",
       availability: "claimed",
-      minAge: "6",
-      maxAge: "9",
+      age: "9-12",
       page: "2",
     });
     const href = browseHref(q);

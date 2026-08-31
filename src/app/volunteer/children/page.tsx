@@ -8,6 +8,7 @@ import { BrowseFilterForm } from "@/components/volunteer/BrowseFilterForm";
 import { ChildCard } from "@/components/volunteer/ChildCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import {
+  ageBand,
   browseHref,
   browsePageCount,
   BROWSE_PAGE_SIZE,
@@ -31,8 +32,7 @@ export default async function BrowseChildrenPage({
   searchParams: Promise<{
     region?: string;
     availability?: string;
-    minAge?: string;
-    maxAge?: string;
+    age?: string;
     page?: string;
     claim?: string;
   }>;
@@ -67,11 +67,14 @@ export default async function BrowseChildrenPage({
     );
   }
 
+  const band = ageBand(query.age);
   const filters = {
     campaignId: campaign.id,
     region: query.region ?? undefined,
-    minAge: query.minAge ?? undefined,
-    maxAge: query.maxAge ?? undefined,
+    minAge: band?.min,
+    // The open-ended top band has no maximum, so nobody the form accepts is
+    // filtered out of existence.
+    maxAge: band?.max ?? undefined,
     availability: query.availability === "all" ? undefined : query.availability,
   };
 

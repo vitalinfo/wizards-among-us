@@ -1,8 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
-import { UKRAINE_REGIONS } from "@/db/enums";
-import type { BrowseQuery } from "@/features/claims/browseFilters";
+import { AGE_BANDS, type BrowseQuery } from "@/features/claims/browseFilters";
+import { regionOptions } from "@/lib/regionOptions";
 
 // A plain GET form: the browser turns it into the query string the page already
 // parses, so filtering needs no client JavaScript and every result set stays a
@@ -10,6 +10,9 @@ import type { BrowseQuery } from "@/features/claims/browseFilters";
 export async function BrowseFilterForm({ query }: { query: BrowseQuery }) {
   const t = await getTranslations("volunteer.children.filters");
   const tRegions = await getTranslations("regions");
+  // Sorted by the Ukrainian label — the enum's slug order reads as random to
+  // someone scanning Cyrillic.
+  const regions = regionOptions(tRegions);
 
   const field =
     "border-border bg-surface focus-visible:outline-ring rounded-md border px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -31,9 +34,9 @@ export async function BrowseFilterForm({ query }: { query: BrowseQuery }) {
           className={field}
         >
           <option value="">{t("anyRegion")}</option>
-          {UKRAINE_REGIONS.map((region) => (
-            <option key={region} value={region}>
-              {tRegions(region)}
+          {regions.map((region) => (
+            <option key={region.value} value={region.value}>
+              {region.label}
             </option>
           ))}
         </select>
@@ -56,35 +59,22 @@ export async function BrowseFilterForm({ query }: { query: BrowseQuery }) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="minAge" className="text-xs font-medium">
-          {t("minAge")}
+        <label htmlFor="age" className="text-xs font-medium">
+          {t("age")}
         </label>
-        <input
-          id="minAge"
-          name="minAge"
-          type="number"
-          min={0}
-          max={18}
-          inputMode="numeric"
-          defaultValue={query.minAge ?? ""}
-          className={`${field} w-24`}
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="maxAge" className="text-xs font-medium">
-          {t("maxAge")}
-        </label>
-        <input
-          id="maxAge"
-          name="maxAge"
-          type="number"
-          min={0}
-          max={18}
-          inputMode="numeric"
-          defaultValue={query.maxAge ?? ""}
-          className={`${field} w-24`}
-        />
+        <select
+          id="age"
+          name="age"
+          defaultValue={query.age ?? ""}
+          className={field}
+        >
+          <option value="">{t("anyAge")}</option>
+          {AGE_BANDS.map((band) => (
+            <option key={band.key} value={band.key}>
+              {t(`ageBands.${band.key}`)}
+            </option>
+          ))}
+        </select>
       </div>
 
       <button

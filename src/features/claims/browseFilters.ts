@@ -8,11 +8,30 @@ export const BROWSE_PAGE_SIZE = 24;
 
 export type Availability = "all" | "available" | "claimed";
 
+// Age is picked as a BAND, not two free-text numbers: a volunteer thinks "a
+// child in primary school", not "between 5 and 8", and two inputs invite an
+// empty result set from a range nobody meant.
+//
+// The top band is 13+ rather than 13–17 deliberately: the application form
+// accepts an age up to 18, so a hard 17 ceiling would make eighteen-year-olds
+// invisible whenever any band is selected.
+export const AGE_BANDS = [
+  { key: "0-4", min: 0, max: 4 },
+  { key: "5-8", min: 5, max: 8 },
+  { key: "9-12", min: 9, max: 12 },
+  { key: "13+", min: 13, max: null },
+] as const;
+
+export type AgeBandKey = (typeof AGE_BANDS)[number]["key"];
+
+export function ageBand(key: AgeBandKey | null) {
+  return AGE_BANDS.find((band) => band.key === key) ?? null;
+}
+
 export type BrowseQuery = {
   region: UkraineRegion | null;
   availability: Availability;
-  minAge: number | null;
-  maxAge: number | null;
+  age: AgeBandKey | null;
   page: number;
 };
 
@@ -22,35 +41,28 @@ function parseRegion(value: string | undefined): UkraineRegion | null {
     : null;
 }
 
-function parseAge(value: string | undefined): number | null {
-  const age = Number(value);
-  // Same bounds the application form enforces; anything else is ignored rather
-  // than rejected, so a hand-edited url can't blank the list with an error.
-  return Number.isInteger(age) && age >= 0 && age <= 18 ? age : null;
+function parseAgeBand(value: string | undefined): AgeBandKey | null {
+  // Unknown values are ignored rather than rejected, so a hand-edited url can
+  // never blank the list with an error.
+  return AGE_BANDS.some((band) => band.key === value)
+    ? (value as AgeBandKey)
+    : null;
 }
 
 export function parseBrowseQuery(params: {
   region?: string;
   availability?: string;
-  minAge?: string;
-  maxAge?: string;
+  age?: string;
   page?: string;
 }): BrowseQuery {
   const page = Number(params.page);
-  const minAge = parseAge(params.minAge);
-  const maxAge = parseAge(params.maxAge);
   return {
     region: parseRegion(params.region),
     availability:
       params.availability === "available" || params.availability === "claimed"
         ? params.availability
         : "all",
-    // A reversed range would return nothing and look like "no children", so
-    // swap it rather than honouring the mistake.
-    minAge:
-      minAge !== null && maxAge !== null ? Math.min(minAge, maxAge) : minAge,
-    maxAge:
-      minAge !== null && maxAge !== null ? Math.max(minAge, maxAge) : maxAge,
+    age: parseAgeBand(params.age),
     page: Number.isInteger(page) && page >= 1 ? page : 1,
   };
 }
@@ -73,11 +85,8 @@ export function browseHref(
   if (next.availability !== "all") {
     params.set("availability", next.availability);
   }
-  if (next.minAge !== null) {
-    params.set("minAge", String(next.minAge));
-  }
-  if (next.maxAge !== null) {
-    params.set("maxAge", String(next.maxAge));
+  if (next.age !== null) {
+    params.set("age", next.age);
   }
   if (page > 1) {
     params.set("page", String(page));

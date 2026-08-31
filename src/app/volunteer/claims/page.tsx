@@ -85,6 +85,10 @@ export default async function MyClaimsPage() {
                         ],
                         [tFields("giftPrice"), application.giftPrice],
                         [tFields("parentName"), application.parentName],
+                        // The family's own words about what happened to them.
+                        // Tier 2: this volunteer holds the claim, so they
+                        // already see the town, address and contact.
+                        [tFields("familyStory"), application.familyStory],
                         [tFields("currentTown"), application.currentTown],
                         [
                           tFields("deliveryInformation"),
