@@ -127,7 +127,7 @@ pnpm db:migrate              # apply Drizzle migrations
 pnpm db:seed                 # optional: seed a draft campaign
 
 # 4. Run
-pnpm dev                     # http://localhost:3000
+pnpm dev                     # http://localhost:3003
 ```
 
 ### Local services (Docker)
@@ -178,9 +178,19 @@ System: PostgreSQL · Server: `db` · Username / Password: `wau`.
 keeps your data; only `db:reset` (or `docker compose down -v`) erases it. Postgres is only
 actually *used* from Phase 1 onward. Node version is pinned in `.nvmrc` (`nvm use`).
 
+### Ports
+
+`pnpm dev` and `pnpm start` listen on **3003** (`PORT` overrides). Not 3000 — that port
+collects state across every Next project on the machine, and a browser that has cached a broken
+chunk graph or an HSTS entry for `host:3000` keeps serving it back long after the cause is
+fixed. A distinct port per project sidesteps that entirely.
+
+Heroku sets `PORT` itself and runs the `Procfile` through a shell, so `${PORT:-3003}` resolves
+to Heroku's value in a deploy; the fallback only ever applies locally.
+
 ### Browsing the dev server from another origin
 
-If you open the dev server as anything other than `http://localhost:3000` — a tunnel, an
+If you open the dev server as anything other than `http://localhost:3003` — a tunnel, an
 internal DNS name, another machine on your LAN — set `DEV_ORIGINS` in `.env.local`:
 
 ```
@@ -200,7 +210,7 @@ ignores it in a production build.
 The Telegram Login Widget can't render on `localhost` — it only appears on a domain you've
 authorized with BotFather (`/setdomain`). To develop the signed-in parent/volunteer flows
 locally **without** a tunnel, set `DEV_LOGIN=1` in `.env.local` and visit
-[`/dev/login`](http://localhost:3000/dev/login) (also linked from `/login` when enabled).
+[`/dev/login`](http://localhost:3003/dev/login) (also linked from `/login` when enabled).
 It creates a deterministic test user for the role you pick (parent, volunteer, or both) and
 starts a real session — same cookie/session machinery as Telegram, just skipping the widget.
 

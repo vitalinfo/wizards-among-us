@@ -17,7 +17,7 @@ Operating guide for Claude Code in this repo. Keep it loaded; follow it every se
 ## Commands
 
 Package manager: **pnpm**. (Scaffolded in Phase 0 with Next.js 16 App Router + TS + Tailwind v4 + next-intl.)
-- `pnpm dev` — local dev server (http://localhost:3000)
+- `pnpm dev` — local dev server (http://localhost:3003; override with `PORT`)
 - `pnpm build` — production build · `pnpm start` — serve the build
 - `pnpm lint` / `pnpm typecheck` / `pnpm format:check` — quality gates (also run in CI)
 - `pnpm test` — Vitest + React Testing Library (`pnpm test:watch` to watch)
