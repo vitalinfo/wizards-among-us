@@ -120,7 +120,7 @@ export default async function BrowseChildrenPage({
         {rows.length === 0 ? (
           <p className="text-muted-foreground mt-8">{t("empty")}</p>
         ) : (
-          <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-6 grid items-start gap-3 sm:grid-cols-2">
             {rows.map((row) => (
               <ChildCard
                 key={row.id}

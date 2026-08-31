@@ -45,8 +45,16 @@ export async function ChildCard({
         </p>
       ) : null}
 
+      {/* The family's own account. On the card by a deliberate decision
+          (Vital, Phase 6) because it is what a volunteer chooses on. */}
+      {row.familyStory ? (
+        <p className="text-body text-sm leading-relaxed whitespace-pre-wrap">
+          {row.familyStory}
+        </p>
+      ) : null}
+
       {row.giftDescription ? (
-        <p className="text-body text-sm">{row.giftDescription}</p>
+        <p className="text-body text-sm font-medium">{row.giftDescription}</p>
       ) : null}
 
       {row.giftPrice ? (

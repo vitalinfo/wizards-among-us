@@ -6,6 +6,14 @@ type Application = typeof applications.$inferSelect;
 // claiming (guardrail). Sensitive fields are dropped here at the data layer, so
 // a redacted card physically cannot carry delivery/contact info to the client.
 //
+// `familyStory` is on the card by a DELIBERATE decision (Vital, Phase 6): a
+// volunteer chooses which child to help, and the family's own account of what
+// happened to them is the thing that informs that choice — withholding it until
+// after the commitment inverts the order. It is consistent with what we already
+// promise parents on the form: «це читає чарівник, який обиратиме дитину».
+// Note this widens tier 1, so it is the one free-text field any signed-in user
+// can read; the town, address, parent name and contact remain post-claim only.
+//
 // This is a DTO mapper, not authorization — it lives beside the resource rather
 // than in authz.ts (CLAUDE.md).
 export type BrowseCard = {
@@ -15,6 +23,7 @@ export type BrowseCard = {
   currentRegion: Application["currentRegion"];
   giftDescription: Application["giftDescription"];
   giftPrice: Application["giftPrice"];
+  familyStory: Application["familyStory"];
   status: Application["status"];
 };
 
@@ -26,6 +35,7 @@ export function toBrowseCard(application: Application): BrowseCard {
     currentRegion: application.currentRegion,
     giftDescription: application.giftDescription,
     giftPrice: application.giftPrice,
+    familyStory: application.familyStory,
     status: application.status,
   };
 }
