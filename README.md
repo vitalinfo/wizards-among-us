@@ -271,8 +271,27 @@ final** — the parent cannot edit and resubmit, they start a new application �
 note is required on rejection and is shown to the parent verbatim. The `UPDATE` is guarded on
 `status = 'submitted'`, so two admins working the same queue can't both land a decision.
 
+`/admin/applications/<id>/edit` is an **operational override**: approval locks the parent out,
+so an admin has to be able to fix a wrong delivery address or a misspelled name. It edits
+content fields only — status, campaign and parent are absent, so a typo fix can never move an
+application through the workflow. It reuses the parent's zod field rules rather than looser
+ones, so an admin can't save an age of 99 either. Two conditional rules:
+
+- **Completeness** is required for anything past `draft`. A draft may legitimately have holes;
+  a submitted application was complete and must stay that way, so an admin can't blank out a
+  field a volunteer is relying on.
+- **The gift cap** is enforced only when the price is actually *changed*. Caps move
+  mid-campaign, and an application submitted under an older, higher cap must stay fixable —
+  otherwise correcting an address is blocked by a price nobody touched.
+
+Editing a `claimed` application warns first: a volunteer has already seen the old details and
+may be out buying the gift.
+
 Opening an application detail page writes an `application.viewed_full` audit entry, as do the
-decisions themselves (`application.approved` / `application.rejected`). Queue links carry
+decisions (`application.approved` / `application.rejected`) and edits
+(`application.updated_by_admin:<changed,field,names>`). That trail records field **names, never
+values** — these fields hold a child's address and the family's story, and `audit_logs` must not
+become a second copy of that data with a different retention story. Queue links carry
 `prefetch={false}` so a hover never logs a view that nobody made.
 
 #### Export

@@ -59,6 +59,8 @@ export async function getApplicationForAdmin(id: string): Promise<{
   application: Application;
   campaignTitle: string;
   campaignType: (typeof campaigns.$inferSelect)["type"];
+  // Needed by the admin edit form: the cap is per campaign, applied in zod.
+  giftPriceCap: string | null;
   parent: {
     username: string | null;
     phone: string | null;
@@ -70,6 +72,7 @@ export async function getApplicationForAdmin(id: string): Promise<{
       application: applications,
       campaignTitle: campaigns.title,
       campaignType: campaigns.type,
+      giftPriceCap: campaigns.giftPriceCap,
       username: users.username,
       phone: users.phone,
       firstName: users.firstName,
@@ -87,12 +90,62 @@ export async function getApplicationForAdmin(id: string): Promise<{
     application: row.application,
     campaignTitle: row.campaignTitle,
     campaignType: row.campaignType,
+    giftPriceCap: row.giftPriceCap,
     parent: {
       username: row.username,
       phone: row.phone,
       firstName: row.firstName,
     },
   };
+}
+
+// Admin edit (operational override). Writes only the content columns: status,
+// campaign, parent and the decision fields are not editable here, so a typo fix
+// can never move an application through the workflow as a side effect.
+//
+// Values are already validated by adminApplicationEditSchema; `undefined` means
+// "not provided" and is written as NULL, which only a draft can produce (the
+// schema requires completeness for everything past draft).
+export async function updateApplicationByAdmin(
+  id: string,
+  values: {
+    parentName?: string;
+    childName?: string;
+    childAge?: number;
+    homeTown?: string;
+    homeRegion?: Application["homeRegion"];
+    currentTown?: string;
+    currentRegion?: Application["currentRegion"];
+    displacedYear?: number;
+    familyStory?: string;
+    giftDescription?: string;
+    giftPrice?: number;
+    deliveryInformation?: string;
+    socialMediaConsent?: boolean;
+    typeFields?: Record<string, unknown> | null;
+  },
+): Promise<void> {
+  await getDb()
+    .update(applications)
+    .set({
+      parentName: values.parentName ?? null,
+      childName: values.childName ?? null,
+      childAge: values.childAge ?? null,
+      homeTown: values.homeTown ?? null,
+      homeRegion: values.homeRegion ?? null,
+      currentTown: values.currentTown ?? null,
+      currentRegion: values.currentRegion ?? null,
+      displacedYear: values.displacedYear ?? null,
+      familyStory: values.familyStory ?? null,
+      giftDescription: values.giftDescription ?? null,
+      // numeric() columns take a string; undefined must become NULL, not "null".
+      giftPrice:
+        values.giftPrice === undefined ? null : String(values.giftPrice),
+      deliveryInformation: values.deliveryInformation ?? null,
+      socialMediaConsent: values.socialMediaConsent ?? null,
+      typeFields: values.typeFields ?? null,
+    })
+    .where(eq(applications.id, id));
 }
 
 // Approve / reject. The status guard in the WHERE clause means only a SUBMITTED

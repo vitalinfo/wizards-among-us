@@ -154,12 +154,22 @@ export default async function AdminApplicationPage({
     <>
       <AdminNav />
       <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-        <Link
-          href={backHref}
-          className="text-primary text-sm font-semibold underline underline-offset-4"
-        >
-          {t("backCta")}
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={backHref}
+            className="text-primary text-sm font-semibold underline underline-offset-4"
+          >
+            {t("backCta")}
+          </Link>
+          {/* Operational override: a parent locked out by approval can't fix a
+              wrong delivery address themselves. */}
+          <Link
+            href={`/admin/applications/${applicationId}/edit`}
+            className="border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            {t("editCta")}
+          </Link>
+        </div>
 
         <div>
           <div className="flex flex-wrap items-center gap-3">
