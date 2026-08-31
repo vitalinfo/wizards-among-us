@@ -296,7 +296,7 @@ become a second copy of that data with a different retention story. Queue links 
 
 #### Export
 
-One export per campaign: the «Повний список» button on the campaigns list downloads the full
+One export per campaign: the «Експорт» button on the campaigns list downloads the full
 working CSV (`/admin/export/download?campaignId=…`), admin-gated and audit-logged as
 `campaign.exported`.
 
