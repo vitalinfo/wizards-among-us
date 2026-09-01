@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 
+import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { ALLOWED_UPLOAD_TYPES } from "@/features/applications/files";
 
 export type UploadedFile = { id: string; kind: string; contentType: string };
@@ -126,14 +127,17 @@ export function UploadField({
       {existing ? (
         <div className="border-border bg-surface-muted flex flex-wrap items-center gap-3 rounded-md border p-3">
           <span className="text-sm font-medium">{t("uploaded")}</span>
-          <a
+          {/* Opens in place. Checking the photo you just uploaded is worth a
+              glance, not losing the form to another tab mid-application. */}
+          <PhotoLightbox
             href={`${base}/${existing.id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary text-sm underline underline-offset-4"
+            title={label}
+            alt={label}
           >
-            {t("view")}
-          </a>
+            <span className="text-primary text-sm underline underline-offset-4">
+              {t("view")}
+            </span>
+          </PhotoLightbox>
           <button
             type="button"
             onClick={remove}

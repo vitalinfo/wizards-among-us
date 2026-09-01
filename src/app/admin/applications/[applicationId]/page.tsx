@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ClaimSection } from "@/components/admin/ClaimSection";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { ModerationDecision } from "@/components/admin/ModerationDecision";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 import { getApplicationForAdmin } from "@/features/applications/adminQueries";
@@ -256,19 +257,28 @@ export default async function AdminApplicationPage({
           {files.length === 0 ? (
             <p className="text-muted-foreground text-sm">{t("files.none")}</p>
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-wrap gap-4">
               {files.map((file) => (
-                <li key={file.id} className="text-sm">
+                <li key={file.id}>
                   {/* Streams through the authorized route, which re-checks the
                       actor and logs the read. Never a direct storage URL. */}
-                  <a
-                    href={`/api/applications/${applicationId}/files/${file.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary font-semibold underline underline-offset-4"
-                  >
-                    {t(`files.${file.kind}`)}
-                  </a>
+                  <figure className="flex w-40 flex-col gap-1.5">
+                    <PhotoLightbox
+                      href={`/api/applications/${applicationId}/files/${file.id}`}
+                      title={t(`files.${file.kind}`)}
+                      alt={t("files.alt", { title: t(`files.${file.kind}`) })}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- served by an authorized route, not an optimizable static asset */}
+                      <img
+                        src={`/api/applications/${applicationId}/files/${file.id}`}
+                        alt=""
+                        className="border-border h-32 w-40 rounded-md border object-cover"
+                      />
+                    </PhotoLightbox>
+                    <figcaption className="text-sm font-medium">
+                      {t(`files.${file.kind}`)}
+                    </figcaption>
+                  </figure>
                 </li>
               ))}
             </ul>
