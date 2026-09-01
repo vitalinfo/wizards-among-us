@@ -119,9 +119,6 @@ export async function ClaimCard({
               alt: tPhotos(`${photo.kind}.alt`, {
                 child: application.childName ?? "",
               }),
-              openLabel: tPhotos("openFull", {
-                title: tPhotos(`${photo.kind}.title`),
-              }),
             }))}
           />
 

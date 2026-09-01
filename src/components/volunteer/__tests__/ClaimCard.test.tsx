@@ -1,3 +1,4 @@
+import { NextIntlClientProvider } from "next-intl";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -10,6 +11,7 @@ vi.mock("next-intl/server", async () =>
 );
 
 import messages from "../../../../messages/uk.json";
+import { formats, locale, timeZone } from "@/i18n/config";
 import { axe } from "@/test/axe";
 
 import { ClaimCard } from "../ClaimCard";
@@ -42,7 +44,18 @@ async function renderCard(
     defaultOpen: false,
     ...props,
   });
-  return render(<ul>{ui}</ul>);
+  // The tree contains a CLIENT component (PhotoLightbox), which needs the real
+  // provider — the server-side mock only covers next-intl/server.
+  return render(
+    <NextIntlClientProvider
+      locale={locale}
+      messages={messages}
+      formats={formats}
+      timeZone={timeZone}
+    >
+      <ul>{ui}</ul>
+    </NextIntlClientProvider>,
+  );
 }
 
 describe("ClaimCard", () => {
@@ -159,14 +172,27 @@ describe("ClaimCard", () => {
       ],
     });
 
-    expect(screen.getByText(t.photos.letter_photo.title)).toBeVisible();
+    // Two matches each: the caption, and the title inside the lightbox that
+    // opens from it.
     expect(
-      screen.getByText(t.photos.child_with_letter_photo.title),
-    ).toBeVisible();
+      screen.getAllByText(t.photos.letter_photo.title).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(t.photos.child_with_letter_photo.title).length,
+    ).toBeGreaterThan(0);
+
+    // Opens in place, not in a new tab — the volunteer comparing a letter
+    // against a shop page must not lose the delivery details to do it.
+    const open = messages.common.lightbox.open.replace(
+      "{title}",
+      t.photos.letter_photo.title,
+    );
+    expect(screen.getByRole("link", { name: open })).toBeVisible();
+
     // Never a direct storage url — always the authorized, audited route.
-    for (const image of screen.getAllByRole("img")) {
-      expect(image).toHaveAttribute(
-        "src",
+    for (const link of screen.getAllByRole("link")) {
+      expect(link).toHaveAttribute(
+        "href",
         expect.stringContaining("/api/applications/a1/files/"),
       );
     }
