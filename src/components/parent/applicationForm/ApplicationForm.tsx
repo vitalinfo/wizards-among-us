@@ -20,6 +20,8 @@ import {
   initialSubmitState,
 } from "@/features/applications/formState";
 
+import type { FileKind } from "@/db/enums";
+
 import { initialStep, type FormStep } from "./steps";
 import { toStepValues, type ApplicationRow } from "./types";
 
@@ -50,10 +52,16 @@ export function ApplicationForm({
   const tErrors = useTranslations("parent.form.errors");
   const tBlocked = useTranslations("parent.applications.blocked");
   const tConsent = useTranslations("parent.form.steps.consent");
+  const tUploads = useTranslations("parent.form.upload");
 
   const values = toStepValues(application);
   const [stepIndex, setStepIndex] = useState(() =>
-    initialStep(steps, values, application.status),
+    initialStep(
+      steps,
+      values,
+      application.status,
+      Object.values(files).map((file) => file.kind as FileKind),
+    ),
   );
   const [saveState, setSaveState] = useState(initialSaveDraftState);
   const [pending, startTransition] = useTransition();
@@ -74,6 +82,7 @@ export function ApplicationForm({
   const { Component } = steps[stepIndex];
   const failed =
     saveState.status === "invalid" ||
+    saveState.status === "missing_files" ||
     submitState.status === "invalid" ||
     submitState.status === "blocked" ||
     submitState.status === "rate_limited";
@@ -133,6 +142,10 @@ export function ApplicationForm({
       className="flex flex-col gap-6"
     >
       <input type="hidden" name="applicationId" value={application.id} />
+      {/* Which step is being saved. The save action needs it to know which
+          uploads this step will not advance without — without it the check
+          silently matched no step and let everything through. */}
+      <input type="hidden" name="step" value={steps[stepIndex].key} />
 
       <p className="text-muted-foreground text-sm">
         {t("stepOf", { current: stepIndex + 1, total: steps.length })}
@@ -148,13 +161,19 @@ export function ApplicationForm({
           {/* Name the actual problem. "Check the highlighted fields" is
               actively misleading when nothing is highlighted — as with a failed
               captcha, which isn't a field the parent can fix by re-reading it. */}
-          {submitState.status === "rate_limited"
-            ? tErrors("rate_limited")
-            : submitState.blockReason
-              ? tBlocked(submitState.blockReason)
-              : submitState.errors.turnstileToken
-                ? tErrors("captcha")
-                : t("saveError")}
+          {saveState.status === "missing_files"
+            ? tUploads("missingForStep", {
+                files: (saveState.missingUploads ?? [])
+                  .map((kind) => tUploads(`kinds.${kind}`))
+                  .join(", "),
+              })
+            : submitState.status === "rate_limited"
+              ? tErrors("rate_limited")
+              : submitState.blockReason
+                ? tBlocked(submitState.blockReason)
+                : submitState.errors.turnstileToken
+                  ? tErrors("captcha")
+                  : t("saveError")}
         </div>
       ) : null}
 

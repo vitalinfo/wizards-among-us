@@ -59,7 +59,8 @@ export type SubmitBlockReason =
   | "not_owner"
   | "locked" // admin already approved/rejected it
   | "intake_closed" // no active campaign, or intake/kill switch off
-  | "no_contact"; // no @username and no phone — nobody could reach them
+  | "no_contact" // no @username and no phone — nobody could reach them
+  | "missing_files"; // a required document or photo has not been uploaded
 
 // The full submit gate: ownership + edit lock + intake + contactability
 // (Phase 4 decision — contact is required at SUBMIT, never at login).
@@ -70,7 +71,11 @@ export type SubmitBlockReason =
 export function getSubmitBlockReason(
   actor: MaybeActor,
   application: Pick<Application, "parentId" | "status">,
-  ctx: Parameters<typeof intakeOpen>[0] & { contactable: boolean },
+  ctx: Parameters<typeof intakeOpen>[0] & {
+    contactable: boolean;
+    // Required uploads not yet present (see features/applications/files.ts).
+    missingUploads: readonly FileKind[];
+  },
 ): SubmitBlockReason | null {
   if (!isAdmin(actor) && !ownsApplication(actor, application)) {
     return "not_owner";
@@ -84,6 +89,12 @@ export function getSubmitBlockReason(
   if (!ctx.contactable) {
     // Applies to admins too: an application nobody can act on is not useful.
     return "no_contact";
+  }
+  // The form marks these required, but a `required` attribute is a browser
+  // hint — this is what actually holds. Checked last, so a parent is told about
+  // a missing photo only once everything else is in order.
+  if (ctx.missingUploads.length > 0) {
+    return "missing_files";
   }
   return null;
 }
