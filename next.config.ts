@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
@@ -35,4 +36,19 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+// Sentry wraps the config last so it sees the final one. It is inert without
+// SENTRY_DSN — no upload, no instrumentation, no build-time network calls.
+//
+// Source maps are NOT uploaded: that needs @sentry/cli's binary (declined in
+// pnpm-workspace.yaml) plus SENTRY_AUTH_TOKEN/ORG/PROJECT. The cost is that
+// production stack traces stay minified; wire it up when that starts hurting.
+export default withSentryConfig(withNextIntl(nextConfig), {
+  silent: true,
+  // Route browser events through our own origin, so an ad blocker doesn't
+  // silently swallow client-side errors — the ones we are least likely to hear
+  // about any other way.
+  tunnelRoute: "/monitoring",
+  disableLogger: true,
+  // We upload nothing, so there is nothing to widen or hide.
+  sourcemaps: { disable: true },
+});

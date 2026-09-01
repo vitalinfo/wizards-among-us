@@ -289,6 +289,39 @@ from the browse list, not only from the redirect after claiming.
 releases the claim in the admin UI, so a human sees every drop-out instead of children quietly
 returning to the pool.
 
+### Error monitoring (Phase 8)
+
+Sentry, wired for server, edge and browser. **Entirely inert without `SENTRY_DSN`** — `init()`
+is never called, so a local checkout and CI never talk to it.
+
+**What we refuse to send** (`src/lib/monitoring/scrub.ts`, enforced by tests using this app's
+real data shapes):
+
+| dropped | why |
+|---|---|
+| request body | it *is* the child's data — name, town, delivery address |
+| cookies | `wau_session` is a live credential; leaking it into an issue tracker lets anyone with issue access impersonate that user |
+| query string | the volunteer search puts a person's name in it |
+| headers | all but `user-agent`, `referer`, `accept-language`, `content-type` |
+| breadcrumb data | the same content by another route |
+| stack-frame locals | the last place a child's name hides |
+| user fields | reduced to an opaque `id`; identity stays in our own audit log |
+
+`sendDefaultPii` is off and `tracesSampleRate` is `0` — tracing samples real requests and would
+carry urls describing real families. **Session Replay is deliberately not enabled**: it records
+the DOM of real sessions, which here means a parent typing their child's address.
+
+One project for all environments, separated by `SENTRY_ENVIRONMENT` (`staging` / `production`) —
+both Heroku apps run as `NODE_ENV=production` and would otherwise be indistinguishable.
+
+Browser events go through `tunnelRoute: "/monitoring"` on our own origin, so an ad blocker
+doesn't silently swallow client-side errors — the ones we are least likely to hear about
+otherwise.
+
+**Source maps are not uploaded**, so production stack traces stay minified. That needs
+`@sentry/cli`'s binary (declined in `pnpm-workspace.yaml`) plus `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`
+and `SENTRY_PROJECT`. Wire it up when minified traces start costing more than the setup.
+
 ### Rate limiting (Phase 8)
 
 Three actions are gated: **admin login** (5 / 15 min, by IP), **application submit** (10 / hour,
