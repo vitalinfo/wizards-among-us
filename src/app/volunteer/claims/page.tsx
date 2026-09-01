@@ -1,4 +1,4 @@
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -6,14 +6,13 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { recordAuditLog } from "@/features/audit/log";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
-import { ClaimPhotos } from "@/components/volunteer/ClaimPhotos";
+import { ClaimCard } from "@/components/volunteer/ClaimCard";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import {
   CLAIM_VISIBLE_KINDS,
   latestByKind,
 } from "@/features/applications/files";
 import { listMyClaims } from "@/features/claims/queries";
-import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
@@ -32,10 +31,8 @@ export default async function MyClaimsPage() {
 
   const t = await getTranslations("volunteer.claims");
   const tBack = await getTranslations("volunteer");
-  const tFields = await getTranslations("admin.applications.fields");
   const campaign = await getActiveCampaignForIntake();
   const rows = campaign ? await listMyClaims(actor.id, campaign.id) : [];
-  const format = await getFormatter();
 
   // The photos this volunteer is entitled to: the child's letter, the child
   // holding it, and the family's confirmation once the gift arrives.
@@ -83,89 +80,20 @@ export default async function MyClaimsPage() {
           <>
             <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>
             <ul className="mt-6 flex flex-col gap-4">
-              {rows.map(({ application, claimedAt, ...parent }) => {
-                const contact = resolveUserContact({
-                  username: parent.parentUsername,
-                  phone: parent.parentPhone,
-                });
-                return (
-                  <li
-                    key={application.id}
-                    className="border-border bg-surface flex flex-col gap-2 rounded-lg border p-4"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="font-semibold">{application.childName}</h2>
-                      {/* Status by text, not colour alone. */}
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                          application.status === "fulfilled"
-                            ? "bg-primary/10 text-primary border-primary/30"
-                            : "bg-surface-muted text-muted-foreground border-border"
-                        }`}
-                      >
-                        {application.status === "fulfilled"
-                          ? t("fulfilled")
-                          : t("inProgress")}
-                      </span>
-                      <span className="text-muted-foreground text-xs">
-                        {t("claimedAt", {
-                          date: format.dateTime(claimedAt, "short"),
-                        })}
-                      </span>
-                    </div>
-                    <dl className="mt-1 text-sm">
-                      {[
-                        [
-                          tFields("giftDescription"),
-                          application.giftDescription,
-                        ],
-                        [tFields("giftPrice"), application.giftPrice],
-                        [tFields("parentName"), application.parentName],
-                        // The family's own words about what happened to them.
-                        // Tier 2: this volunteer holds the claim, so they
-                        // already see the town, address and contact.
-                        [tFields("familyStory"), application.familyStory],
-                        [tFields("currentTown"), application.currentTown],
-                        [
-                          tFields("deliveryInformation"),
-                          application.deliveryInformation,
-                        ],
-                        [
-                          tFields("contact"),
-                          contact === null
-                            ? null
-                            : contact.method === "telegram"
-                              ? `@${contact.value}`
-                              : contact.value,
-                        ],
-                      ].map(([label, value]) => (
-                        <div
-                          key={label}
-                          className="border-border border-b py-1.5 last:border-b-0"
-                        >
-                          <dt className="text-muted-foreground text-xs">
-                            {label}
-                          </dt>
-                          <dd className="mt-0.5 whitespace-pre-wrap">
-                            {value ?? "—"}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                    <ClaimPhotos
-                      applicationId={application.id}
-                      childName={application.childName}
-                      photos={photos.get(application.id) ?? []}
-                    />
-
-                    <p className="text-muted-foreground mt-2 text-xs">
-                      {application.status === "fulfilled"
-                        ? t("thanks")
-                        : t("releaseNote")}
-                    </p>
-                  </li>
-                );
-              })}
+              {rows.map(({ application, claimedAt, ...parent }) => (
+                <ClaimCard
+                  key={application.id}
+                  application={application}
+                  claimedAt={claimedAt}
+                  parentUsername={parent.parentUsername}
+                  parentPhone={parent.parentPhone}
+                  photos={photos.get(application.id) ?? []}
+                  // Collapsed once there is more than one, so the list is
+                  // scannable; open when it is the only one, because clicking
+                  // to reveal the single thing on the page is pure friction.
+                  defaultOpen={rows.length === 1}
+                />
+              ))}
             </ul>
           </>
         )}
