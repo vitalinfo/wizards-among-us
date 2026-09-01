@@ -342,9 +342,11 @@ Browser events go through `tunnelRoute: "/monitoring"` on our own origin, so an 
 doesn't silently swallow client-side errors — the ones we are least likely to hear about
 otherwise.
 
-**Source maps are not uploaded**, so production stack traces stay minified. That needs
-`@sentry/cli`'s binary (declined in `pnpm-workspace.yaml`) plus `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`
-and `SENTRY_PROJECT`. Wire it up when minified traces start costing more than the setup.
+**Source maps** upload automatically when `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT`
+are set — the token's presence is the switch, so there is no separate flag to forget. Without
+them the build uploads nothing and production traces stay minified. Maps are deleted from our own
+bundle after upload, so they are not also served from our origin. The token must be available
+during `pnpm build`, which on Heroku means a config var on the app, not just locally.
 
 ### Rate limiting (Phase 8)
 
