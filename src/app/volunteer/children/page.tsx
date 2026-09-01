@@ -74,9 +74,7 @@ export default async function BrowseChildrenPage({
     campaignId: campaign.id,
     region: query.region ?? undefined,
     minAge: band?.min,
-    // The open-ended top band has no maximum, so nobody the form accepts is
-    // filtered out of existence.
-    maxAge: band?.max ?? undefined,
+    maxAge: band?.max,
     availability: query.availability === "all" ? undefined : query.availability,
   };
 

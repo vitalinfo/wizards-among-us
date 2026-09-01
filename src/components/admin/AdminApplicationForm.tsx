@@ -10,6 +10,10 @@ import { TextAreaField } from "@/components/forms/TextAreaField";
 import { TextField } from "@/components/forms/TextField";
 import type { applications } from "@/db/schema";
 import { initialAdminEditState } from "@/features/applications/adminEditState";
+import {
+  childAgeOptions,
+  displacedYearOptions,
+} from "@/lib/applicationFieldOptions";
 import { regionOptions } from "@/lib/regionOptions";
 
 type Application = typeof applications.$inferSelect;
@@ -39,6 +43,8 @@ export function AdminApplicationForm({
 
   // Sorted by Ukrainian label — the enum's slug order is Latin.
   const regions = regionOptions(tRegions);
+  const ages = childAgeOptions();
+  const years = displacedYearOptions();
 
   // A message for a field, if the last submit rejected it.
   const err = (field: string) => {
@@ -72,11 +78,12 @@ export function AdminApplicationForm({
           defaultValue={application.childName ?? ""}
           error={err("childName")}
         />
-        <TextField
+        <SelectField
           id="childAge"
           name="childAge"
-          inputMode="numeric"
           label={t("fields.childAge")}
+          placeholder={tForm("agePlaceholder")}
+          options={ages}
           defaultValue={application.childAge ?? ""}
           error={err("childAge")}
         />
@@ -112,11 +119,12 @@ export function AdminApplicationForm({
           defaultValue={application.currentRegion ?? ""}
           error={err("currentRegion")}
         />
-        <TextField
+        <SelectField
           id="displacedYear"
           name="displacedYear"
-          inputMode="numeric"
           label={t("fields.displacedYear")}
+          placeholder={tForm("yearPlaceholder")}
+          options={years}
           defaultValue={application.displacedYear ?? ""}
           error={err("displacedYear")}
         />
@@ -147,9 +155,10 @@ export function AdminApplicationForm({
         <legend className="mb-2 text-lg font-semibold">
           {t("sections.gift")}
         </legend>
-        <TextField
+        <TextAreaField
           id="giftDescription"
           name="giftDescription"
+          rows={3}
           label={t("fields.giftDescription")}
           defaultValue={application.giftDescription ?? ""}
           error={err("giftDescription")}

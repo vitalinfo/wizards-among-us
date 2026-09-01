@@ -32,9 +32,13 @@ export function GiftStep({
       <legend className="sr-only">{t("title")}</legend>
       <p className="text-muted-foreground text-sm">{t("intro")}</p>
 
-      <TextField
+      {/* A textarea: a wish is often a few items with sizes and colours, and a
+          single-line input hides everything past the first few words while the
+          parent is still writing it. */}
+      <TextAreaField
         id="giftDescription"
         name="giftDescription"
+        rows={3}
         label={t("giftDescription.label")}
         hint={t("giftDescription.hint")}
         defaultValue={values.giftDescription ?? ""}

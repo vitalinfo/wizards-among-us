@@ -4,6 +4,10 @@ import { useTranslations } from "next-intl";
 
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
+import {
+  childAgeOptions,
+  displacedYearOptions,
+} from "@/lib/applicationFieldOptions";
 import { regionOptions } from "@/lib/regionOptions";
 
 import type { StepProps } from "./types";
@@ -16,6 +20,8 @@ export function ChildStep({ values, errors }: StepProps) {
   const tRegion = useTranslations("regions");
 
   const regions = regionOptions(tRegion);
+  const ages = childAgeOptions();
+  const years = displacedYearOptions();
 
   return (
     <fieldset className="flex flex-col gap-5 border-0 p-0">
@@ -33,15 +39,14 @@ export function ChildStep({ values, errors }: StepProps) {
         required
       />
 
-      <TextField
+      {/* A bounded list, not a number input: on a phone it's one tap instead
+          of a keypad, and it can't produce an age the server will reject. */}
+      <SelectField
         id="childAge"
         name="childAge"
-        type="number"
-        inputMode="numeric"
-        min={0}
-        max={18}
         label={tStep("childAge.label")}
-        hint={tStep("childAge.hint")}
+        placeholder={t("agePlaceholder")}
+        options={ages}
         defaultValue={values.childAge ?? ""}
         error={errors.childAge}
         required
@@ -89,15 +94,12 @@ export function ChildStep({ values, errors }: StepProps) {
         required
       />
 
-      <TextField
+      <SelectField
         id="displacedYear"
         name="displacedYear"
-        type="number"
-        inputMode="numeric"
-        min={2014}
-        max={new Date().getFullYear()}
         label={tStep("displacedYear.label")}
-        hint={tStep("displacedYear.hint")}
+        placeholder={t("yearPlaceholder")}
+        options={years}
         defaultValue={values.displacedYear ?? ""}
         error={errors.displacedYear}
         required

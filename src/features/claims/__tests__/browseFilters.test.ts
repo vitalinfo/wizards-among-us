@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { CHILD_AGE_MAX, CHILD_AGE_MIN } from "@/lib/applicationFieldOptions";
+
 import {
+  AGE_BANDS,
   ageBand,
   browseHref,
   browsePageCount,
@@ -62,10 +65,17 @@ describe("parseBrowseQuery", () => {
     expect(ageBand(null)).toBeNull();
   });
 
-  // The application form accepts an age up to 18, so a hard 17 ceiling on the
-  // top band would make eighteen-year-olds invisible whenever a band is chosen.
-  it("leaves the top band open-ended so nobody is filtered out of existence", () => {
-    expect(ageBand("13+")).toMatchObject({ min: 13, max: null });
+  // The bands must tile the whole recordable range: an age that matches no band
+  // would be invisible whenever a volunteer filters at all.
+  it("covers every age the form can record", () => {
+    expect(ageBand("13-17")).toMatchObject({ min: 13, max: CHILD_AGE_MAX });
+
+    for (let age = CHILD_AGE_MIN; age <= CHILD_AGE_MAX; age += 1) {
+      const matching = AGE_BANDS.filter(
+        (band) => age >= band.min && age <= band.max,
+      );
+      expect(matching, `age ${age}`).toHaveLength(1);
+    }
   });
 });
 
