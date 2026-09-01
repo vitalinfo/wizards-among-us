@@ -289,6 +289,35 @@ from the browse list, not only from the redirect after claiming.
 releases the claim in the admin UI, so a human sees every drop-out instead of children quietly
 returning to the pool.
 
+### Rate limiting (Phase 8)
+
+Three actions are gated: **admin login** (5 / 15 min, by IP), **application submit** (10 / hour,
+by user) and **claim** (20 / hour, by user). Policies live in
+`features/rateLimit/policy.ts` so the numbers are reviewable in one place.
+
+Counters live in **Postgres** (`rate_limits`), not Redis or process memory. Memory is per-dyno
+and resets on deploy, so the effective limit silently doubles the day we run two; Redis would
+add a managed dependency the portability rule exists to avoid. This keeps the hard requirement
+that the app needs only `DATABASE_URL` and S3 credentials.
+
+The check is **one statement** — an `INSERT … ON CONFLICT` that resets or increments and returns
+the new count — so two concurrent requests cannot both read "4 used" and both proceed. Verified:
+20 simultaneous attempts against a limit of 5 allow exactly 5.
+
+It **fails open**. If the counter query throws, the request is allowed and the failure is logged
+loudly. That is deliberately the opposite of the intake kill switch, which fails closed: there,
+failure should stop new child data arriving; here, a database blip must not lock every admin out
+of logging in.
+
+Keys are `action:kind:value`, so a login attempt can't consume a submit allowance and a user id
+can't collide with an address. Login is keyed by IP (rotating the email buys nothing); submit and
+claim by user id, because families share networks and one household filing for three children
+must not exhaust a shared address.
+
+**Known limit:** `x-forwarded-for` is client-controllable in principle, so a determined attacker
+can rotate it. This raises the cost of casual abuse and protects the admin password from a naive
+script; it is not a defence against someone who knows what they are doing.
+
 ### Fulfilment loop (Phase 7)
 
 **Confirming receipt.** `/parent/applications/<id>/confirm` — the parent uploads a photo of the

@@ -33,6 +33,7 @@ import type {
 } from "@/features/applications/formState";
 import { applicationDraftFormSchema } from "@/features/applications/validation";
 import { isUser } from "@/lib/actor";
+import { consumeRateLimit } from "@/features/rateLimit/queries";
 import { getSessionActor } from "@/lib/auth/session";
 
 // Saves whatever the current step submitted. Partial by design: a parent can
@@ -143,6 +144,18 @@ export async function submitApplicationAction(
   );
   if (stepValues.success) {
     await persistStep(id, actor.id, application, stepValues.data);
+  }
+
+  // Rate limit AFTER the draft save (a parent must never lose their answers to
+  // a limiter) but BEFORE the captcha and the real validation, which are the
+  // expensive parts. Keyed by USER, not address: families share networks, and
+  // one household filing for three children must not exhaust a shared IP.
+  const gate = await consumeRateLimit("applicationSubmit", {
+    kind: "user",
+    value: actor.id,
+  });
+  if (!gate.allowed) {
+    return { status: "rate_limited", errors: {}, blockReason: null };
   }
 
   // Captcha guards SUBMIT only (not each draft save), and is checked before we

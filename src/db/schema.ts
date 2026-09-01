@@ -261,6 +261,29 @@ export const identities = pgTable(
   ],
 );
 
+// Fixed-window rate-limit counters. One row per identifier+action, reset in
+// place when its window expires — so the table grows with distinct callers, not
+// with requests.
+//
+// In Postgres rather than Redis or process memory (Vital, Phase 8). Memory is
+// per-dyno and resets on deploy, so the effective limit silently doubles the day
+// we run two; Redis would add a managed dependency the portability rule exists
+// to avoid. This keeps the hard requirement that we need only DATABASE_URL.
+//
+// `key` carries the action AND the identifier ("login:ip:1.2.3.4",
+// "submit:user:<uuid>"), so one table serves every gate without a discriminator
+// column. It is the primary key because every read and write is a lookup by it.
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  // Start of the current window. Comparing it to now() is what decides whether
+  // to increment or reset, and it is what the sweep deletes on.
+  windowStart: timestamp("window_start", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  count: integer("count").notNull().default(0),
+  ...timestamps(),
+});
+
 export const reviews = pgTable(
   "reviews",
   {

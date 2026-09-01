@@ -11,6 +11,7 @@ import {
   getUserContact,
   setUserPhone,
 } from "@/features/users/queries";
+import { consumeRateLimit } from "@/features/rateLimit/queries";
 import { isContactable } from "@/features/users/contact";
 import { userPhoneSchema } from "@/features/users/contact";
 import { getClaimBlockReason } from "@/lib/authz";
@@ -70,6 +71,16 @@ export async function claimAction(
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     redirect("/login");
+  }
+
+  // Keyed by USER: a script grabbing every child would otherwise outpace real
+  // volunteers reading the cards. Well above any honest browsing rate.
+  const gate = await consumeRateLimit("claim", {
+    kind: "user",
+    value: actor.id,
+  });
+  if (!gate.allowed) {
+    redirect(`${safeReturnPath(returnTo)}`);
   }
 
   const context = await getApplicationForFileAccess(applicationId);
