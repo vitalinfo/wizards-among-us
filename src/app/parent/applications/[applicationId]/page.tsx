@@ -11,6 +11,7 @@ import { canEditApplication } from "@/features/applications/authz";
 import {
   getMyApplication,
   getUserContactFields,
+  getUserFullName,
 } from "@/features/applications/queries";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { getCampaignById } from "@/features/campaigns/queries";
@@ -48,12 +49,13 @@ export default async function ApplicationPage({
 
   // Resolved live rather than copied onto the application: the delivery step
   // only asks for a phone when there's no Telegram handle to use.
-  const [campaign, contactFields, uploaded] = await Promise.all([
+  const [campaign, contactFields, uploaded, parentName] = await Promise.all([
     // THIS application's campaign, not whichever is active — an application
     // from a past campaign must render against the form it was written for.
     getCampaignById(application.campaignId),
     getUserContactFields(actor.id),
     listApplicationFiles(applicationId),
+    getUserFullName(actor.id),
   ]);
   const contact = resolveUserContact(contactFields);
   const steps = stepsForCampaignType(campaign?.type);
@@ -116,6 +118,7 @@ export default async function ApplicationPage({
             <ApplicationForm
               application={application}
               contact={contact}
+              defaultParentName={parentName}
               giftPriceCap={campaign?.giftPriceCap ?? null}
               files={files}
               turnstileSiteKey={turnstileSiteKey()}

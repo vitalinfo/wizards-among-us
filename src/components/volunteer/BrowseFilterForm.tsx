@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 import { AGE_BANDS, type BrowseQuery } from "@/features/claims/browseFilters";
-import { regionOptions } from "@/lib/regionOptions";
+import { displacedFromRegionOptions } from "@/lib/regionOptions";
 
 // A plain GET form: the browser turns it into the query string the page already
 // parses, so filtering needs no client JavaScript and every result set stays a
@@ -18,9 +18,10 @@ export async function BrowseFilterForm({
 }) {
   const t = await getTranslations("volunteer.children.filters");
   const tRegions = await getTranslations("regions");
-  // Sorted by the Ukrainian label — the enum's slug order reads as random to
-  // someone scanning Cyrillic.
-  const regions = regionOptions(tRegions);
+  // The filter is on home_region — where the family LEFT — so it offers only
+  // the oblasts the form can record, not all twenty-five. Sorted by the
+  // Ukrainian label; the enum's slug order reads as random in Cyrillic.
+  const regions = displacedFromRegionOptions(tRegions);
 
   const field =
     "border-border bg-surface focus-visible:outline-ring rounded-md border px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";

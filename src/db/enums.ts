@@ -118,6 +118,30 @@ export const UKRAINE_REGIONS = [
 ] as const;
 export type UkraineRegion = (typeof UKRAINE_REGIONS)[number];
 
+// Where a family can have been DISPLACED FROM: the occupied and front-line
+// oblasts (Vital). Only this question is narrowed — «Область, де ви живете
+// зараз» stays the full list, because a displaced family can end up anywhere.
+//
+// A subset, not a separate enum: home_region and current_region are the same
+// column type and the same taxonomy, and one list of slugs stays the single
+// source of truth. Ordering here is geographic-ish for reading; the <select>
+// sorts by the Ukrainian label like every other region list.
+export const DISPLACED_FROM_REGIONS = [
+  "donetsk",
+  "dnipropetrovsk",
+  "zaporizhzhia",
+  "luhansk",
+  "mykolaiv",
+  "sumy",
+  "kharkiv",
+  "kherson",
+  "chernihiv",
+  "kyiv",
+  "crimea",
+] as const satisfies readonly UkraineRegion[];
+
+export type DisplacedFromRegion = (typeof DISPLACED_FROM_REGIONS)[number];
+
 // Keys for the key-value `settings` table. Each is one row (value in a jsonb
 // column). Add a new switch = add a key here + seed a row; no migration.
 export const SETTING_KEYS = {

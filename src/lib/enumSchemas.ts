@@ -6,6 +6,7 @@ import {
   CAMPAIGN_TYPES,
   CONTACT_METHODS,
   CREATABLE_CAMPAIGN_TYPES,
+  DISPLACED_FROM_REGIONS,
   FILE_KINDS,
   UKRAINE_REGIONS,
   USER_ROLES,
@@ -25,4 +26,11 @@ export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
 export const applicationStatusSchema = z.enum(APPLICATION_STATUSES);
 export const fileKindSchema = z.enum(FILE_KINDS);
 export const regionSchema = z.enum(UKRAINE_REGIONS);
+// Where a family was displaced FROM is narrower than where they live now. Same
+// create-narrow / edit-wide split as the campaign types above: the parent form
+// only offers the occupied and front-line oblasts, while an admin editing an
+// existing application still gets `regionSchema`, so an application recorded
+// before this narrowed (or an exception an admin has to enter by hand) stays
+// editable instead of becoming unsaveable.
+export const displacedFromRegionSchema = z.enum(DISPLACED_FROM_REGIONS);
 export const contactMethodSchema = z.enum(CONTACT_METHODS);

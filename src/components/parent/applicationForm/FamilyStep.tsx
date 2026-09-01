@@ -13,6 +13,7 @@ export function FamilyStep({
   errors,
   applicationId,
   files,
+  defaultParentName,
 }: StepProps) {
   const t = useTranslations("parent.form.steps.family");
 
@@ -26,7 +27,10 @@ export function FamilyStep({
         name="parentName"
         label={t("parentName.label")}
         hint={t("parentName.hint")}
-        defaultValue={values.parentName ?? ""}
+        // Prefilled from the Telegram profile until the parent types their
+        // own — a provider display name can be a nickname or one word, and the
+        // gift is handed over against this name.
+        defaultValue={values.parentName ?? defaultParentName ?? ""}
         error={errors.parentName}
         autoComplete="name"
         required

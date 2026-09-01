@@ -49,6 +49,7 @@ function renderForm() {
       <ApplicationForm
         application={application}
         contact={{ method: "telegram", value: "@olena" }}
+        defaultParentName={null}
         giftPriceCap={null}
         files={{}}
         turnstileSiteKey={null}

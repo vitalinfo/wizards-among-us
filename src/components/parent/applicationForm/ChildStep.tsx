@@ -8,7 +8,7 @@ import {
   childAgeOptions,
   displacedYearOptions,
 } from "@/lib/applicationFieldOptions";
-import { regionOptions } from "@/lib/regionOptions";
+import { displacedFromRegionOptions, regionOptions } from "@/lib/regionOptions";
 
 import type { StepProps } from "./types";
 
@@ -20,6 +20,8 @@ export function ChildStep({ values, errors }: StepProps) {
   const tRegion = useTranslations("regions");
 
   const regions = regionOptions(tRegion);
+  // Narrower: where a family LEFT is the occupied and front-line oblasts.
+  const originRegions = displacedFromRegionOptions(tRegion);
   const ages = childAgeOptions();
   const years = displacedYearOptions();
 
@@ -67,7 +69,7 @@ export function ChildStep({ values, errors }: StepProps) {
         name="homeRegion"
         label={tStep("homeRegion.label")}
         placeholder={t("regionPlaceholder")}
-        options={regions}
+        options={originRegions}
         defaultValue={values.homeRegion ?? ""}
         error={errors.homeRegion}
         required
