@@ -15,12 +15,10 @@ describe("rejectUpload", () => {
     expect(rejectUpload(valid)).toBeNull();
   });
 
-  it("refuses a kind the parent form doesn't offer", () => {
-    // `confirmation` is a real FileKind (Phase 7) but not a parent upload here,
-    // and an unknown string must never fall through as an attachment.
-    expect(rejectUpload({ ...valid, kind: "confirmation" })).toBe(
-      "unknown_kind",
-    );
+  it("refuses a kind the parent never uploads", () => {
+    // An unknown string must never fall through as an attachment. (This used to
+    // include `confirmation`; Phase 7 made it a real parent upload — with a
+    // different WINDOW, enforced by canUploadApplicationFile, not here.)
     expect(rejectUpload({ ...valid, kind: "attachment" })).toBe("unknown_kind");
     expect(rejectUpload({ ...valid, kind: "../../etc/passwd" })).toBe(
       "unknown_kind",
@@ -49,10 +47,42 @@ describe("rejectUpload", () => {
 });
 
 describe("isParentUploadKind", () => {
-  it("covers exactly the three uploads the real form asks for", () => {
+  it("covers the three form uploads plus the gift confirmation", () => {
     expect(isParentUploadKind("idp_certificate")).toBe(true);
     expect(isParentUploadKind("letter_photo")).toBe(true);
     expect(isParentUploadKind("child_with_letter_photo")).toBe(true);
-    expect(isParentUploadKind("confirmation")).toBe(false);
+    // Phase 7: uploaded by the parent too, just much later in the flow.
+    expect(isParentUploadKind("confirmation")).toBe(true);
+  });
+});
+
+// The confirmation photo is a parent upload like the others, but its WINDOW is
+// the opposite of theirs — see canUploadApplicationFile.
+describe("confirmation as an upload kind", () => {
+  it("is accepted by the upload validator", () => {
+    expect(
+      rejectUpload({
+        kind: "confirmation",
+        contentType: "image/jpeg",
+        sizeBytes: 1024,
+      }),
+    ).toBeNull();
+  });
+
+  it("still obeys the type and size rules", () => {
+    expect(
+      rejectUpload({
+        kind: "confirmation",
+        contentType: "application/pdf",
+        sizeBytes: 1024,
+      }),
+    ).toBe("unsupported_type");
+    expect(
+      rejectUpload({
+        kind: "confirmation",
+        contentType: "image/jpeg",
+        sizeBytes: MAX_UPLOAD_BYTES + 1,
+      }),
+    ).toBe("too_large");
   });
 });

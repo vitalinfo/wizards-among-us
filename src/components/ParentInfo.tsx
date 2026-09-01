@@ -63,6 +63,15 @@ export function ParentInfo() {
         >
           {t("myApplicationsCta")}
         </ButtonLink>
+        {/* Also session-gated, and the page says so when nobody has claimed
+            yet — so it is safe to show to an anonymous visitor. */}
+        <ButtonLink
+          href="/parent/my-volunteer"
+          variant="outline"
+          className="w-full"
+        >
+          {t("myVolunteerCta")}
+        </ButtonLink>
       </div>
       <span className="text-muted-foreground text-center text-[13px] leading-normal">
         {t("loginNote")}

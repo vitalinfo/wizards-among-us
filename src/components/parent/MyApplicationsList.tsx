@@ -57,12 +57,24 @@ export function MyApplicationsList({
               <span className="text-muted-foreground text-xs">{timestamp}</span>
             </div>
 
-            <Link
-              href={`/parent/applications/${application.id}`}
-              className="text-primary focus-visible:outline-ring shrink-0 text-sm font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
-            >
-              {editable ? t("continueCta") : t("viewCta")}
-            </Link>
+            <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+              {/* A claimed application's next step is confirming the gift
+                  arrived — the loop stays open until the parent says so. */}
+              {application.status === "claimed" ? (
+                <Link
+                  href={`/parent/applications/${application.id}/confirm`}
+                  className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring rounded-md px-3 py-1.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
+                >
+                  {t("confirmCta")}
+                </Link>
+              ) : null}
+              <Link
+                href={`/parent/applications/${application.id}`}
+                className="text-primary focus-visible:outline-ring text-sm font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                {editable ? t("continueCta") : t("viewCta")}
+              </Link>
+            </div>
           </li>
         );
       })}

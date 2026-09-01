@@ -288,6 +288,39 @@ information, parent name, the family's contact — and every render is audit-log
 releases the claim in the admin UI, so a human sees every drop-out instead of children quietly
 returning to the pool.
 
+### Fulfilment loop (Phase 7)
+
+**Confirming receipt.** `/parent/applications/<id>/confirm` — the parent uploads a photo of the
+child with the gift, then marks the wish `fulfilled`. **The photo is required** (Vital, Phase 7):
+it is the proof the wish landed and the thing the volunteer who paid for it gets to see. Note the
+knock-on — reviews are gated on `fulfilled`, so a family who cannot manage a photo is blocked
+from both.
+
+The upload needed its own rule. Approval *freezes* an application's content, and the
+confirmation arrives long after that, so reusing the edit lock would make confirming impossible.
+`canUploadApplicationFile` splits them: form uploads follow the edit lock; `confirmation` is
+allowed only while the application is `claimed` — not before (nothing to confirm) and not after
+(already done). The status change is guarded on `claimed` in SQL too, so a double submit can't
+double-fire.
+
+The confirmation photo reaches **admin + the claiming volunteer** (tier 2), like the letter
+photos.
+
+**`/parent/my-volunteer`** is the only disclosure that runs *volunteer → parent*: everywhere else
+the family's details flow outward. A family that has handed over a child's address deserves to
+know who has it and how to reach them. Audit-logged like any other contact reveal.
+
+**Reviews.** A parent may review only once the wish is `fulfilled`, once per application. Reviews
+are created **unpublished** and an admin publishes them at `/admin/reviews` (the moderation
+deferred from Phase 5). Published reviews appear on the landing page with a **first name only** —
+enough to read as a person, not enough to tie a review to one family beside a story and an
+oblast. The admin queue shows the full identity, because that is who is deciding.
+
+The landing section used to render three hardcoded testimonials. On a public page those read as
+real people vouching for the project, so they are gone rather than kept as a fallback: with
+nothing published, the section does not render at all. An empty shelf is honest; invented praise
+is not.
+
 ### Admin (Phase 5)
 
 Sign in at `/admin/login` (email + password; the address must be in `ADMIN_ALLOWLIST`).
