@@ -34,6 +34,7 @@ import { toStepValues, type ApplicationRow, type StepValues } from "./types";
 export function ApplicationForm({
   application,
   contact,
+  defaultParentName,
   giftPriceCap,
   files,
   turnstileSiteKey,
@@ -41,6 +42,7 @@ export function ApplicationForm({
 }: {
   application: ApplicationRow;
   contact: { method: ContactMethod; value: string } | null;
+  defaultParentName: string | null;
   giftPriceCap: string | null;
   files: Record<string, { id: string; kind: string; contentType: string }>;
   turnstileSiteKey: string | null;
@@ -217,6 +219,7 @@ export function ApplicationForm({
         values={values}
         errors={errors}
         contact={contact}
+        defaultParentName={defaultParentName}
         giftPriceCap={giftPriceCap}
         applicationId={application.id}
         files={files}

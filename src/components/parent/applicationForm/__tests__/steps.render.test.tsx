@@ -1,5 +1,5 @@
 import { NextIntlClientProvider } from "next-intl";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -12,10 +12,13 @@ import {
 import { axe } from "@/test/axe";
 
 import { ChildStep } from "../ChildStep";
+import { FamilyStep } from "../FamilyStep";
 import { GiftStep } from "../GiftStep";
 
 const child = messages.parent.form.steps.child;
+const family = messages.parent.form.steps.family;
 const gift = messages.parent.form.steps.gift;
+const regions = messages.regions;
 
 function wrap(ui: React.ReactNode) {
   return render(
@@ -71,9 +74,58 @@ describe("ChildStep", () => {
     ).toHaveValue("2022");
   });
 
+  // Where a family LEFT is the occupied and front-line oblasts; where they
+  // live NOW is anywhere in the country. Two lists, one taxonomy.
+  it("asks a narrower question about where the family came from", () => {
+    wrap(<ChildStep values={{}} errors={{}} />);
+
+    const origin = screen.getByLabelText(new RegExp(child.homeRegion.label));
+    const now = screen.getByLabelText(new RegExp(child.currentRegion.label));
+
+    expect(
+      within(origin).queryByRole("option", { name: regions.lviv }),
+    ).toBeNull();
+    expect(
+      within(origin).getByRole("option", { name: regions.donetsk }),
+    ).toBeInTheDocument();
+    expect(
+      within(now).getByRole("option", { name: regions.lviv }),
+    ).toBeInTheDocument();
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = wrap(<ChildStep values={{}} errors={{}} />);
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe("FamilyStep", () => {
+  // Saves the parent retyping a name we already have from their verified
+  // Telegram profile.
+  it("prefills the parent's name from their profile", () => {
+    wrap(
+      <FamilyStep values={{}} errors={{}} defaultParentName="Олена Коваль" />,
+    );
+
+    expect(
+      screen.getByLabelText(new RegExp(family.parentName.label)),
+    ).toHaveValue("Олена Коваль");
+  });
+
+  // A prefill, never a copy: the gift is handed over against this name, so what
+  // the parent actually typed always wins over the provider's display name.
+  it("does not override a name the parent already gave", () => {
+    wrap(
+      <FamilyStep
+        values={{ parentName: "Олена Іванівна Коваль" }}
+        errors={{}}
+        defaultParentName="Олена Коваль"
+      />,
+    );
+
+    expect(
+      screen.getByLabelText(new RegExp(family.parentName.label)),
+    ).toHaveValue("Олена Іванівна Коваль");
   });
 });
 

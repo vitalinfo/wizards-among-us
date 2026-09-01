@@ -103,6 +103,28 @@ describe("applicationSubmitSchema", () => {
     }
   });
 
+  // Narrowed to the occupied and front-line oblasts (Vital). Only the origin —
+  // a displaced family can be living anywhere.
+  it("accepts an origin only from the displaced-from list", () => {
+    expect(
+      applicationSubmitSchema.safeParse({ ...validSubmit, homeRegion: "lviv" })
+        .success,
+    ).toBe(false);
+    expect(
+      applicationSubmitSchema.safeParse({
+        ...validSubmit,
+        homeRegion: "crimea",
+      }).success,
+    ).toBe(true);
+    // The place they live now is unrestricted.
+    expect(
+      applicationSubmitSchema.safeParse({
+        ...validSubmit,
+        currentRegion: "zakarpattia",
+      }).success,
+    ).toBe(true);
+  });
+
   it("rejects blank required fields and a non-positive gift price", () => {
     expect(
       applicationSubmitSchema.safeParse({ ...validSubmit, childName: "   " })

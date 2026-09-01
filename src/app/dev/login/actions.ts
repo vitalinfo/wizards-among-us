@@ -41,14 +41,23 @@ export async function devLogin(
     .where(eq(users.username, username))
     .limit(1);
 
+  // A real Telegram login provisions first/last name, and the parent form
+  // prefills «Ваше прізвище та ім'я» from them — so the shortcut has to supply
+  // them too, or the one path we can exercise locally is the only one where
+  // the prefill is silently absent.
+  const profile = { firstName: "Дев", lastName: `Тестовий (${roleKey})` };
+
   let userId: string;
   if (existing) {
-    await db.update(users).set({ role }).where(eq(users.id, existing.id));
+    await db
+      .update(users)
+      .set({ role, ...profile })
+      .where(eq(users.id, existing.id));
     userId = existing.id;
   } else {
     const [created] = await db
       .insert(users)
-      .values({ username, role, note: "dev login user" })
+      .values({ username, role, ...profile })
       .returning({ id: users.id });
     userId = created.id;
   }

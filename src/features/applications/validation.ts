@@ -8,7 +8,7 @@ import {
   currentYear,
   DISPLACED_YEAR_MIN,
 } from "@/lib/applicationFieldOptions";
-import { regionSchema } from "@/lib/enumSchemas";
+import { displacedFromRegionSchema, regionSchema } from "@/lib/enumSchemas";
 
 // Base fields required for every campaign (§7), modelled on the real
 // «Святий Миколай 2025» form (docs/reference/st-nicholas-2025-google-form.pdf).
@@ -21,7 +21,8 @@ const applicationFields = {
   childName: z.string().trim().min(1),
   childAge: z.number().int().min(CHILD_AGE_MIN).max(CHILD_AGE_MAX),
   homeTown: z.string().trim().min(1),
-  homeRegion: regionSchema,
+  // Narrower than currentRegion on purpose — see displacedFromRegionSchema.
+  homeRegion: displacedFromRegionSchema,
   currentTown: z.string().trim().min(1),
   currentRegion: regionSchema,
   // Year the family was displaced. Bounds are shared with the <select> that
@@ -154,7 +155,7 @@ export const applicationDraftFormSchema = z.object({
   childName: text(z.string().trim().min(1)),
   childAge: numeric(z.number().int().min(CHILD_AGE_MIN).max(CHILD_AGE_MAX)),
   homeTown: text(z.string().trim().min(1)),
-  homeRegion: text(regionSchema),
+  homeRegion: text(displacedFromRegionSchema),
   currentTown: text(z.string().trim().min(1)),
   currentRegion: text(regionSchema),
   displacedYear: numeric(
@@ -236,7 +237,16 @@ export function adminApplicationEditSchema(context: {
 }) {
   const base = applicationDraftFormSchema
     .omit({ phone: true, socialMediaConsent: true })
-    .extend({ socialMediaConsent: triStateBoolean });
+    .extend({
+      socialMediaConsent: triStateBoolean,
+      // Widened back to every oblast. The parent form offers only the occupied
+      // and front-line ones, but an application recorded before that narrowing
+      // must stay editable — an admin fixing a delivery address should not be
+      // blocked by an origin they never touched. Same shape as the gift-price
+      // cap above, and the same reasoning as creatable vs. editable campaign
+      // types.
+      homeRegion: text(regionSchema),
+    });
 
   return base.superRefine((value, ctx) => {
     const cap =

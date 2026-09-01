@@ -64,6 +64,22 @@ describe("adminApplicationEditSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  // The parent form now offers only the occupied and front-line oblasts, but an
+  // application recorded before that narrowing must stay editable — an admin
+  // fixing a delivery address must not be blocked by an origin they never
+  // touched. Same create-narrow / edit-wide split as the campaign types.
+  it("still accepts an origin the parent form no longer offers", () => {
+    const schema = adminApplicationEditSchema({
+      requireComplete: true,
+      campaignType: "saint_nicholas_day",
+      giftPriceCap: null,
+      currentGiftPrice: null,
+    });
+    expect(schema.safeParse({ ...complete, homeRegion: "volyn" }).success).toBe(
+      true,
+    );
+  });
+
   // Caps change mid-campaign. An application submitted under an older, higher
   // cap must stay fixable: an admin correcting a delivery address must not be
   // blocked by a price they never touched.

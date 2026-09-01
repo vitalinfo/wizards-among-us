@@ -187,6 +187,33 @@ export async function getUserContactFields(
   return row ?? null;
 }
 
+// The parent's own name, from the verified provider profile, to PREFILL «Ваше
+// прізвище та ім'я» on a new application.
+//
+// A prefill, not a copy: the field stays editable and the application keeps its
+// own parent_name. The Telegram profile name is whatever the person put on
+// their account — a nickname, one word, an emoji — and the gift is handed over
+// against this name, so the parent has to be able to correct it.
+//
+// Read here rather than from the actor: the actor deliberately carries only
+// firstName (it travels widely), and a name without the surname is not what
+// this field is asking for.
+export async function getUserFullName(userId: string): Promise<string | null> {
+  const [row] = await getDb()
+    .select({ firstName: users.firstName, lastName: users.lastName })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!row) {
+    return null;
+  }
+  const name = [row.firstName, row.lastName]
+    .map((part) => part?.trim())
+    .filter((part) => part)
+    .join(" ");
+  return name === "" ? null : name;
+}
+
 // Everything the file routes need to authorize a read: the application (for
 // ownership) and its ACTIVE claim (for the claiming-volunteer rule). Not scoped
 // to a parent — an admin or a claiming volunteer must be able to reach it, and

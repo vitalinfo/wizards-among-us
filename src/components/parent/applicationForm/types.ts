@@ -47,6 +47,9 @@ export type StepProps = {
   // The parent's resolved contact, so the delivery step only asks for a phone
   // when there's no Telegram handle to use.
   contact?: { method: ContactMethod; value: string } | null;
+  // The parent's own name from their verified provider profile, used to
+  // prefill «Ваше прізвище та ім'я» when the application has none yet.
+  defaultParentName?: string | null;
   // Campaign budget ceiling in UAH, shown up front on the gift step.
   giftPriceCap?: string | null;
   // Which uploads already exist, keyed by kind — the upload slots render as
