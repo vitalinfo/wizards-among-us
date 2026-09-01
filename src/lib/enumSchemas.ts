@@ -5,6 +5,7 @@ import {
   CAMPAIGN_STATUSES,
   CAMPAIGN_TYPES,
   CONTACT_METHODS,
+  CREATABLE_CAMPAIGN_TYPES,
   FILE_KINDS,
   UKRAINE_REGIONS,
   USER_ROLES,
@@ -16,6 +17,10 @@ import {
 // with no zod import, so schema.ts and validation both derive from one source.)
 export const userRoleSchema = z.enum(USER_ROLES);
 export const campaignTypeSchema = z.enum(CAMPAIGN_TYPES);
+// Creating is restricted to what we currently offer; EDITING an existing
+// campaign must still accept its historical type, or the archived
+// `new_school_year` campaign becomes uneditable.
+export const creatableCampaignTypeSchema = z.enum(CREATABLE_CAMPAIGN_TYPES);
 export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
 export const applicationStatusSchema = z.enum(APPLICATION_STATUSES);
 export const fileKindSchema = z.enum(FILE_KINDS);

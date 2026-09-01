@@ -11,11 +11,32 @@ export type UserRole = (typeof USER_ROLES)[number];
 export const IDENTITY_PROVIDERS = ["telegram"] as const; // google/facebook later
 export type IdentityProvider = (typeof IDENTITY_PROVIDERS)[number];
 
+// Every type that HAS EVER existed. This stays wide because the column and its
+// CHECK constraint still hold historical rows: narrowing it would type an
+// existing `new_school_year` campaign as something it is not, and break every
+// screen that renders one.
 export const CAMPAIGN_TYPES = [
   "new_school_year",
   "saint_nicholas_day",
 ] as const;
 export type CampaignType = (typeof CAMPAIGN_TYPES)[number];
+
+// What an admin may CREATE today (Vital, Phase 8). «Святий Миколай» is the only
+// campaign we run and the only one with a form behind it, so it is the only one
+// offered — but past campaigns of another type keep working, and adding a type
+// back is a value here plus a form component.
+//
+// Deliberately a separate list rather than a narrowed enum: "we no longer offer
+// this" and "this never existed" are different claims, and only the first one
+// is true.
+export const CREATABLE_CAMPAIGN_TYPES = ["saint_nicholas_day"] as const;
+export type CreatableCampaignType = (typeof CREATABLE_CAMPAIGN_TYPES)[number];
+
+export function isCreatableCampaignType(
+  value: string,
+): value is CreatableCampaignType {
+  return (CREATABLE_CAMPAIGN_TYPES as readonly string[]).includes(value);
+}
 
 export const CAMPAIGN_STATUSES = ["draft", "active", "archived"] as const;
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];

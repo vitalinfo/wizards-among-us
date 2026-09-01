@@ -22,8 +22,17 @@ export function MyApplicationsList({
   return (
     <ul className="flex flex-col gap-3">
       {applications.map((application) => {
-        const editable =
-          application.status === "draft" || application.status === "submitted";
+        // Three states, not two. A SUBMITTED application is still editable —
+        // the lock lands on admin approval, not on submit — but calling that
+        // «Продовжити заповнення» tells a parent their application is
+        // unfinished when they have already sent it. The label has to say what
+        // is true of each state, not just whether the link is editable.
+        const cta =
+          application.status === "draft"
+            ? "continueCta"
+            : application.status === "submitted"
+              ? "reviewCta"
+              : "viewCta";
         const timestamp = application.submittedAt
           ? t("submittedAt", {
               date: format.dateTime(application.submittedAt, "short"),
@@ -72,7 +81,7 @@ export function MyApplicationsList({
                 href={`/parent/applications/${application.id}`}
                 className="text-primary focus-visible:outline-ring text-sm font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
               >
-                {editable ? t("continueCta") : t("viewCta")}
+                {t(cta)}
               </Link>
             </div>
           </li>

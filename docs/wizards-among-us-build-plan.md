@@ -111,7 +111,8 @@ Note: the **Admin** column's ✅ on parent/volunteer rows means *operational ove
 
 ## 6. Campaign model
 
-- **Campaign types are hardcoded** (each type = a specific hardcoded form component): e.g. `new_school_year`, `christmas`, `birthday`, … Add new types in code.
+- **Campaign types are hardcoded** (each type = a specific hardcoded form component): e.g. `saint_nicholas_day`, `new_school_year`, … Add new types in code.
+  - **Only `saint_nicholas_day` is offered today** (Vital, Phase 8) — it is the one campaign we run and the only one with a form. The enum keeps every type that has ever existed, because historical campaigns still hold those values; a separate `CREATABLE_CAMPAIGN_TYPES` is what the admin form offers and the create schema accepts. Retiring a type is therefore not a migration: "we no longer offer this" and "this never existed" are different claims.
 - A **base field set** is required for every campaign type (see §7). Each type adds/removes a few type-specific fields.
 - **Admin controls at runtime**, not in code:
   - Which campaign is **active** and its **type** (via campaign `status`).
