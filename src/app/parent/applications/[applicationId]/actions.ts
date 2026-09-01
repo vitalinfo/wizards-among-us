@@ -242,7 +242,9 @@ export async function submitApplicationAction(
 
   const submitted = await submitApplication(id, actor.id, {});
   if (!submitted) {
-    // The status guard refused it — someone else already moved it on.
+    // The SQL guard refused it, which now means only one thing: an admin
+    // decided the application between this page loading and the parent pressing
+    // the button. Re-submitting an already-submitted one is allowed.
     return { status: "blocked", errors: {}, blockReason: "locked" };
   }
 

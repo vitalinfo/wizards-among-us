@@ -202,7 +202,12 @@ export function ApplicationForm({
           {isLast
             ? submitting
               ? tConsent("submitting")
-              : tConsent("submit")
+              : // Already sent: the button saves an edit, it does not submit
+                // again. «Подати анкету» would suggest the first one never
+                // arrived.
+                tConsent(
+                  application.status === "submitted" ? "resubmit" : "submit",
+                )
             : t("next")}
         </Button>
       </div>
