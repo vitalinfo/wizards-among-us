@@ -18,12 +18,6 @@ import {
   applicationSubmitSchemaForCampaign,
   TYPE_FIELDS_SCHEMAS,
 } from "@/features/applications/validation";
-import {
-  missingStepUploads,
-  stepsForCampaignType,
-} from "@/components/parent/applicationForm/steps";
-import { listApplicationFiles } from "@/features/applications/fileQueries";
-import { missingUploads } from "@/features/applications/files";
 import { recordAuditLog } from "@/features/audit/log";
 import {
   getActiveCampaignForIntake,
@@ -83,31 +77,8 @@ export async function saveApplicationDraft(
     return { status: "invalid", errors };
   }
 
-  // Save first, ALWAYS — a missing photo must never cost the parent the answers
-  // they just typed into this step.
   await persistStep(id, actor.id, application, parsed.data);
   revalidatePath(`/parent/applications/${id}`);
-
-  // Then refuse to advance if this step's uploads are not there. Caught here
-  // rather than at submit, so the parent fixes it on the step that asks for it
-  // instead of being sent back three steps at the end. Server-side, so it holds
-  // whether or not the client JS is doing its job.
-  const stepKey = String(formData.get("step") ?? "");
-  const campaign = await getCampaignById(application.campaignId);
-  const step = campaign
-    ? stepsForCampaignType(campaign.type)?.find((s) => s.key === stepKey)
-    : undefined;
-  if (step) {
-    const uploaded = await listApplicationFiles(id);
-    const missing = missingStepUploads(
-      step,
-      uploaded.map((file) => file.kind),
-    );
-    if (missing.length > 0) {
-      return { status: "missing_files", errors: {}, missingUploads: missing };
-    }
-  }
-
   return { status: "saved", errors: {} };
 }
 
@@ -212,21 +183,10 @@ export async function submitApplicationAction(
     ]);
   const contact = resolveUserContact(contactFields);
 
-  // The three uploads the form marks required. Checked here because a
-  // `required` attribute cannot block a submit and a server action is public.
-  const uploaded = await listApplicationFiles(id);
-  const missing = campaign
-    ? missingUploads(
-        campaign.type,
-        uploaded.map((file) => file.kind),
-      )
-    : [];
-
   const blockReason = getSubmitBlockReason(actor, application, {
     campaign: activeCampaign,
     settings,
     contactable: contact !== null,
-    missingUploads: missing,
   });
   if (blockReason || !fresh || !campaign) {
     return { status: "blocked", errors: {}, blockReason };
@@ -306,15 +266,10 @@ export async function submitApplicationAction(
     targetId: id,
   });
   revalidatePath("/parent/applications");
-  // To the LIST, not back into the form. Returning to the application left the
-  // parent looking at the last step of a form they had just finished, which
-  // reads as "nothing happened"; the list is where they can see the new status
-  // and get on with the next child.
-  //
   // «Анкету подано — ми перевіримо протягом двох днів» is true once. For an
   // edit it announces a submission that happened days ago and restates a
-  // promise whose clock did not restart, so the two cases say different things.
+  // promise whose clock did not restart.
   redirect(
-    `/parent/applications?${wasAlreadySubmitted ? "saved=1" : "submitted=1"}`,
+    `/parent/applications/${id}?${wasAlreadySubmitted ? "saved=1" : "submitted=1"}`,
   );
 }

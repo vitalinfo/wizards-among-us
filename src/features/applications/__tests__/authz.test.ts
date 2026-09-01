@@ -165,7 +165,6 @@ describe("getSubmitBlockReason (the full submit gate)", () => {
     campaign: { status: "active" as const, acceptingApplications: true },
     settings: { applicationsEnabled: true },
     contactable: true,
-    missingUploads: [],
   };
 
   it("allows the owning parent when every gate passes", () => {
@@ -330,7 +329,6 @@ describe("submitting an already-submitted application", () => {
     campaign: { status: "active" as const, acceptingApplications: true },
     settings: { applicationsEnabled: true },
     contactable: true,
-    missingUploads: [],
   };
 
   it("is allowed while it is still submitted", () => {
@@ -354,49 +352,5 @@ describe("submitting an already-submitted application", () => {
         getSubmitBlockReason(parent, { parentId: "p1", status }, ctx),
       ).toBe("locked");
     }
-  });
-});
-
-// The gate that makes the form's `required` markers real.
-describe("required uploads block submit", () => {
-  const ctx = {
-    campaign: { status: "active" as const, acceptingApplications: true },
-    settings: { applicationsEnabled: true },
-    contactable: true,
-  };
-  const app = { parentId: "p1", status: "draft" as const };
-
-  it("refuses while a required upload is missing", () => {
-    expect(
-      getSubmitBlockReason(parent, app, {
-        ...ctx,
-        missingUploads: ["idp_certificate"],
-      }),
-    ).toBe("missing_files");
-  });
-
-  it("allows once nothing is missing", () => {
-    expect(
-      getSubmitBlockReason(parent, app, { ...ctx, missingUploads: [] }),
-    ).toBeNull();
-  });
-
-  // Checked last, so a parent is not told about a photo while a more
-  // fundamental gate — no contact, intake closed — is also failing.
-  it("reports the contact and intake problems first", () => {
-    expect(
-      getSubmitBlockReason(parent, app, {
-        ...ctx,
-        contactable: false,
-        missingUploads: ["letter_photo"],
-      }),
-    ).toBe("no_contact");
-    expect(
-      getSubmitBlockReason(parent, app, {
-        ...ctx,
-        campaign: { status: "archived", acceptingApplications: true },
-        missingUploads: ["letter_photo"],
-      }),
-    ).toBe("intake_closed");
   });
 });

@@ -1,4 +1,4 @@
-import type { CampaignType, FileKind } from "@/db/enums";
+import type { FileKind } from "@/db/enums";
 
 // What the parent form may upload, per campaign. Kinds differ in WHO MAY SEE
 // them (see CLAUDE.md child-data exposure), so the kind is an authorization
@@ -82,33 +82,4 @@ export function rejectUpload(input: {
     return "too_large";
   }
   return null;
-}
-
-// Uploads a campaign REQUIRES before an application may be submitted.
-//
-// The form already marks these `required`, but that is a browser hint on a
-// styled label — it cannot block a submit, and a server action is a public
-// endpoint. Without this the UI promised something nothing enforced, and an
-// application could arrive with no ВПО certificate and no photo of the letter,
-// which is most of what an admin reviews.
-//
-// Per campaign type, like TYPE_FIELDS_SCHEMAS: a future type may ask for
-// different documents, or none.
-export const REQUIRED_UPLOADS: Record<CampaignType, readonly FileKind[]> = {
-  saint_nicholas_day: [
-    "idp_certificate",
-    "letter_photo",
-    "child_with_letter_photo",
-  ],
-  new_school_year: [],
-};
-
-// Which required uploads are still missing, in the order the form asks for
-// them — so the message can name them rather than just refusing.
-export function missingUploads(
-  campaignType: CampaignType,
-  present: readonly FileKind[],
-): readonly FileKind[] {
-  const have = new Set(present);
-  return REQUIRED_UPLOADS[campaignType].filter((kind) => !have.has(kind));
 }

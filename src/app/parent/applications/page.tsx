@@ -18,21 +18,14 @@ import { startApplication } from "./actions";
 // Session- and campaign-dependent; inherits the root layout's noindex default.
 export const dynamic = "force-dynamic";
 
-export default async function MyApplicationsPage({
-  searchParams,
-}: {
-  // Set by the submit action, which lands here rather than back in the form.
-  searchParams: Promise<{ submitted?: string; saved?: string }>;
-}) {
+export default async function MyApplicationsPage() {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     // Carry the destination so signing in returns here, not to the home page.
     redirect(signedOutRedirect(actor, "/parent/applications"));
   }
 
-  const query = await searchParams;
   const t = await getTranslations("parent.applications");
-  const tForm = await getTranslations("parent.form");
   const [campaign, settings] = await Promise.all([
     getActiveCampaignForIntake(),
     getResolvedSettings(),
@@ -50,22 +43,6 @@ export default async function MyApplicationsPage({
       <SiteHeader />
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8">
         <h1 className="text-3xl font-semibold">{t("title")}</h1>
-
-        {/* A first submission starts the two-day clock; saving an edit does
-            not restart it, so the two say different things. */}
-        {query.submitted || query.saved ? (
-          <div
-            role="status"
-            className="border-primary/30 bg-primary/10 mt-6 rounded-lg border p-4"
-          >
-            <h2 className="font-semibold">
-              {query.saved ? tForm("saved.title") : tForm("submitted.title")}
-            </h2>
-            <p className="text-body mt-1 text-sm">
-              {query.saved ? tForm("saved.body") : tForm("submitted.body")}
-            </p>
-          </div>
-        ) : null}
 
         {canStart ? (
           <form action={startApplication} className="mt-6">

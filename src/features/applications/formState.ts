@@ -8,9 +8,7 @@ import type { SubmitBlockReason } from "./authz";
 // and builds, then arrives as undefined at runtime — which crashed the form on
 // first render with "Cannot convert undefined or null to object".
 export type SaveDraftState = {
-  status: "idle" | "saved" | "invalid" | "denied" | "missing_files";
-  // Which uploads this step is waiting for, so the message can name them.
-  missingUploads?: readonly string[];
+  status: "idle" | "saved" | "invalid" | "denied";
   // Field name → zod issue code. The client maps codes to Ukrainian copy, so no
   // user-facing strings are produced on the server.
   errors: Record<string, string>;

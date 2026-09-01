@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 
-import type { CampaignType, FileKind } from "@/db/enums";
+import type { CampaignType } from "@/db/enums";
 
 import type { ApplicationRow, StepValues } from "./types";
 
@@ -17,10 +17,6 @@ export type FormStep = {
   // The fields this step must have before it counts as complete — used to
   // resume a returning parent at the first unfinished step.
   fields: readonly string[];
-  // Uploads this step asks for and will not advance without. Checked when the
-  // step is saved, so a missing photo is caught HERE rather than at the end,
-  // where the parent would be told to go back three steps to fix it.
-  uploads?: readonly FileKind[];
 };
 
 // The «Святий Миколай» form, modelled on the real 2025 Google Form.
@@ -42,13 +38,11 @@ const SAINT_NICHOLAS_STEPS: readonly FormStep[] = [
     key: "family",
     Component: FamilyStep,
     fields: ["parentName", "familyStory"],
-    uploads: ["idp_certificate"],
   },
   {
     key: "gift",
     Component: GiftStep,
     fields: ["giftDescription", "giftUrls", "giftPrice"],
-    uploads: ["letter_photo", "child_with_letter_photo"],
   },
   { key: "delivery", Component: DeliveryStep, fields: ["deliveryInformation"] },
   { key: "consent", Component: ConsentStep, fields: [] },
@@ -88,34 +82,19 @@ export function stepsForCampaignType(
 // consent and a captcha — which is the least useful place to land when the link
 // they followed said «Переглянути або змінити». They came to read it from the
 // top, and may still change it: the edit lock only lands on admin approval.
-// Uploads a step will not advance without, given what is already present.
-export function missingStepUploads(
-  step: FormStep,
-  present: readonly FileKind[],
-): readonly FileKind[] {
-  const have = new Set(present);
-  return (step.uploads ?? []).filter((kind) => !have.has(kind));
-}
-
 export function initialStep(
   steps: readonly FormStep[],
   values: StepValues,
   status: ApplicationRow["status"],
-  uploaded: readonly FileKind[] = [],
 ): number {
   if (status !== "draft") {
     return 0;
   }
-  // A step is unfinished if a field is empty OR one of its uploads is missing.
-  // Counting fields alone sent a parent whose photos were missing straight to
-  // the last step, only to be refused there — which is the long way round to
-  // discovering they never uploaded anything.
-  const index = steps.findIndex(
-    (step) =>
-      step.fields.some((field) => {
-        const value = values[field];
-        return value === undefined || value === null || value === "";
-      }) || missingStepUploads(step, uploaded).length > 0,
+  const index = steps.findIndex((step) =>
+    step.fields.some((field) => {
+      const value = values[field];
+      return value === undefined || value === null || value === "";
+    }),
   );
   return index === -1 ? steps.length - 1 : index;
 }

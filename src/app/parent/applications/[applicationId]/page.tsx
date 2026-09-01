@@ -24,10 +24,12 @@ export const dynamic = "force-dynamic";
 
 export default async function ApplicationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ applicationId: string }>;
+  searchParams: Promise<{ submitted?: string; saved?: string }>;
 }) {
-  const { applicationId } = await params;
+  const [{ applicationId }, query] = await Promise.all([params, searchParams]);
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     redirect(signedOutRedirect(actor, `/parent/applications/${applicationId}`));
@@ -92,6 +94,29 @@ export default async function ApplicationPage({
           <h1 className="text-3xl font-semibold">{t("pageTitle")}</h1>
           <ApplicationStatusBadge status={application.status} />
         </div>
+
+        {/* Two different things to confirm. A first submission starts the
+            two-day review clock; saving an edit does not restart it, so saying
+            so again would be a fresh promise we are not making. */}
+        {query.submitted || query.saved ? (
+          <div
+            role="status"
+            className="border-primary/30 bg-primary/10 mt-6 rounded-lg border p-4"
+          >
+            <h2 className="font-semibold">
+              {query.saved ? t("saved.title") : t("submitted.title")}
+            </h2>
+            <p className="text-body mt-1 text-sm">
+              {query.saved ? t("saved.body") : t("submitted.body")}
+            </p>
+            <Link
+              href="/parent/applications"
+              className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
+            >
+              {t("submitted.backCta")}
+            </Link>
+          </div>
+        ) : null}
 
         <div className="mt-8">
           {!campaignActive ? (
