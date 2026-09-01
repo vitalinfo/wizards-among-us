@@ -1,4 +1,5 @@
 import { UKRAINE_REGIONS, type UkraineRegion } from "@/db/enums";
+import { CHILD_AGE_MAX } from "@/lib/applicationFieldOptions";
 
 // The volunteer browse filters live in the url so each view is addressable and
 // shareable, and so returning from a child lands back where you were — the same
@@ -15,14 +16,15 @@ export type Availability = "all" | "available" | "claimed";
 // child in primary school", not "between 5 and 8", and two inputs invite an
 // empty result set from a range nobody meant.
 //
-// The top band is 13+ rather than 13–17 deliberately: the application form
-// accepts an age up to 18, so a hard 17 ceiling would make eighteen-year-olds
-// invisible whenever any band is selected.
+// The top band closes at 17 because CHILD_AGE_MAX does: the form cannot record
+// an older child, so there is nothing an open-ended 13+ would catch. (It was
+// 13+ while the form still accepted 18.) The bands together cover the whole
+// range — no age can fall outside every band.
 export const AGE_BANDS = [
   { key: "0-4", min: 0, max: 4 },
   { key: "5-8", min: 5, max: 8 },
   { key: "9-12", min: 9, max: 12 },
-  { key: "13+", min: 13, max: null },
+  { key: "13-17", min: 13, max: CHILD_AGE_MAX },
 ] as const;
 
 export type AgeBandKey = (typeof AGE_BANDS)[number]["key"];

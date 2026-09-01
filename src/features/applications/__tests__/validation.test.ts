@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  childAgeOptions,
+  displacedYearOptions,
+} from "@/lib/applicationFieldOptions";
+
+import {
   applicationDraftFormSchema,
   applicationDraftSchema,
   applicationSubmitSchema,
@@ -47,7 +52,7 @@ describe("applicationSubmitSchema", () => {
     ).toBe(false);
   });
 
-  it("rejects a child age outside 0–18", () => {
+  it("rejects a child age outside 0–17", () => {
     expect(
       applicationSubmitSchema.safeParse({ ...validSubmit, childAge: 25 })
         .success,
@@ -56,6 +61,15 @@ describe("applicationSubmitSchema", () => {
       applicationSubmitSchema.safeParse({ ...validSubmit, childAge: -1 })
         .success,
     ).toBe(false);
+    // 18 is the boundary the <select> stops at — the initiative is for children.
+    expect(
+      applicationSubmitSchema.safeParse({ ...validSubmit, childAge: 18 })
+        .success,
+    ).toBe(false);
+    expect(
+      applicationSubmitSchema.safeParse({ ...validSubmit, childAge: 17 })
+        .success,
+    ).toBe(true);
   });
 
   it("rejects a displaced year outside 2014–current year", () => {
@@ -69,6 +83,24 @@ describe("applicationSubmitSchema", () => {
         displacedYear: new Date().getFullYear() + 1,
       }).success,
     ).toBe(false);
+  });
+
+  it("accepts every value the age and year <select>s offer", () => {
+    for (const { value } of childAgeOptions()) {
+      const parsed = applicationSubmitSchema.safeParse({
+        ...validSubmit,
+        childAge: Number(value),
+      });
+      expect(parsed.success, `age ${value}`).toBe(true);
+    }
+
+    for (const { value } of displacedYearOptions()) {
+      const parsed = applicationSubmitSchema.safeParse({
+        ...validSubmit,
+        displacedYear: Number(value),
+      });
+      expect(parsed.success, `year ${value}`).toBe(true);
+    }
   });
 
   it("rejects blank required fields and a non-positive gift price", () => {

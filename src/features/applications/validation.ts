@@ -2,6 +2,12 @@ import { z } from "zod";
 
 import type { CampaignType } from "@/db/enums";
 import { userPhoneSchema } from "@/features/users/contact";
+import {
+  CHILD_AGE_MAX,
+  CHILD_AGE_MIN,
+  currentYear,
+  DISPLACED_YEAR_MIN,
+} from "@/lib/applicationFieldOptions";
 import { regionSchema } from "@/lib/enumSchemas";
 
 // Base fields required for every campaign (§7), modelled on the real
@@ -13,14 +19,15 @@ import { regionSchema } from "@/lib/enumSchemas";
 const applicationFields = {
   parentName: z.string().trim().min(1),
   childName: z.string().trim().min(1),
-  childAge: z.number().int().min(0).max(18),
+  childAge: z.number().int().min(CHILD_AGE_MIN).max(CHILD_AGE_MAX),
   homeTown: z.string().trim().min(1),
   homeRegion: regionSchema,
   currentTown: z.string().trim().min(1),
   currentRegion: regionSchema,
-  // Year the family was displaced. War displacement began in 2014; cap at the
-  // current year. Range lives here (zod), not a DB CHECK.
-  displacedYear: z.number().int().min(2014).max(new Date().getFullYear()),
+  // Year the family was displaced. Bounds are shared with the <select> that
+  // collects it (applicationFieldOptions) so the control can't offer a value
+  // this rejects. Range lives here (zod), not a DB CHECK.
+  displacedYear: z.number().int().min(DISPLACED_YEAR_MIN).max(currentYear()),
   familyStory: z.string().trim().min(1),
   giftDescription: z.string().trim().min(1),
   giftPrice: z.number().positive().max(99_999_999.99),
@@ -145,13 +152,13 @@ const text = (schema: z.ZodTypeAny) =>
 export const applicationDraftFormSchema = z.object({
   parentName: text(z.string().trim().min(1)),
   childName: text(z.string().trim().min(1)),
-  childAge: numeric(z.number().int().min(0).max(18)),
+  childAge: numeric(z.number().int().min(CHILD_AGE_MIN).max(CHILD_AGE_MAX)),
   homeTown: text(z.string().trim().min(1)),
   homeRegion: text(regionSchema),
   currentTown: text(z.string().trim().min(1)),
   currentRegion: text(regionSchema),
   displacedYear: numeric(
-    z.number().int().min(2014).max(new Date().getFullYear()),
+    z.number().int().min(DISPLACED_YEAR_MIN).max(currentYear()),
   ),
   familyStory: text(z.string().trim().min(1)),
   giftDescription: text(z.string().trim().min(1)),
