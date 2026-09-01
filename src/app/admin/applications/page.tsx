@@ -3,8 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
+import { ModerationFilterForm } from "@/components/admin/ModerationFilterForm";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
-import { APPLICATION_STATUSES } from "@/db/enums";
 import {
   countForModeration,
   listForModeration,
@@ -13,10 +13,10 @@ import {
   filterToStatus,
   moderationPageCount,
   moderationQueueHref,
-  parseModerationFilter,
-  parseModerationPage,
+  moderationSearch,
+  parseModerationQuery,
+  submittedRange,
   MODERATION_PAGE_SIZE,
-  type ModerationFilter,
 } from "@/features/applications/moderationFilter";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
@@ -26,46 +26,39 @@ export const dynamic = "force-dynamic";
 export default async function AdminApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    from?: string;
+    to?: string;
+    page?: string;
+  }>;
 }) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
   }
 
-  const query = await searchParams;
-  const filter = parseModerationFilter(query.status);
-  const status = filterToStatus(filter);
+  const query = parseModerationQuery(await searchParams);
+  const filters = {
+    status: filterToStatus(query.filter),
+    ...submittedRange(query),
+  };
 
   // Count first: the requested page has to be clamped to what exists before we
   // fetch, or a stale ?page= (say, after a batch was approved away) shows an
   // empty queue that looks like "nothing to review".
-  const total = await countForModeration({ status });
+  const total = await countForModeration(filters);
   const pageCount = moderationPageCount(total);
-  const page = Math.min(parseModerationPage(query.page), pageCount);
+  const page = Math.min(query.page, pageCount);
   const offset = (page - 1) * MODERATION_PAGE_SIZE;
 
-  const [t, tStatus, tList, tRegions, format, rows] = await Promise.all([
+  const [t, tList, tRegions, format, rows] = await Promise.all([
     getTranslations("admin.applications"),
-    getTranslations("parent.applications.status"),
     getTranslations("parent.applications"),
     getTranslations("regions"),
     getFormatter(),
-    listForModeration({ status, limit: MODERATION_PAGE_SIZE, offset }),
+    listForModeration({ ...filters, limit: MODERATION_PAGE_SIZE, offset }),
   ]);
-
-  const filterOptions: {
-    key: ModerationFilter;
-    label: string;
-    active: boolean;
-  }[] = [
-    { key: "all", label: t("filter.all"), active: filter === "all" },
-    ...APPLICATION_STATUSES.map((value) => ({
-      key: value,
-      label: tStatus(value),
-      active: filter === value,
-    })),
-  ];
 
   return (
     <>
@@ -76,23 +69,7 @@ export default async function AdminApplicationsPage({
           <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>
         </div>
 
-        {/* Links, not a form: each filter is a distinct addressable page, so it
-            is shareable, bookmarkable and works without JS. */}
-        <nav aria-label={t("filter.legend")}>
-          <ul className="flex flex-wrap gap-2 text-sm">
-            {filterOptions.map((option) => (
-              <li key={option.key}>
-                <Link
-                  href={moderationQueueHref(option.key)}
-                  aria-current={option.active ? "page" : undefined}
-                  className="border-border hover:bg-surface-muted focus-visible:outline-ring aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground aria-[current=page]:border-primary rounded-full border px-3 py-1 focus-visible:outline-2 focus-visible:outline-offset-2"
-                >
-                  {option.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <ModerationFilterForm query={query} />
 
         {rows.length === 0 ? (
           <p className="text-muted-foreground">{t("empty")}</p>
@@ -132,7 +109,7 @@ export default async function AdminApplicationsPage({
                     child's data, and a hover must never write an audit entry
                     for something nobody looked at. */}
                 <Link
-                  href={`/admin/applications/${row.id}?status=${filter}&page=${page}`}
+                  href={`/admin/applications/${row.id}?${moderationSearch(query, page)}`}
                   prefetch={false}
                   className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
                 >
@@ -160,7 +137,7 @@ export default async function AdminApplicationsPage({
                     with no client JS, like the rest of the admin surface. */}
                 {page > 1 ? (
                   <Link
-                    href={moderationQueueHref(filter, page - 1)}
+                    href={moderationQueueHref(query, page - 1)}
                     rel="prev"
                     className="border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
@@ -172,7 +149,7 @@ export default async function AdminApplicationsPage({
                 </span>
                 {page < pageCount ? (
                   <Link
-                    href={moderationQueueHref(filter, page + 1)}
+                    href={moderationQueueHref(query, page + 1)}
                     rel="next"
                     className="border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
