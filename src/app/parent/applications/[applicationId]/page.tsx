@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { ApplicationSummary } from "@/components/parent/ApplicationSummary";
 import { ApplicationForm } from "@/components/parent/applicationForm/ApplicationForm";
 import { stepsForCampaignType } from "@/components/parent/applicationForm/steps";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
@@ -66,6 +67,17 @@ export default async function ApplicationPage({
   // parent somehow has two of a kind. That only holds because
   // listApplicationFiles is ordered oldest-first — later keys overwrite
   // earlier ones. Unordered, this picked an arbitrary row.
+  // The shop links live in type_fields (campaign-specific), not a column.
+  const typeFields =
+    application.typeFields && typeof application.typeFields === "object"
+      ? (application.typeFields as Record<string, unknown>)
+      : {};
+  const giftUrls = Array.isArray(typeFields.giftUrls)
+    ? typeFields.giftUrls.filter(
+        (url): url is string => typeof url === "string",
+      )
+    : [];
+
   const files = Object.fromEntries(
     uploaded.map((file) => [
       file.kind,
@@ -95,11 +107,18 @@ export default async function ApplicationPage({
 
         <div className="mt-8">
           {!campaignActive ? (
-            <div className="border-border bg-surface-muted rounded-lg border p-4">
-              <h2 className="font-semibold">{t("pastCampaign.title")}</h2>
-              <p className="text-muted-foreground mt-1 text-sm">
-                {t("pastCampaign.body")}
-              </p>
+            <div className="flex flex-col gap-6">
+              <div className="border-border bg-surface-muted rounded-lg border p-4">
+                <h2 className="font-semibold">{t("pastCampaign.title")}</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  {t("pastCampaign.body")}
+                </p>
+              </div>
+              <ApplicationSummary
+                application={application}
+                files={uploaded}
+                giftUrls={giftUrls}
+              />
             </div>
           ) : !steps ? (
             // No form is defined for this campaign type. Refuse loudly rather
@@ -121,24 +140,38 @@ export default async function ApplicationPage({
               turnstileSiteKey={turnstileSiteKey()}
               steps={steps}
             />
-          ) : application.status === "rejected" ? (
-            // Rejection is final: the parent can't edit and resubmit, so the
-            // note is the only explanation they get and the way forward is a
-            // fresh application.
-            <div className="border-border bg-surface-muted rounded-lg border p-4">
-              <h2 className="font-semibold">{tRejected("title")}</h2>
-              <p className="text-body mt-1 text-sm whitespace-pre-wrap">
-                {application.rejectionNote ?? tRejected("noNote")}
-              </p>
-              <Link
-                href="/parent/applications"
-                className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
-              >
-                {tRejected("cta")}
-              </Link>
-            </div>
           ) : (
-            <p className="text-muted-foreground">{tBlocked("locked")}</p>
+            // Locked — approved, claimed, fulfilled or rejected. The reason
+            // comes first, then the application itself: this page is about the
+            // parent's own child, and a single line of explanation with nothing
+            // under it was the whole page for every state but "draft".
+            <div className="flex flex-col gap-6">
+              {application.status === "rejected" ? (
+                // Rejection is final: the parent can't edit and resubmit, so
+                // the note is the only explanation they get and the way forward
+                // is a fresh application.
+                <div className="border-border bg-surface-muted rounded-lg border p-4">
+                  <h2 className="font-semibold">{tRejected("title")}</h2>
+                  <p className="text-body mt-1 text-sm whitespace-pre-wrap">
+                    {application.rejectionNote ?? tRejected("noNote")}
+                  </p>
+                  <Link
+                    href="/parent/applications"
+                    className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
+                  >
+                    {tRejected("cta")}
+                  </Link>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">{tBlocked("locked")}</p>
+              )}
+
+              <ApplicationSummary
+                application={application}
+                files={uploaded}
+                giftUrls={giftUrls}
+              />
+            </div>
           )}
         </div>
       </main>
