@@ -1,7 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import {
   saveApplicationDraft,
@@ -66,8 +72,18 @@ export function ApplicationForm({
     firstIncompleteStep(steps, values),
   );
   const [saveState, setSaveState] = useState(initialSaveDraftState);
-  const [submitState, setSubmitState] = useState(initialSubmitState);
   const [pending, startTransition] = useTransition();
+
+  // Submit goes through useActionState, NOT through startTransition like the
+  // per-step saves do. The submit action ends in redirect(), which works by
+  // THROWING NEXT_REDIRECT — awaiting the action imperatively turns that into a
+  // rejected promise that startTransition swallows, so the application saved
+  // and the parent sat on the form wondering whether it had worked. Handing the
+  // action to the form lets Next's own runtime see the redirect and navigate.
+  const [submitState, submitAction, submitting] = useActionState(
+    submitApplicationAction,
+    initialSubmitState,
+  );
   const alertRef = useRef<HTMLDivElement>(null);
 
   const isLast = stepIndex === steps.length - 1;
@@ -82,12 +98,8 @@ export function ApplicationForm({
   // the result, which would be a cascading render. It also means we only ever
   // advance on a successful save: a rejected step keeps the parent in place
   // instead of carrying an invalid answer forward to fail again at submit.
-  const handleSubmit = (formData: FormData) => {
+  const handleSaveStep = (formData: FormData) => {
     startTransition(async () => {
-      if (isLast) {
-        setSubmitState(await submitApplicationAction(submitState, formData));
-        return;
-      }
       const result = await saveApplicationDraft(saveState, formData);
       setSaveState(result);
       if (result.status === "saved") {
@@ -132,7 +144,10 @@ export function ApplicationForm({
   );
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-6">
+    <form
+      action={isLast ? submitAction : handleSaveStep}
+      className="flex flex-col gap-6"
+    >
       <input type="hidden" name="applicationId" value={application.id} />
 
       <p className="text-muted-foreground text-sm">
@@ -180,9 +195,12 @@ export function ApplicationForm({
           </Button>
         ) : null}
 
-        <Button type="submit" disabled={pending}>
+        {/* Two different pending signals now: useTransition for the per-step
+            saves, useActionState for the submit. Using only the first would
+            leave the submit button live while the application is being sent. */}
+        <Button type="submit" disabled={isLast ? submitting : pending}>
           {isLast
-            ? pending
+            ? submitting
               ? tConsent("submitting")
               : tConsent("submit")
             : t("next")}

@@ -87,3 +87,32 @@ describe("MyApplicationsList", () => {
     ).toBeInTheDocument();
   });
 });
+
+// The label has to describe the state, not just whether the link is editable.
+// A submitted application IS still editable — the lock lands on admin approval
+// — but «Продовжити заповнення» tells a parent it is unfinished when they have
+// already sent it.
+describe("call to action per status", () => {
+  const cases = [
+    ["draft", messages.parent.applications.continueCta],
+    ["submitted", messages.parent.applications.reviewCta],
+    ["approved", messages.parent.applications.viewCta],
+    ["claimed", messages.parent.applications.viewCta],
+    ["fulfilled", messages.parent.applications.viewCta],
+    ["rejected", messages.parent.applications.viewCta],
+  ] as const;
+
+  it.each(cases)("a %s application offers «%s»", (status, label) => {
+    renderList([{ ...draft, status }]);
+    expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
+  });
+
+  it("never tells a parent to keep filling in an application they submitted", () => {
+    renderList([{ ...draft, status: "submitted" }]);
+    expect(
+      screen.queryByRole("link", {
+        name: messages.parent.applications.continueCta,
+      }),
+    ).not.toBeInTheDocument();
+  });
+});
