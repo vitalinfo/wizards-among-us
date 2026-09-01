@@ -369,7 +369,12 @@ export const users = pgTable(
     // stale exactly when a volunteer needs to reach the family.
     // [sensitive] revealed only to the volunteer holding the active claim.
     phone: text("phone"),
-    note: text("note"), // optional free-text note from the person (one per user)
+    // Coordination note written BY AN ADMIN about this person — "phone doesn't
+    // answer, reached them on Telegram". Admin-only: shown in the admin UI and
+    // nowhere else, never to the person it is about and never to a volunteer.
+    // One per user, overwritten on edit; if a history of who wrote what is ever
+    // needed, that is a `user_notes` table, not a longer string.
+    note: text("note"),
     ...timestamps(),
   },
   (t) => [
