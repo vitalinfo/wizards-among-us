@@ -10,6 +10,7 @@ import { ModerationDecision } from "@/components/admin/ModerationDecision";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 import { getApplicationForAdmin } from "@/features/applications/adminQueries";
 import { getClaimHolder, searchVolunteers } from "@/features/claims/queries";
+import { getParentNote } from "@/features/users/adminQueries";
 import {
   moderationQueueHref,
   parseModerationQuery,
@@ -69,11 +70,15 @@ export default async function AdminApplicationPage({
   }
 
   const { application, campaignTitle, parent } = detail;
-  const [t, tRegions, format, files] = await Promise.all([
+  const [t, tRegions, format, files, parentNote] = await Promise.all([
     getTranslations("admin.applications"),
     getTranslations("regions"),
     getFormatter(),
     listApplicationFiles(applicationId),
+    // Attached to the PERSON, not the application: a family that files three
+    // applications has one note, and the thing an admin wrote down about how to
+    // reach them is true for all three.
+    getParentNote(application.parentId),
   ]);
 
   // This page reveals every sensitive field about a child at once — town,
@@ -206,6 +211,26 @@ export default async function AdminApplicationPage({
             {t("editCta")}
           </Link>
         </div>
+
+        {/* Above everything, when there is one: an admin's note about this
+            family is context for the whole page — "phone doesn't answer, they
+            reply on Telegram" changes how you read the contact field, and is
+            useless discovered below it. Rendered only when a note exists, so
+            the common case carries no empty box. */}
+        {parentNote ? (
+          <aside className="border-border bg-surface-muted rounded-lg border p-4">
+            <h2 className="text-sm font-semibold">{t("parentNote.title")}</h2>
+            <p className="mt-1 text-sm whitespace-pre-wrap">
+              {parentNote.note}
+            </p>
+            <Link
+              href="/admin/users"
+              className="text-primary mt-2 inline-block text-xs font-semibold underline underline-offset-4"
+            >
+              {t("parentNote.edit")}
+            </Link>
+          </aside>
+        ) : null}
 
         <div>
           <div className="flex flex-wrap items-center gap-3">
