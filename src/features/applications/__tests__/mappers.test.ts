@@ -18,7 +18,7 @@ describe("toBrowseCard redaction (guardrail)", () => {
       currentTown: "Lviv",
       currentRegion: "lviv",
       displacedYear: 2022,
-      familyStory: "…",
+      familyStory: "Виїхали з Дружківки навесні 2022.",
       giftDescription: "Backpack",
       giftPrice: "1200.00",
       deliveryInformation: "Nova Poshta #5 — private",
@@ -40,20 +40,25 @@ describe("toBrowseCard redaction (guardrail)", () => {
       childFirstName: "Olha", // first name only, not the full name
       childAge: 8,
       currentRegion: "lviv",
+      homeRegion: "donetsk",
+      homeTown: "Bakhmut",
+      currentTown: "Lviv",
       giftDescription: "Backpack",
       giftPrice: "1200.00",
+      // On the card by a deliberate decision (Vital, Phase 6): it is what a
+      // volunteer chooses on, and the parent form already tells families it is
+      // read by the wizard who will be choosing.
+      familyStory: "Виїхали з Дружківки навесні 2022.",
       status: "approved",
     });
-    // Anything a volunteer must not see before claiming. typeFields carries the
+    // Anything a volunteer must not see before claiming. The DELIVERY address,
+    // the parent's name and the contact stay post-claim; the card was widened
+    // to the story, the origin and the current town, but not to these. typeFields carries the
     // St Nicholas shop link, which is only needed once you've actually claimed
     // the child.
     for (const leaked of [
       "deliveryInformation",
-      "currentTown",
       "parentName",
-      "familyStory",
-      "homeTown",
-      "homeRegion",
       "typeFields",
       "submittedAt",
       "socialMediaConsent",

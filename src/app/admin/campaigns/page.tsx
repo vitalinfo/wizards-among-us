@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CampaignRow, isCampaignConfirm } from "@/components/admin/CampaignRow";
-import { ConfirmModal } from "@/components/admin/ConfirmModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { listCampaigns } from "@/features/campaigns/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";

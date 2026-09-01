@@ -8,9 +8,9 @@ import { updateApplicationAction } from "@/app/admin/applications/actions";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextAreaField } from "@/components/forms/TextAreaField";
 import { TextField } from "@/components/forms/TextField";
-import { UKRAINE_REGIONS } from "@/db/enums";
 import type { applications } from "@/db/schema";
 import { initialAdminEditState } from "@/features/applications/adminEditState";
+import { regionOptions } from "@/lib/regionOptions";
 
 type Application = typeof applications.$inferSelect;
 
@@ -37,10 +37,8 @@ export function AdminApplicationForm({
     initialAdminEditState,
   );
 
-  const regions = UKRAINE_REGIONS.map((region) => ({
-    value: region,
-    label: tRegions(region),
-  }));
+  // Sorted by Ukrainian label — the enum's slug order is Latin.
+  const regions = regionOptions(tRegions);
 
   // A message for a field, if the last submit rejected it.
   const err = (field: string) => {

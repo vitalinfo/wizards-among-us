@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
-import { UKRAINE_REGIONS } from "@/db/enums";
+import { regionOptions } from "@/lib/regionOptions";
 
 import type { StepProps } from "./types";
 
@@ -15,10 +15,7 @@ export function ChildStep({ values, errors }: StepProps) {
   const tStep = useTranslations("parent.form.steps.child");
   const tRegion = useTranslations("regions");
 
-  const regions = UKRAINE_REGIONS.map((region) => ({
-    value: region,
-    label: tRegion(region),
-  })).sort((a, b) => a.label.localeCompare(b.label, "uk"));
+  const regions = regionOptions(tRegion);
 
   return (
     <fieldset className="flex flex-col gap-5 border-0 p-0">
