@@ -32,13 +32,13 @@ describe("environment tagging", () => {
   // Both Heroku apps run as NODE_ENV=production. Without an explicit value they
   // are indistinguishable in one shared issue stream — which is the whole
   // reason a single project works.
-  it("prefers SENTRY_ENVIRONMENT over NODE_ENV", () => {
-    process.env.SENTRY_ENVIRONMENT = "staging";
+  it("prefers SENTRY_ENV over NODE_ENV", () => {
+    process.env.SENTRY_ENV = "staging";
     expect(sentryOptions().environment).toBe("staging");
   });
 
   it("falls back to NODE_ENV when unset", () => {
-    delete process.env.SENTRY_ENVIRONMENT;
+    delete process.env.SENTRY_ENV;
     expect(sentryOptions().environment).toBe(process.env.NODE_ENV);
   });
 });

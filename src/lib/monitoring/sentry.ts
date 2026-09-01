@@ -13,7 +13,7 @@ export function sentryOptions(): NodeOptions {
     // Both Heroku apps run as NODE_ENV=production, so without this staging and
     // production are indistinguishable in one issue stream — which is what
     // makes a single shared project workable at all.
-    environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
+    environment: process.env.SENTRY_ENV ?? process.env.NODE_ENV,
 
     // NEVER on. sendDefaultPii attaches IP addresses, cookies and request
     // bodies automatically — precisely the data this app must not export.

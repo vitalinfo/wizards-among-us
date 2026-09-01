@@ -311,7 +311,7 @@ real data shapes):
 carry urls describing real families. **Session Replay is deliberately not enabled**: it records
 the DOM of real sessions, which here means a parent typing their child's address.
 
-One project for all environments, separated by `SENTRY_ENVIRONMENT` (`staging` / `production`) —
+One project for all environments, separated by `SENTRY_ENV` (`staging` / `production`) —
 both Heroku apps run as `NODE_ENV=production` and would otherwise be indistinguishable.
 
 Browser events go through `tunnelRoute: "/monitoring"` on our own origin, so an ad blocker
@@ -587,7 +587,7 @@ against production's own config vars.
 | `TELEGRAM_BOT_USERNAME` | That bot's @username (no `@`) |
 | `ADMIN_ALLOWLIST` | Comma-separated admin emails |
 | `SENTRY_DSN` | Optional. Error reporting; unset = no reporting initialised. **One project for all environments** — separated by the `environment` tag, not by project. Payloads are scrubbed: error contexts here can carry child data |
-| `SENTRY_ENVIRONMENT` | `staging` / `production`. Defaults to `NODE_ENV`; must be set explicitly on Heroku, where both apps run as `production` |
+| `SENTRY_ENV` | `staging` / `production`. Defaults to `NODE_ENV`; must be set explicitly on Heroku, where both apps run as `production` |
 
 > **Why no `NEXT_PUBLIC_*` vars.** Heroku pipeline promotion copies the **compiled slug** from
 > staging to production instead of rebuilding. `NEXT_PUBLIC_*` values are inlined into the browser
