@@ -413,7 +413,8 @@
       "phoneError": "Перевірте номер: він має бути у форматі +380XXXXXXXXX.",
       "save": "Зберегти"
     },
-    "myClaimsCta": "Мої діти"
+    "myClaimsCta": "Мої діти",
+    "backToChildren": "← До списку дітей"
   },
   "admin": {
     "login": {

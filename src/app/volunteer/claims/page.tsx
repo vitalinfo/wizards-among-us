@@ -26,6 +26,7 @@ export default async function MyClaimsPage() {
   }
 
   const t = await getTranslations("volunteer.claims");
+  const tBack = await getTranslations("volunteer");
   const tFields = await getTranslations("admin.applications.fields");
   const campaign = await getActiveCampaignForIntake();
   const rows = campaign ? await listMyClaims(actor.id, campaign.id) : [];
@@ -59,18 +60,16 @@ export default async function MyClaimsPage() {
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8">
-        <h1 className="text-3xl font-semibold">{t("title")}</h1>
+        <Link
+          href="/volunteer/children"
+          className="text-primary text-sm font-semibold underline underline-offset-4"
+        >
+          {tBack("backToChildren")}
+        </Link>
+        <h1 className="mt-4 text-3xl font-semibold">{t("title")}</h1>
 
         {rows.length === 0 ? (
-          <>
-            <p className="text-muted-foreground mt-4">{t("empty")}</p>
-            <Link
-              href="/volunteer/children"
-              className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
-            >
-              {t("browseCta")}
-            </Link>
-          </>
+          <p className="text-muted-foreground mt-4">{t("empty")}</p>
         ) : (
           <>
             <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>

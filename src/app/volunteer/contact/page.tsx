@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -25,12 +26,19 @@ export default async function VolunteerContactPage({
   const { next } = await searchParams;
   const returnTo = safeReturnPath(next) || "/volunteer/children";
   const t = await getTranslations("volunteer.contact");
+  const tBack = await getTranslations("volunteer");
 
   return (
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:px-8">
-        <h1 className="text-3xl font-semibold">{t("title")}</h1>
+        <Link
+          href="/volunteer/children"
+          className="text-primary text-sm font-semibold underline underline-offset-4"
+        >
+          {tBack("backToChildren")}
+        </Link>
+        <h1 className="mt-4 text-3xl font-semibold">{t("title")}</h1>
         <p className="text-body mt-2 text-sm leading-relaxed">{t("body")}</p>
         <div className="mt-6">
           <VolunteerPhoneForm next={returnTo} />
