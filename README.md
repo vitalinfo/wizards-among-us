@@ -553,6 +553,7 @@ against production's own config vars.
 | `TELEGRAM_BOT_TOKEN` | BotFather token for **this** environment's bot |
 | `TELEGRAM_BOT_USERNAME` | That bot's @username (no `@`) |
 | `ADMIN_ALLOWLIST` | Comma-separated admin emails |
+| `SENTRY_DSN` | Optional. Error reporting; unset = no reporting initialised. Separate project per environment. Payloads are scrubbed — error contexts here can carry child data |
 
 > **Why no `NEXT_PUBLIC_*` vars.** Heroku pipeline promotion copies the **compiled slug** from
 > staging to production instead of rebuilding. `NEXT_PUBLIC_*` values are inlined into the browser
