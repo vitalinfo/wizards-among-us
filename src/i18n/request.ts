@@ -1,33 +1,11 @@
 import { getRequestConfig } from "next-intl/server";
 
-// Single active UI locale for now (Ukrainian). The app is structured so more
-// locales can be added later: all copy lives in messages/<locale>.json and
-// nothing user-facing is hardcoded. When a second language is introduced,
-// switch to next-intl's i18n-routing setup and resolve `locale` per request.
-export const locale = "uk" as const;
+import { formats, locale, timeZone } from "./config";
 
-// Our users and the team are in Ukraine, and the server runs in UTC on Heroku.
-// Pinning the zone means a date renders the same for everyone and doesn't shift
-// with the deploy environment — important when "submitted two days ago" is a
-// promise we make.
-export const timeZone = "Europe/Kyiv" as const;
-
-// Named date/number formats, declared once so every screen formats alike.
-// next-intl requires named formats to exist — `format.dateTime(d, "short")`
-// throws MISSING_FORMAT otherwise, which is how this was found.
-export const formats = {
-  dateTime: {
-    short: { day: "2-digit", month: "2-digit", year: "numeric" },
-    long: { day: "numeric", month: "long", year: "numeric" },
-    withTime: {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    },
-  },
-} as const;
+// The values live in ./config so they can be read without importing
+// next-intl/server (see the note there). Re-exported here because that is where
+// the rest of the app already imports them from.
+export { formats, locale, timeZone } from "./config";
 
 export default getRequestConfig(async () => ({
   locale,

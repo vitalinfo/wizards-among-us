@@ -62,7 +62,33 @@ Avoid `container.querySelector` and class-based selection — they couple tests 
 
 ### Server Components, server actions, DB
 
-- RTL renders **client** components. For a server component, extract its rendered UI into a client component and test that (as `page.tsx` → `<Landing/>` does, tested in `src/components/__tests__/landing.test.tsx`), or assert via an integration/e2e layer.
+- RTL cannot render an **async** component, and `next-intl/server` resolves to its
+  **client** build under vitest — so `getTranslations` throws
+  ``` `getTranslations` is not supported in Client Components ``` before a single
+  assertion runs. Both are worked around by `src/test/serverIntl.ts`:
+
+  ```tsx
+  vi.mock("next-intl/server", async () =>
+    (await import("@/test/serverIntl")).serverIntl(),
+  );
+  // …then render the component's returned tree:
+  const ui = await MyServerComponent({ …props });
+  render(<>{ui}</>);
+  ```
+
+  Only the request-scoped plumbing is replaced; the translator and formatter are
+  next-intl's real ones over the real `messages/uk.json`, so a spec still fails on
+  a missing key. **Prefer this to splitting a server component into a client
+  island purely so a test can reach it** — an island ships JS to the browser for
+  markup that had no reason to be interactive.
+- An async component **nested inside** another still can't render (React has no
+  way to await it mid-tree). Keep leaf presentational components non-async and
+  pass their copy in already translated — `ClaimCard` (async) → `ClaimPhotos`
+  (plain) is the pattern.
+- A **client** component inside a server tree still needs the real
+  `NextIntlClientProvider` around the render.
+- A page whose UI is genuinely interactive still belongs in a client component
+  (as `page.tsx` → `<Landing/>` does, tested in `src/components/__tests__/landing.test.tsx`).
 - For code that touches Postgres, prefer testing pure logic (zod schemas, mappers, authorization predicates) directly. Don't mock the DB just to assert the mock — if a test needs the DB, use a real test database.
 - Server-layer authorization (`getSessionActor()` / `requireAdmin()`, added Phase 1/3) must have direct tests for allow/deny per role — this is a security boundary.
 

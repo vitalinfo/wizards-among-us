@@ -1,4 +1,4 @@
-import { timeZone } from "@/i18n/request";
+import { timeZone } from "@/i18n/config";
 
 // A calendar date is not a point in time. `submitted_at` is a timestamptz and
 // the app renders every date in Europe/Kyiv, so an admin filtering «з 01.09»
