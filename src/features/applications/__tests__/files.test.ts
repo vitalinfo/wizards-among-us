@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { isParentUploadKind, MAX_UPLOAD_BYTES, rejectUpload } from "../files";
+import {
+  CLAIM_VISIBLE_KINDS,
+  isParentUploadKind,
+  latestByKind,
+  MAX_UPLOAD_BYTES,
+  rejectUpload,
+} from "../files";
 
 // Uploads include a child's ВПО certificate, so what may be uploaded — and
 // under which kind — is a security boundary, not a convenience check.
@@ -84,5 +90,46 @@ describe("confirmation as an upload kind", () => {
         sizeBytes: MAX_UPLOAD_BYTES + 1,
       }),
     ).toBe("too_large");
+  });
+});
+
+describe("CLAIM_VISIBLE_KINDS", () => {
+  // The one kind that must never reach a volunteer. This list decides what the
+  // claims page ASKS for; canViewApplicationFile is what enforces it, but a
+  // page that asks for the certificate would be a 404 loop at best and the
+  // start of a leak at worst.
+  it("excludes the ВПО certificate", () => {
+    expect(CLAIM_VISIBLE_KINDS).not.toContain("idp_certificate");
+  });
+});
+
+describe("latestByKind", () => {
+  const files = [
+    { id: "old-letter", kind: "letter_photo" },
+    { id: "cert", kind: "idp_certificate" },
+    { id: "new-letter", kind: "letter_photo" },
+    { id: "child", kind: "child_with_letter_photo" },
+  ];
+
+  // Nothing stops a parent uploading twice without removing the first, and the
+  // newest is the one they meant — a family retaking a photo must not leave the
+  // volunteer looking at the discarded one.
+  it("takes the newest of each kind", () => {
+    expect(latestByKind(files, ["letter_photo"])).toEqual([
+      { id: "new-letter", kind: "letter_photo" },
+    ]);
+  });
+
+  it("returns them in the order asked for, skipping what is absent", () => {
+    expect(latestByKind(files, CLAIM_VISIBLE_KINDS).map((f) => f.id)).toEqual([
+      "new-letter",
+      "child",
+    ]);
+  });
+
+  it("returns only the kinds asked for", () => {
+    expect(
+      latestByKind(files, CLAIM_VISIBLE_KINDS).map((f) => f.kind),
+    ).not.toContain("idp_certificate");
   });
 });

@@ -112,3 +112,28 @@ export function missingUploads(
   const have = new Set(present);
   return REQUIRED_UPLOADS[campaignType].filter((kind) => !have.has(kind));
 }
+
+// What the volunteer holding the claim may see, in the order it makes sense to
+// look at: the letter first, then the child holding it, then — once the family
+// confirms — the gift that arrived.
+//
+// The ВПО certificate is deliberately absent. It is a state document about a
+// child and never leaves the admins (canViewApplicationFile enforces that; this
+// list only decides what the page asks for).
+export const CLAIM_VISIBLE_KINDS = [
+  "letter_photo",
+  "child_with_letter_photo",
+  "confirmation",
+] as const satisfies readonly FileKind[];
+
+// The newest file of each requested kind, in the order the kinds were asked
+// for. Nothing stops a parent uploading twice without removing the first (see
+// listApplicationFiles), and the newest is always the one they meant.
+export function latestByKind<T extends { kind: string }>(
+  files: readonly T[],
+  kinds: readonly FileKind[],
+): T[] {
+  return kinds
+    .map((kind) => files.findLast((file) => file.kind === kind))
+    .filter((file): file is T => file !== undefined);
+}
