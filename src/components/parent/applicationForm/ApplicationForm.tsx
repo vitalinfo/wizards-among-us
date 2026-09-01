@@ -23,7 +23,7 @@ import {
 import type { FileKind } from "@/db/enums";
 
 import { initialStep, type FormStep } from "./steps";
-import { toStepValues, type ApplicationRow } from "./types";
+import { toStepValues, type ApplicationRow, type StepValues } from "./types";
 
 // The multistep application form, mirroring the sections parents already know
 // from the paper/Google form.
@@ -54,7 +54,22 @@ export function ApplicationForm({
   const tConsent = useTranslations("parent.form.steps.consent");
   const tUploads = useTranslations("parent.form.upload");
 
-  const values = toStepValues(application);
+  const saved = toStepValues(application);
+
+  // React 19 resets an uncontrolled form as soon as its action finishes. When
+  // the step is REJECTED we stay on it — and the reset had just emptied every
+  // field, so a single bad link cost the parent the whole step. (On a
+  // successful step it's invisible: the next step's fields render blank
+  // anyway.)
+  //
+  // A reset restores each control to its defaultValue, so the fix is to hand
+  // back what was posted as the new defaults. Kept client-side rather than
+  // round-tripped through the action: it must survive every rejection —
+  // invalid, missing_files, rate_limited, blocked — not just the ones that
+  // bother to echo the values.
+  const [posted, setPosted] = useState<StepValues>({});
+  const values = { ...saved, ...posted };
+
   const [stepIndex, setStepIndex] = useState(() =>
     initialStep(
       steps,
@@ -96,9 +111,29 @@ export function ApplicationForm({
       const result = await saveApplicationDraft(saveState, formData);
       setSaveState(result);
       if (result.status === "saved") {
+        // The server now holds these, so the snapshot would only shadow the
+        // fresh values with identical stale ones.
+        setPosted({});
         setStepIndex((current) => Math.min(current + 1, steps.length - 1));
       }
     });
+  };
+
+  // Runs for both paths — the per-step save and the final submit, which goes
+  // through useActionState and never hands us its FormData. Files are dropped:
+  // uploads post themselves (UploadField) and a File is not a default value.
+  const rememberPosted = (form: HTMLFormElement) => {
+    const entries: StepValues = {};
+    for (const [key, value] of new FormData(form).entries()) {
+      if (
+        typeof value === "string" &&
+        key !== "applicationId" &&
+        key !== "step"
+      ) {
+        entries[key] = value;
+      }
+    }
+    setPosted(entries);
   };
 
   // Move focus to the message so a keyboard or screen-reader user isn't
@@ -115,7 +150,7 @@ export function ApplicationForm({
     if (!code) {
       return undefined;
     }
-    if (code.includes("url")) {
+    if (code === "invalid_url") {
       return tErrors("invalid_url");
     }
     if (code === "gift_price_over_cap" || code === "too_big") {
@@ -139,6 +174,7 @@ export function ApplicationForm({
   return (
     <form
       action={isLast ? submitAction : handleSaveStep}
+      onSubmit={(event) => rememberPosted(event.currentTarget)}
       className="flex flex-col gap-6"
     >
       <input type="hidden" name="applicationId" value={application.id} />
@@ -192,7 +228,10 @@ export function ApplicationForm({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setStepIndex((current) => current - 1)}
+            onClick={() => {
+              setPosted({});
+              setStepIndex((current) => current - 1);
+            }}
           >
             {t("back")}
           </Button>
