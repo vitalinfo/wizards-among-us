@@ -65,7 +65,9 @@ export default async function ApplicationPage({
   const campaignActive = campaign?.status === "active";
 
   // Keyed by kind: each upload slot is single-file, so the newest wins if a
-  // parent somehow has two of a kind.
+  // parent somehow has two of a kind. That only holds because
+  // listApplicationFiles is ordered oldest-first — later keys overwrite
+  // earlier ones. Unordered, this picked an arbitrary row.
   const files = Object.fromEntries(
     uploaded.map((file) => [
       file.kind,

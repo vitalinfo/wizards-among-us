@@ -279,10 +279,11 @@ Two gates before a claim lands, both server-enforced:
   submit, and it applies to admin assignment too.
 - **Availability.** Approved, and not already held.
 
-`/volunteer/claims` is the only place a volunteer sees tier-2 data — current town, delivery
-information, parent name, the family's contact — and every render is audit-logged
-(`claim.details_viewed`), as are browsing (`children.browsed`) and the claim itself
-(`claim.created`).
+`/volunteer/claims` is the only place a volunteer sees tier-2 data — delivery information,
+parent name, the family's contact — plus, once the family confirms, the **gift photo they
+uploaded**. Every render is audit-logged (`claim.details_viewed`), as are browsing
+(`children.browsed`) and the claim itself (`claim.created`). It is linked from `/volunteer` and
+from the browse list, not only from the redirect after claiming.
 
 **No self-release.** A volunteer who cannot follow through contacts the coordinator, who
 releases the claim in the admin UI, so a human sees every drop-out instead of children quietly

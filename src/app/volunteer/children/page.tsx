@@ -112,7 +112,15 @@ export default async function BrowseChildrenPage({
         inert={pendingClaim !== null}
         className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8"
       >
-        <h1 className="text-3xl font-semibold">{t("title")}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-3xl font-semibold">{t("title")}</h1>
+          <Link
+            href="/volunteer/claims"
+            className="border-border hover:bg-surface-muted focus-visible:outline-ring shrink-0 rounded-md border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            {t("myClaimsCta")}
+          </Link>
+        </div>
         <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>
 
         <div className="mt-6">
