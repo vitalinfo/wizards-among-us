@@ -36,6 +36,7 @@ export default async function ConfirmReceiptPage({
   }
 
   const t = await getTranslations("parent.confirm");
+  const tBack = await getTranslations("parent");
   const files = await listApplicationFiles(applicationId);
   const photo = files.find((file) => file.kind === "confirmation") ?? null;
 
@@ -47,7 +48,7 @@ export default async function ConfirmReceiptPage({
           href="/parent/applications"
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
-          {t("backCta")}
+          {tBack("backToApplications")}
         </Link>
         <h1 className="mt-4 text-3xl font-semibold">{t("title")}</h1>
 

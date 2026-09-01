@@ -26,6 +26,7 @@ export default async function LeaveReviewPage({
 
   const { application: applicationId } = await searchParams;
   const t = await getTranslations("parent.review");
+  const tBack = await getTranslations("parent");
 
   const application = applicationId
     ? await getMyApplication(applicationId, actor.id)
@@ -54,7 +55,7 @@ export default async function LeaveReviewPage({
               href="/parent/applications"
               className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
             >
-              {t("backCta")}
+              {tBack("backToApplications")}
             </Link>
           </>
         ) : (

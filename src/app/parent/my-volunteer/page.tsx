@@ -26,6 +26,7 @@ export default async function MyVolunteerPage() {
   }
 
   const t = await getTranslations("parent.myVolunteer");
+  const tBack = await getTranslations("parent");
   const campaign = await getActiveCampaignForIntake();
   const rows = campaign ? await getMyVolunteers(actor.id, campaign.id) : [];
   const format = await getFormatter();
@@ -43,17 +44,17 @@ export default async function MyVolunteerPage() {
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-10 sm:px-8">
-        <h1 className="text-3xl font-semibold">{t("title")}</h1>
+        <Link
+          href="/parent/applications"
+          className="text-primary text-sm font-semibold underline underline-offset-4"
+        >
+          {tBack("backToApplications")}
+        </Link>
+        <h1 className="mt-4 text-3xl font-semibold">{t("title")}</h1>
 
         {rows.length === 0 ? (
           <>
             <p className="text-muted-foreground mt-4">{t("empty")}</p>
-            <Link
-              href="/parent/applications"
-              className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
-            >
-              {t("applicationsCta")}
-            </Link>
           </>
         ) : (
           <ul className="mt-6 flex flex-col gap-3">
