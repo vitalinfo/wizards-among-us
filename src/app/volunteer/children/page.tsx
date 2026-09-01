@@ -11,6 +11,7 @@ import {
   ageBand,
   browseHref,
   browsePageCount,
+  claimHref,
   BROWSE_ANCHOR,
   BROWSE_PAGE_SIZE,
   parseBrowseQuery,
@@ -130,11 +131,7 @@ export default async function BrowseChildrenPage({
               <ChildCard
                 key={row.id}
                 row={row}
-                claimHref={
-                  row.claimed
-                    ? null
-                    : `${currentHref}${currentHref.includes("?") ? "&" : "?"}claim=${row.id}`
-                }
+                claimHref={row.claimed ? null : claimHref(query, page, row.id)}
               />
             ))}
           </ul>
