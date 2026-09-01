@@ -20,8 +20,8 @@ import {
   initialSubmitState,
 } from "@/features/applications/formState";
 
-import type { FormStep } from "./steps";
-import { toStepValues, type ApplicationRow, type StepValues } from "./types";
+import { initialStep, type FormStep } from "./steps";
+import { toStepValues, type ApplicationRow } from "./types";
 
 // The multistep application form, mirroring the sections parents already know
 // from the paper/Google form.
@@ -29,22 +29,6 @@ import { toStepValues, type ApplicationRow, type StepValues } from "./types";
 // Every step is a real <form> posting to a server action, so each one SAVES A
 // DRAFT before the next appears — a parent can close the tab on a phone and
 // come back. Only the last step submits.
-// A parent who closes the tab and comes back should resume where they stopped,
-// not click "Далі" past three completed steps — the whole point of drafts is
-// that stopping is cheap. Lands on the first step with a missing answer.
-function firstIncompleteStep(
-  steps: readonly FormStep[],
-  values: StepValues,
-): number {
-  const index = steps.findIndex((step) =>
-    step.fields.some((field) => {
-      const value = values[field];
-      return value === undefined || value === null || value === "";
-    }),
-  );
-  return index === -1 ? steps.length - 1 : index;
-}
-
 export function ApplicationForm({
   application,
   contact,
@@ -69,7 +53,7 @@ export function ApplicationForm({
 
   const values = toStepValues(application);
   const [stepIndex, setStepIndex] = useState(() =>
-    firstIncompleteStep(steps, values),
+    initialStep(steps, values, application.status),
   );
   const [saveState, setSaveState] = useState(initialSaveDraftState);
   const [pending, startTransition] = useTransition();
