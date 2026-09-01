@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { applications, claims, users } from "@/db/schema";
@@ -195,4 +195,56 @@ export async function getApplicationForFileAccess(
     .where(eq(claims.applicationId, applicationId))
     .limit(1);
   return { application, claim: claim ?? null };
+}
+
+// Mark a wish fulfilled. Guarded on `claimed` in SQL, not only in the UI: a
+// double submit, or a release that landed in between, must not be able to move
+// an application into `fulfilled` from anywhere else.
+export async function markFulfilled(
+  applicationId: string,
+  parentId: string,
+): Promise<boolean> {
+  const rows = await getDb()
+    .update(applications)
+    .set({ status: "fulfilled" })
+    .where(
+      and(
+        eq(applications.id, applicationId),
+        eq(applications.parentId, parentId),
+        eq(applications.status, "claimed"),
+      ),
+    )
+    .returning({ id: applications.id });
+  return rows.length > 0;
+}
+
+// The volunteer holding this parent's child, for "look up my volunteer".
+//
+// This is the ONLY place the disclosure runs the other way: everywhere else a
+// volunteer is shown the family's contact. A family that has handed over a
+// child's address deserves to know who has it and how to reach them.
+export async function getMyVolunteers(parentId: string, campaignId: string) {
+  return getDb()
+    .select({
+      applicationId: applications.id,
+      childName: applications.childName,
+      status: applications.status,
+      claimedAt: claims.claimedAt,
+      volunteerUsername: users.username,
+      volunteerFirstName: users.firstName,
+      volunteerPhone: users.phone,
+    })
+    .from(applications)
+    .innerJoin(
+      claims,
+      and(eq(claims.applicationId, applications.id), isNull(claims.releasedAt)),
+    )
+    .innerJoin(users, eq(users.id, claims.volunteerId))
+    .where(
+      and(
+        eq(applications.parentId, parentId),
+        eq(applications.campaignId, campaignId),
+      ),
+    )
+    .orderBy(asc(claims.claimedAt));
 }

@@ -118,6 +118,29 @@ export function canViewSensitiveChildData(
   );
 }
 
+// Who may UPLOAD a file, and when.
+//
+// Separate from canEditApplication because the edit lock and the upload window
+// disagree for exactly one kind: approval freezes an application's content, and
+// the gift confirmation is uploaded long after that — once a volunteer holds
+// the child and the present has arrived. Reusing the edit lock here would make
+// it impossible to ever confirm receipt.
+export function canUploadApplicationFile(
+  actor: MaybeActor,
+  application: Pick<Application, "parentId" | "status">,
+  kind: FileKind,
+): boolean {
+  if (kind === "confirmation") {
+    // Proof the gift arrived: the owning parent, and only while a volunteer
+    // actually holds the child. Not before a claim (there is nothing to
+    // confirm) and not after `fulfilled` (it is already done).
+    return (
+      ownsApplication(actor, application) && application.status === "claimed"
+    );
+  }
+  return canEditApplication(actor, application);
+}
+
 // Who may read an uploaded file. The KIND decides, not the application:
 //
 //   idp_certificate         — ADMINS ONLY. A state document about a child; a
@@ -126,7 +149,10 @@ export function canViewSensitiveChildData(
 //                             claiming volunteer.
 //   letter_photo            — same audience as the other sensitive fields:
 //   child_with_letter_photo   admin, the owning parent, or the volunteer
-//                             holding the ACTIVE claim.
+//   confirmation              holding the ACTIVE claim. The confirmation photo
+//                             deliberately reaches the claiming volunteer
+//                             (Vital, Phase 7): they bought the gift, and
+//                             seeing it arrive is the point of the whole thing.
 //
 // Separate from canViewSensitiveChildData so the certificate can never be
 // widened by a change to the sensitive-field rule.
@@ -140,6 +166,40 @@ export function canViewApplicationFile(
     return isAdmin(actor) || ownsApplication(actor, application);
   }
   return canViewSensitiveChildData(actor, application, claim);
+}
+
+// Why confirming receipt can be refused, so the UI explains rather than hides.
+export type ConfirmBlockReason =
+  | "not_owner"
+  | "not_claimed" // nobody holds it yet, or it is already fulfilled
+  | "no_photo"; // a photo is required (Vital, Phase 7)
+
+export function getConfirmBlockReason(
+  actor: MaybeActor,
+  application: Pick<Application, "parentId" | "status">,
+  ctx: { hasConfirmationPhoto: boolean },
+): ConfirmBlockReason | null {
+  if (!ownsApplication(actor, application)) {
+    return "not_owner";
+  }
+  if (application.status !== "claimed") {
+    return "not_claimed";
+  }
+  // A photo is REQUIRED to close the loop (Vital, Phase 7): it is the proof the
+  // wish actually landed, and the thing the volunteer who paid for it gets to
+  // see. Note this also gates the review, which is only offered once fulfilled.
+  if (!ctx.hasConfirmationPhoto) {
+    return "no_photo";
+  }
+  return null;
+}
+
+export function canConfirmReceipt(
+  actor: MaybeActor,
+  application: Pick<Application, "parentId" | "status">,
+  ctx: { hasConfirmationPhoto: boolean },
+): boolean {
+  return getConfirmBlockReason(actor, application, ctx) === null;
 }
 
 // Approve/reject applications, moderate reviews, export — admin only.

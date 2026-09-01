@@ -24,20 +24,31 @@ export {
 } from "@/lib/actor";
 
 export {
+  canConfirmReceipt,
   canEditApplication,
   canModerateApplications,
+  canUploadApplicationFile,
   canViewApplicationFile,
   canStartApplication,
   canSubmitApplication,
   canViewSensitiveChildData,
+  getConfirmBlockReason,
   getSubmitBlockReason,
   ownsApplication,
+  type ConfirmBlockReason,
   type SubmitBlockReason,
 } from "@/features/applications/authz";
 
 export { type BrowseCard, toBrowseCard } from "@/features/applications/mappers";
 
 export { intakeOpen, type ResolvedSettings } from "@/features/campaigns/authz";
+
+export {
+  canLeaveReview,
+  canModerateReviews,
+  getReviewBlockReason,
+  type ReviewBlockReason,
+} from "@/features/reviews/authz";
 
 export {
   canAssignVolunteer,

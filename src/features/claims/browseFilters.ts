@@ -72,6 +72,32 @@ export function parseBrowseQuery(params: {
   };
 }
 
+// The query string for a browse view. Shared so every link is built the same
+// way — see browseHref for why that matters.
+function browseParams(query: BrowseQuery, page: number): URLSearchParams {
+  const params = new URLSearchParams();
+  if (query.region) {
+    params.set("region", query.region);
+  }
+  if (query.availability !== "all") {
+    params.set("availability", query.availability);
+  }
+  if (query.age !== null) {
+    params.set("age", query.age);
+  }
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+  return params;
+}
+
+function browseUrl(params: URLSearchParams): string {
+  const qs = params.toString();
+  // The fragment goes LAST. It keeps paging and filtering anchored to the
+  // results instead of scrolling back to the page heading.
+  return `/volunteer/children${qs ? `?${qs}` : ""}#${BROWSE_ANCHOR}`;
+}
+
 // Rebuild the url for a query, optionally overriding parts of it. Any change to
 // a FILTER resets to page 1 — a narrower filter may not have the page you were
 // on.
@@ -81,25 +107,25 @@ export function browseHref(
 ): string {
   const next = { ...query, ...override };
   const changedFilter = Object.keys(override).some((key) => key !== "page");
-  const page = changedFilter ? 1 : next.page;
+  return browseUrl(browseParams(next, changedFilter ? 1 : next.page));
+}
 
-  const params = new URLSearchParams();
-  if (next.region) {
-    params.set("region", next.region);
-  }
-  if (next.availability !== "all") {
-    params.set("availability", next.availability);
-  }
-  if (next.age !== null) {
-    params.set("age", next.age);
-  }
-  if (page > 1) {
-    params.set("page", String(page));
-  }
-  // The fragment keeps paging and filtering anchored to the results instead of
-  // scrolling back to the page heading every time.
-  const qs = params.toString();
-  return `/volunteer/children${qs ? `?${qs}` : ""}#${BROWSE_ANCHOR}`;
+// The url that opens the claim confirmation for one child, preserving the view
+// the volunteer is looking at.
+//
+// This exists because appending "?claim=..." to browseHref's output produced
+// `/volunteer/children#children?claim=<id>` — the query landed INSIDE the
+// fragment, so the server never saw it and the modal silently never opened.
+// Building the params first and adding the fragment last is the only ordering
+// that works, so no caller should be assembling this by hand.
+export function claimHref(
+  query: BrowseQuery,
+  page: number,
+  applicationId: string,
+): string {
+  const params = browseParams(query, page);
+  params.set("claim", applicationId);
+  return browseUrl(params);
 }
 
 export function browsePageCount(total: number): number {

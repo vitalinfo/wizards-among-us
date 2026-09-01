@@ -45,6 +45,7 @@ export default async function ApplicationPage({
   const t = await getTranslations("parent.form");
   const tBlocked = await getTranslations("parent.applications.blocked");
   const tRejected = await getTranslations("parent.applications.rejected");
+  const tBack = await getTranslations("parent");
   const editable = canEditApplication(actor, application);
 
   // Resolved live rather than copied onto the application: the delivery step
@@ -64,7 +65,9 @@ export default async function ApplicationPage({
   const campaignActive = campaign?.status === "active";
 
   // Keyed by kind: each upload slot is single-file, so the newest wins if a
-  // parent somehow has two of a kind.
+  // parent somehow has two of a kind. That only holds because
+  // listApplicationFiles is ordered oldest-first — later keys overwrite
+  // earlier ones. Unordered, this picked an arbitrary row.
   const files = Object.fromEntries(
     uploaded.map((file) => [
       file.kind,
@@ -76,7 +79,16 @@ export default async function ApplicationPage({
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-10 sm:px-8">
-        <div className="flex flex-wrap items-center gap-3">
+        {/* A persistent way back. There used to be one only inside the
+            post-submit banner, so anyone arriving another way was stranded. */}
+        <Link
+          href="/parent/applications"
+          className="text-primary text-sm font-semibold underline underline-offset-4"
+        >
+          {tBack("backToApplications")}
+        </Link>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           {/* A stable page title — each step carries its own heading, so this
               must not name one particular step. */}
           <h1 className="text-3xl font-semibold">{t("pageTitle")}</h1>

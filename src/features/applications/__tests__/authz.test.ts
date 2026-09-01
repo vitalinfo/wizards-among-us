@@ -6,6 +6,7 @@ import {
   canEditApplication,
   canStartApplication,
   canSubmitApplication,
+  canUploadApplicationFile,
   canViewApplicationFile,
   canViewSensitiveChildData,
   getSubmitBlockReason,
@@ -260,5 +261,61 @@ describe("canViewApplicationFile", () => {
         ),
       ).toBe(false);
     }
+  });
+});
+
+// The upload window and the edit lock disagree for exactly one kind. Approval
+// freezes an application's content; the gift confirmation is uploaded long
+// after that, so reusing the edit lock would make confirming receipt impossible.
+describe("canUploadApplicationFile", () => {
+  const owned = { parentId: "p1" };
+
+  it("lets the parent upload the confirmation only while a volunteer holds it", () => {
+    expect(
+      canUploadApplicationFile(
+        parent,
+        { ...owned, status: "claimed" },
+        "confirmation",
+      ),
+    ).toBe(true);
+    // Nothing to confirm before a claim, and nothing to add after it is done.
+    for (const status of [
+      "approved",
+      "submitted",
+      "draft",
+      "fulfilled",
+    ] as const) {
+      expect(
+        canUploadApplicationFile(parent, { ...owned, status }, "confirmation"),
+      ).toBe(false);
+    }
+  });
+
+  it("never lets someone else upload a confirmation to your application", () => {
+    expect(
+      canUploadApplicationFile(
+        otherParent,
+        { ...owned, status: "claimed" },
+        "confirmation",
+      ),
+    ).toBe(false);
+  });
+
+  // The form's own uploads keep the edit lock they always had.
+  it("keeps the edit lock for the form uploads", () => {
+    expect(
+      canUploadApplicationFile(
+        parent,
+        { ...owned, status: "draft" },
+        "letter_photo",
+      ),
+    ).toBe(true);
+    expect(
+      canUploadApplicationFile(
+        parent,
+        { ...owned, status: "approved" },
+        "letter_photo",
+      ),
+    ).toBe(false);
   });
 });

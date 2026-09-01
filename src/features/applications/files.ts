@@ -7,10 +7,17 @@ import type { FileKind } from "@/db/enums";
 //   idp_certificate         → ADMINS ONLY. A state document about a child.
 //   letter_photo            → claiming volunteer
 //   child_with_letter_photo → claiming volunteer
+//   confirmation            → claiming volunteer (proof the gift arrived)
+//
+// They also differ in WHEN they may be uploaded, which this list does not
+// express: the three form kinds belong to a draft the parent is still editing,
+// while `confirmation` is uploaded AFTER approval has locked everything else.
+// That timing lives in canUploadApplicationFile — see applications/authz.ts.
 export const PARENT_UPLOAD_KINDS = [
   "idp_certificate",
   "letter_photo",
   "child_with_letter_photo",
+  "confirmation",
 ] as const satisfies readonly FileKind[];
 
 export type ParentUploadKind = (typeof PARENT_UPLOAD_KINDS)[number];

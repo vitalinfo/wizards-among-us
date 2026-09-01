@@ -1,13 +1,14 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { canEditApplication } from "@/features/applications/authz";
+import { canUploadApplicationFile } from "@/features/applications/authz";
 import {
   extensionFor,
   MAX_UPLOAD_BYTES,
   rejectUpload,
   type ParentUploadKind,
 } from "@/features/applications/files";
+import type { FileKind } from "@/db/enums";
 import { recordApplicationFile } from "@/features/applications/fileQueries";
 import { getMyApplication } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
@@ -40,13 +41,16 @@ export async function POST(
   if (!application) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
-  // The edit lock covers uploads too: once an admin approves, files are frozen.
-  if (!canEditApplication(actor, application)) {
+  const form = await request.formData();
+  const kind = String(form.get("kind") ?? "");
+
+  // The edit lock covers the form's uploads: once an admin approves, they are
+  // frozen. The gift confirmation has its own window — after the claim, which
+  // is precisely when the edit lock is on.
+  if (!canUploadApplicationFile(actor, application, kind as FileKind)) {
     return NextResponse.json({ error: "not_editable" }, { status: 403 });
   }
 
-  const form = await request.formData();
-  const kind = String(form.get("kind") ?? "");
   const file = form.get("file");
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "missing_file" }, { status: 400 });

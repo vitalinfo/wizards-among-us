@@ -41,9 +41,20 @@ export async function VolunteerCta() {
     );
   }
 
+  // Already a volunteer: browsing AND their own children. Without the second
+  // link, "Мої діти" was reachable only by the one-time redirect right after
+  // claiming — close the tab and it was gone.
   return (
-    <Link href="/volunteer/children" className={CTA}>
-      {t("browseCta")}
-    </Link>
+    <div className="flex w-full flex-col gap-2.5">
+      <Link href="/volunteer/children" className={CTA}>
+        {t("browseCta")}
+      </Link>
+      <Link
+        href="/volunteer/claims"
+        className={`${buttonBase} ${buttonVariants.outline} w-full`}
+      >
+        {t("myClaimsCta")}
+      </Link>
+    </div>
   );
 }

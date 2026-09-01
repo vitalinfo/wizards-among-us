@@ -4,6 +4,7 @@ import {
   ageBand,
   browseHref,
   browsePageCount,
+  claimHref,
   BROWSE_ANCHOR,
   BROWSE_PAGE_SIZE,
   parseBrowseQuery,
@@ -114,5 +115,41 @@ describe("browsePageCount", () => {
   it("counts by page size", () => {
     expect(browsePageCount(BROWSE_PAGE_SIZE)).toBe(1);
     expect(browsePageCount(BROWSE_PAGE_SIZE + 1)).toBe(2);
+  });
+});
+
+// Regression: the claim link used to be built by appending "?claim=..." to
+// browseHref's output, which already ended in "#children". The query landed
+// INSIDE the fragment, so the server never saw it — the url changed and the
+// confirmation silently never opened.
+describe("claimHref", () => {
+  const query = parseBrowseQuery({ region: "lviv", age: "5-8", page: "2" });
+
+  it("puts the query before the fragment, never inside it", () => {
+    const href = claimHref(query, 2, "app-1");
+    expect(href.indexOf("?")).toBeLessThan(href.indexOf("#"));
+    expect(href).not.toMatch(/#.*\?/);
+  });
+
+  it("is actually parseable as a url with the claim in searchParams", () => {
+    const url = new URL(claimHref(query, 2, "app-1"), "http://x");
+    expect(url.searchParams.get("claim")).toBe("app-1");
+    expect(url.hash).toBe(`#${BROWSE_ANCHOR}`);
+  });
+
+  it("preserves the view the volunteer is looking at", () => {
+    const url = new URL(claimHref(query, 2, "app-1"), "http://x");
+    expect(url.searchParams.get("region")).toBe("lviv");
+    expect(url.searchParams.get("age")).toBe("5-8");
+    expect(url.searchParams.get("page")).toBe("2");
+  });
+
+  it("works from the unfiltered first page too", () => {
+    const url = new URL(
+      claimHref(parseBrowseQuery({}), 1, "app-2"),
+      "http://x",
+    );
+    expect(url.searchParams.get("claim")).toBe("app-2");
+    expect(url.searchParams.get("page")).toBeNull();
   });
 });
