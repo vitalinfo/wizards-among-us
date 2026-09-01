@@ -36,6 +36,11 @@ export function PhotoLightbox({
         href={href}
         target="_blank"
         rel="noreferrer"
+        // Named here rather than at each call site. A caller whose trigger is a
+        // thumbnail leaves the <img> alt empty (the caption beside it already
+        // names the photo), and that left the LINK with no accessible name at
+        // all — a tab stop that announces nothing. Caught by the axe sweep.
+        aria-label={t("open", { title })}
         onClick={(event) => {
           // Leave the modifier-click and middle-click alone — someone
           // deliberately opening a new tab should still get one.
