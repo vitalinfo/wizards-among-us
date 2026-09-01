@@ -1,0 +1,1 @@
+CREATE INDEX "applications_status_submitted_idx" ON "applications" USING btree ("status","submitted_at");

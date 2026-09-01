@@ -289,6 +289,92 @@ from the browse list, not only from the redirect after claiming.
 releases the claim in the admin UI, so a human sees every drop-out instead of children quietly
 returning to the pool.
 
+### Query plans (Phase 8)
+
+The plan asks to "load-test the volunteer list". A load test on a laptop mostly measures the
+laptop; reading the query plans at realistic volume answers the question that matters — whether
+a query **scales** — so that is what was done (20k applications, seeded and removed).
+
+| query | plan | note |
+|---|---|---|
+| volunteer browse | `applications_campaign_status_idx` (bitmap) | bounded to one campaign |
+| browse count (pager) | same index | |
+| my claims | `claims_volunteer_idx` | |
+| rate-limit lookup | primary key | |
+| moderation queue | **was a full scan** | fixed by `applications_status_submitted_idx` |
+
+The moderation queue was the only hot query with **unbounded growth**: it filters by status
+across all campaigns, and `applications` never shrinks because the archive is derived rather
+than moved. `(campaign_id, status)` cannot serve it — no campaign predicate, and status is the
+second column. At 20k rows: 1.81 ms seq scan → 0.069 ms index scan, with the `ORDER BY` served
+by the same index.
+
+If you ever add an index to an already-large table, note that drizzle generates a plain
+`CREATE INDEX`, which takes a write lock. `CREATE INDEX CONCURRENTLY` cannot run inside a
+transaction and so needs the migration hand-edited.
+
+### Error monitoring (Phase 8)
+
+Sentry, wired for server, edge and browser. **Entirely inert without `SENTRY_DSN`** — `init()`
+is never called, so a local checkout and CI never talk to it.
+
+**What we refuse to send** (`src/lib/monitoring/scrub.ts`, enforced by tests using this app's
+real data shapes):
+
+| dropped | why |
+|---|---|
+| request body | it *is* the child's data — name, town, delivery address |
+| cookies | `wau_session` is a live credential; leaking it into an issue tracker lets anyone with issue access impersonate that user |
+| query string | the volunteer search puts a person's name in it |
+| headers | all but `user-agent`, `referer`, `accept-language`, `content-type` |
+| breadcrumb data | the same content by another route |
+| stack-frame locals | the last place a child's name hides |
+| user fields | reduced to an opaque `id`; identity stays in our own audit log |
+
+`sendDefaultPii` is off and `tracesSampleRate` is `0` — tracing samples real requests and would
+carry urls describing real families. **Session Replay is deliberately not enabled**: it records
+the DOM of real sessions, which here means a parent typing their child's address.
+
+One project for all environments, separated by `SENTRY_ENV` (`staging` / `production`) —
+both Heroku apps run as `NODE_ENV=production` and would otherwise be indistinguishable.
+
+Browser events go through `tunnelRoute: "/monitoring"` on our own origin, so an ad blocker
+doesn't silently swallow client-side errors — the ones we are least likely to hear about
+otherwise.
+
+**Source maps are not uploaded**, so production stack traces stay minified. That needs
+`@sentry/cli`'s binary (declined in `pnpm-workspace.yaml`) plus `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`
+and `SENTRY_PROJECT`. Wire it up when minified traces start costing more than the setup.
+
+### Rate limiting (Phase 8)
+
+Three actions are gated: **admin login** (5 / 15 min, by IP), **application submit** (10 / hour,
+by user) and **claim** (20 / hour, by user). Policies live in
+`features/rateLimit/policy.ts` so the numbers are reviewable in one place.
+
+Counters live in **Postgres** (`rate_limits`), not Redis or process memory. Memory is per-dyno
+and resets on deploy, so the effective limit silently doubles the day we run two; Redis would
+add a managed dependency the portability rule exists to avoid. This keeps the hard requirement
+that the app needs only `DATABASE_URL` and S3 credentials.
+
+The check is **one statement** — an `INSERT … ON CONFLICT` that resets or increments and returns
+the new count — so two concurrent requests cannot both read "4 used" and both proceed. Verified:
+20 simultaneous attempts against a limit of 5 allow exactly 5.
+
+It **fails open**. If the counter query throws, the request is allowed and the failure is logged
+loudly. That is deliberately the opposite of the intake kill switch, which fails closed: there,
+failure should stop new child data arriving; here, a database blip must not lock every admin out
+of logging in.
+
+Keys are `action:kind:value`, so a login attempt can't consume a submit allowance and a user id
+can't collide with an address. Login is keyed by IP (rotating the email buys nothing); submit and
+claim by user id, because families share networks and one household filing for three children
+must not exhaust a shared address.
+
+**Known limit:** `x-forwarded-for` is client-controllable in principle, so a determined attacker
+can rotate it. This raises the cost of casual abuse and protects the admin password from a naive
+script; it is not a defence against someone who knows what they are doing.
+
 ### Fulfilment loop (Phase 7)
 
 **Confirming receipt.** `/parent/applications/<id>/confirm` — the parent uploads a photo of the
@@ -524,6 +610,8 @@ against production's own config vars.
 | `TELEGRAM_BOT_TOKEN` | BotFather token for **this** environment's bot |
 | `TELEGRAM_BOT_USERNAME` | That bot's @username (no `@`) |
 | `ADMIN_ALLOWLIST` | Comma-separated admin emails |
+| `SENTRY_DSN` | Optional. Error reporting; unset = no reporting initialised. **One project for all environments** — separated by the `environment` tag, not by project. Payloads are scrubbed: error contexts here can carry child data |
+| `SENTRY_ENV` | `staging` / `production`. Defaults to `NODE_ENV`; must be set explicitly on Heroku, where both apps run as `production` |
 
 > **Why no `NEXT_PUBLIC_*` vars.** Heroku pipeline promotion copies the **compiled slug** from
 > staging to production instead of rebuilding. `NEXT_PUBLIC_*` values are inlined into the browser

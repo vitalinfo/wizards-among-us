@@ -22,7 +22,7 @@ export const initialSaveDraftState: SaveDraftState = {
 // Result of the final submit. blockReason names WHICH gate refused, so the form
 // can explain it instead of showing a dead button (see getSubmitBlockReason).
 export type SubmitState = {
-  status: "idle" | "invalid" | "blocked" | "denied";
+  status: "idle" | "invalid" | "blocked" | "denied" | "rate_limited";
   errors: Record<string, string>;
   blockReason: SubmitBlockReason | null;
 };

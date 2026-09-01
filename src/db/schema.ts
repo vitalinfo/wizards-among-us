@@ -151,6 +151,15 @@ export const applications = pgTable(
     // Volunteer browse: approved + unclaimed within the active campaign.
     index("applications_campaign_status_idx").on(t.campaignId, t.status),
     index("applications_parent_idx").on(t.parentId),
+    // The moderation queue: filter by status, oldest submission first, across
+    // ALL campaigns. The index above cannot serve it — status is its second
+    // column and the queue has no campaign predicate — so this was the one hot
+    // query doing a full scan of a table that grows without bound (the archive
+    // is derived, so applications accumulate across campaigns forever).
+    // Measured at 20k rows: 1.81ms seq scan → 0.069ms index scan, and it stops
+    // scaling with table size. submitted_at is included so the ORDER BY is
+    // served by the same index.
+    index("applications_status_submitted_idx").on(t.status, t.submittedAt),
   ],
 );
 
@@ -260,6 +269,29 @@ export const identities = pgTable(
     check("identities_provider_valid", oneOf("provider", IDENTITY_PROVIDERS)),
   ],
 );
+
+// Fixed-window rate-limit counters. One row per identifier+action, reset in
+// place when its window expires — so the table grows with distinct callers, not
+// with requests.
+//
+// In Postgres rather than Redis or process memory (Vital, Phase 8). Memory is
+// per-dyno and resets on deploy, so the effective limit silently doubles the day
+// we run two; Redis would add a managed dependency the portability rule exists
+// to avoid. This keeps the hard requirement that we need only DATABASE_URL.
+//
+// `key` carries the action AND the identifier ("login:ip:1.2.3.4",
+// "submit:user:<uuid>"), so one table serves every gate without a discriminator
+// column. It is the primary key because every read and write is a lookup by it.
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  // Start of the current window. Comparing it to now() is what decides whether
+  // to increment or reset, and it is what the sweep deletes on.
+  windowStart: timestamp("window_start", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  count: integer("count").notNull().default(0),
+  ...timestamps(),
+});
 
 export const reviews = pgTable(
   "reviews",

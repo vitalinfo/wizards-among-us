@@ -75,7 +75,8 @@ export function ApplicationForm({
   const failed =
     saveState.status === "invalid" ||
     submitState.status === "invalid" ||
-    submitState.status === "blocked";
+    submitState.status === "blocked" ||
+    submitState.status === "rate_limited";
 
   // The step advances HERE, after the save resolves — not in an effect watching
   // the result, which would be a cascading render. It also means we only ever
@@ -148,11 +149,13 @@ export function ApplicationForm({
           {/* Name the actual problem. "Check the highlighted fields" is
               actively misleading when nothing is highlighted — as with a failed
               captcha, which isn't a field the parent can fix by re-reading it. */}
-          {submitState.blockReason
-            ? tBlocked(submitState.blockReason)
-            : submitState.errors.turnstileToken
-              ? tErrors("captcha")
-              : t("saveError")}
+          {submitState.status === "rate_limited"
+            ? tErrors("rate_limited")
+            : submitState.blockReason
+              ? tBlocked(submitState.blockReason)
+              : submitState.errors.turnstileToken
+                ? tErrors("captcha")
+                : t("saveError")}
         </div>
       ) : null}
 

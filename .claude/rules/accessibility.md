@@ -46,7 +46,17 @@ Do not patch bad markup with ARIA if the structure can be made semantic instead.
 
 - Assert against the **accessibility tree**: prefer `getByRole('button', { name: /…/ })`, `getByLabelText`, `getByRole('heading', …)` over `getByTestId` or class selectors (this is already the house style — see [`testing.md`](testing.md)). Role/label queries fail when the semantics are wrong, so they double as a11y checks.
 - For interactive components, cover keyboard operation with `@testing-library/user-event` (tab/enter/space), and assert `aria-*` state where relevant.
-- Optional automated pass: we can add `vitest-axe` for a smoke `expect(await axe(container)).toHaveNoViolations()` when the UI grows — not wired yet; note it if you want it.
+- **Automated pass: wired.** Use the shared helper — `import { axe } from "@/test/axe"` then
+  `expect(await axe(container)).toHaveNoViolations()`. Add a sweep to any component spec you touch.
+  Two rules are off and you should know why:
+  - `region` — a page-level landmark rule that fires on component fragments rendered without a `<main>`.
+  - `color-contrast` — **cannot run in jsdom** (axe measures rendered pixels via canvas). Left on it
+    throws per check and reports nothing, which is worse than absent. Contrast is enforced instead by
+    `src/test/__tests__/contrast.test.ts`, which computes WCAG ratios from the tokens in `globals.css` —
+    so a token change that breaks contrast fails CI. **Add new colour pairs to that list.**
+- Axe catches the decay (a lost label, a stale `aria-*`, a duplicated id), not the judgement — it cannot
+  tell you whether a label makes sense or whether focus lands somewhere useful. Keep the role/label
+  assertions; the sweep is in addition to them, not instead.
 
 ### Checklist (before handing back UI)
 

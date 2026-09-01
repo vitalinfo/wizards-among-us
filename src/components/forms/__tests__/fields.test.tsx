@@ -5,12 +5,13 @@ import { describe, expect, it } from "vitest";
 
 import messages from "../../../../messages/uk.json";
 import { locale } from "@/i18n/request";
+import { axe } from "@/test/axe";
 
 import { SelectField } from "../SelectField";
 import { TextField } from "../TextField";
 
 function wrap(ui: React.ReactNode) {
-  render(
+  return render(
     <NextIntlClientProvider locale={locale} messages={messages}>
       {ui}
     </NextIntlClientProvider>,
@@ -77,5 +78,61 @@ describe("SelectField", () => {
     const select = screen.getByLabelText(/Область/);
     await user.selectOptions(select, "lviv");
     expect(select).toHaveValue("lviv");
+  });
+});
+
+// Automated sweep over the primitives every form is built from. The assertions
+// above encode what we MEANT to build; axe catches the accessibility defects
+// nobody thought to assert — a stray aria-* that no longer matches its element,
+// a duplicated id, a control that lost its name in a refactor.
+//
+// Contrast is NOT covered here (axe cannot measure it in jsdom); see
+// src/test/__tests__/contrast.test.ts.
+describe("field primitives pass an automated accessibility sweep", () => {
+  it("TextField, clean and invalid", async () => {
+    const clean = wrap(<TextField id="a" name="a" label="Імʼя дитини" />);
+    expect(await axe(clean.container)).toHaveNoViolations();
+    clean.unmount();
+
+    const invalid = wrap(
+      <TextField
+        id="b"
+        name="b"
+        label="Вік"
+        hint="Наприклад: 7"
+        error="Заповніть це поле"
+      />,
+    );
+    expect(await axe(invalid.container)).toHaveNoViolations();
+  });
+
+  it("SelectField, clean and invalid", async () => {
+    const options = [
+      { value: "lviv", label: "Львівська область" },
+      { value: "kyiv", label: "Київська область" },
+    ];
+    const clean = wrap(
+      <SelectField
+        id="c"
+        name="c"
+        label="Область"
+        placeholder="Оберіть область"
+        options={options}
+      />,
+    );
+    expect(await axe(clean.container)).toHaveNoViolations();
+    clean.unmount();
+
+    const invalid = wrap(
+      <SelectField
+        id="d"
+        name="d"
+        label="Область"
+        placeholder="Оберіть область"
+        options={options}
+        error="Оберіть значення"
+      />,
+    );
+    expect(await axe(invalid.container)).toHaveNoViolations();
   });
 });
