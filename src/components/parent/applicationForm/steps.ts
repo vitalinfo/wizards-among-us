@@ -2,6 +2,8 @@ import type { ComponentType } from "react";
 
 import type { CampaignType } from "@/db/enums";
 
+import type { ApplicationRow, StepValues } from "./types";
+
 import { ChildStep } from "./ChildStep";
 import { ConsentStep } from "./ConsentStep";
 import { DeliveryStep } from "./DeliveryStep";
@@ -66,4 +68,33 @@ export function stepsForCampaignType(
     return null;
   }
   return FORMS[type] ?? null;
+}
+
+// Where to open the form, which depends on WHY the parent is here.
+//
+// Still filling one in (draft): resume at the first step with a missing answer
+// — a parent who closes the tab on a phone should not click "Далі" past three
+// completed steps, since the whole point of drafts is that stopping is cheap.
+// A draft with nothing missing opens at the last step, where the submit is.
+//
+// Already submitted: open at the FIRST step. The application is complete by
+// definition, so "first incomplete" would fall through to the last step —
+// consent and a captcha — which is the least useful place to land when the link
+// they followed said «Переглянути або змінити». They came to read it from the
+// top, and may still change it: the edit lock only lands on admin approval.
+export function initialStep(
+  steps: readonly FormStep[],
+  values: StepValues,
+  status: ApplicationRow["status"],
+): number {
+  if (status !== "draft") {
+    return 0;
+  }
+  const index = steps.findIndex((step) =>
+    step.fields.some((field) => {
+      const value = values[field];
+      return value === undefined || value === null || value === "";
+    }),
+  );
+  return index === -1 ? steps.length - 1 : index;
 }
