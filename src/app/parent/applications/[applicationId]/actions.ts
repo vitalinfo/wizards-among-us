@@ -33,9 +33,10 @@ import { getResolvedSettings } from "@/features/settings/queries";
 import { verifyTurnstile } from "@/features/turnstile/verify";
 import { resolveUserContact } from "@/features/users/contact";
 import { setUserPhone } from "@/features/users/queries";
-import type {
-  SaveDraftState,
-  SubmitState,
+import {
+  issueCode,
+  type SaveDraftState,
+  type SubmitState,
 } from "@/features/applications/formState";
 import { applicationDraftFormSchema } from "@/features/applications/validation";
 import { isUser } from "@/lib/actor";
@@ -77,7 +78,7 @@ export async function saveApplicationDraft(
     for (const issue of parsed.error.issues) {
       const field = String(issue.path[0] ?? "");
       if (field && !errors[field]) {
-        errors[field] = issue.code;
+        errors[field] = issueCode(issue);
       }
     }
     return { status: "invalid", errors };
@@ -274,7 +275,7 @@ export async function submitApplicationAction(
     ]) {
       const field = String(issue.path[0] ?? "");
       if (field && !errors[field]) {
-        errors[field] = issue.message || issue.code;
+        errors[field] = issueCode(issue);
       }
     }
     return { status: "invalid", errors, blockReason: null };
