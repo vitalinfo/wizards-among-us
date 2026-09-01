@@ -6,7 +6,12 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { recordAuditLog } from "@/features/audit/log";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
+import { ClaimPhotos } from "@/components/volunteer/ClaimPhotos";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
+import {
+  CLAIM_VISIBLE_KINDS,
+  latestByKind,
+} from "@/features/applications/files";
 import { listMyClaims } from "@/features/claims/queries";
 import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
@@ -32,17 +37,21 @@ export default async function MyClaimsPage() {
   const rows = campaign ? await listMyClaims(actor.id, campaign.id) : [];
   const format = await getFormatter();
 
-  // The confirmation photo the family uploaded. Showing it to the volunteer who
-  // paid for the gift is the whole reason that photo has this audience
-  // (Vital, Phase 7) — the authorization existed before this page did.
+  // The photos this volunteer is entitled to: the child's letter, the child
+  // holding it, and the family's confirmation once the gift arrives.
+  //
+  // canViewApplicationFile has allowed all three to the claiming volunteer
+  // since Phase 4 — the letter photos simply had no page to appear on, so the
+  // volunteer chose a wish they could never read. The ВПО certificate is not in
+  // CLAIM_VISIBLE_KINDS and never will be.
   const photos = new Map(
     await Promise.all(
       rows.map(async ({ application }) => {
         const files = await listApplicationFiles(application.id);
-        // findLast: listApplicationFiles is oldest-first, so this is the most
-        // recent photo the family uploaded.
-        const photo = files.findLast((file) => file.kind === "confirmation");
-        return [application.id, photo?.id ?? null] as const;
+        return [
+          application.id,
+          latestByKind(files, CLAIM_VISIBLE_KINDS),
+        ] as const;
       }),
     ),
   );
@@ -143,24 +152,11 @@ export default async function MyClaimsPage() {
                         </div>
                       ))}
                     </dl>
-                    {photos.get(application.id) ? (
-                      <figure className="mt-3">
-                        <figcaption className="text-sm font-medium">
-                          {t("photoTitle")}
-                        </figcaption>
-                        {/* Streams through the authorized route, which
-                            re-checks this volunteer holds the claim and logs
-                            the read. Never a direct storage url. */}
-                        {/* eslint-disable-next-line @next/next/no-img-element -- served by an authorized route, not an optimizable static asset */}
-                        <img
-                          src={`/api/applications/${application.id}/files/${photos.get(application.id)}`}
-                          alt={t("photoAlt", {
-                            child: application.childName ?? "",
-                          })}
-                          className="border-border mt-2 max-h-80 w-auto rounded-md border"
-                        />
-                      </figure>
-                    ) : null}
+                    <ClaimPhotos
+                      applicationId={application.id}
+                      childName={application.childName}
+                      photos={photos.get(application.id) ?? []}
+                    />
 
                     <p className="text-muted-foreground mt-2 text-xs">
                       {application.status === "fulfilled"
