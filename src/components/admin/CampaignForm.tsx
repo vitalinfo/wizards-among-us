@@ -11,7 +11,7 @@ import {
 import { SelectField } from "@/components/forms/SelectField";
 import { TextAreaField } from "@/components/forms/TextAreaField";
 import { TextField } from "@/components/forms/TextField";
-import { CAMPAIGN_TYPES } from "@/db/enums";
+import { CAMPAIGN_TYPES, CREATABLE_CAMPAIGN_TYPES } from "@/db/enums";
 import type { AdminCampaign } from "@/features/campaigns/adminQueries";
 import { initialCampaignActionState } from "@/features/campaigns/formState";
 
@@ -28,6 +28,13 @@ export function CampaignForm({ campaign }: { campaign?: AdminCampaign }) {
   const t = useTranslations("admin.campaigns");
   const editing = campaign !== undefined;
   const typeLocked = editing && campaign.status !== "draft";
+
+  // A draft of a retired type keeps its own option, so saving the form cannot
+  // quietly convert it.
+  const typeOptions: readonly (typeof CAMPAIGN_TYPES)[number][] =
+    campaign && !CREATABLE_CAMPAIGN_TYPES.includes(campaign.type as never)
+      ? [campaign.type, ...CREATABLE_CAMPAIGN_TYPES]
+      : CREATABLE_CAMPAIGN_TYPES;
 
   const [state, formAction, pending] = useActionState(
     editing
@@ -67,7 +74,10 @@ export function CampaignForm({ campaign }: { campaign?: AdminCampaign }) {
           label={t("fields.type")}
           placeholder={t("fields.type")}
           defaultValue={campaign?.type}
-          options={CAMPAIGN_TYPES.map((type) => ({
+          // Only the types we still offer — plus this campaign's own type when
+          // editing a draft of a retired one, so the select can represent what
+          // the row actually is instead of silently changing it on save.
+          options={typeOptions.map((type) => ({
             value: type,
             label: t(`types.${type}`),
           }))}

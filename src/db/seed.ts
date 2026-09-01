@@ -9,8 +9,8 @@ import { campaigns, settings } from "./schema";
 loadEnvConfig(process.cwd());
 
 const DRAFT_CAMPAIGN = {
-  type: "new_school_year" as const,
-  title: "Новий навчальний рік 2026",
+  type: "saint_nicholas_day" as const,
+  title: "Святий Миколай 2026",
   description: "Чернетка кампанії, створена сідером для локальної розробки.",
 };
 
