@@ -8,9 +8,8 @@ allowBuilds:
   "@swc/core": true
   "@parcel/watcher": true
   sharp: false
-  # Declined for now. @sentry/cli's postinstall downloads a platform binary used
-  # ONLY to upload source maps at build time, which needs SENTRY_AUTH_TOKEN,
-  # SENTRY_ORG and SENTRY_PROJECT — none of which are set. Error reporting works
-  # without it; the cost is that production stack traces stay minified. Flip to
-  # true when we wire source-map upload.
-  "@sentry/cli": false
+  # Downloads a platform binary used ONLY to upload source maps at build time.
+  # Allowed so the upload works wherever SENTRY_AUTH_TOKEN is configured; the
+  # upload itself stays off until it is (see next.config.ts), so this costs a
+  # binary in node_modules and nothing else.
+  "@sentry/cli": true

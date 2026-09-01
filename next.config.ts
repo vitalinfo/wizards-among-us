@@ -36,19 +36,27 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Sentry wraps the config last so it sees the final one. It is inert without
-// SENTRY_DSN — no upload, no instrumentation, no build-time network calls.
-//
-// Source maps are NOT uploaded: that needs @sentry/cli's binary (declined in
-// pnpm-workspace.yaml) plus SENTRY_AUTH_TOKEN/ORG/PROJECT. The cost is that
-// production stack traces stay minified; wire it up when that starts hurting.
+// Source-map upload is gated on the AUTH TOKEN, not on a flag someone has to
+// remember. Without it a build produces minified traces and makes no network
+// calls; with it, uploads happen automatically wherever it is configured
+// (locally, CI, the Heroku build). One variable, no second switch to forget.
+const uploadSourceMaps = Boolean(process.env.SENTRY_AUTH_TOKEN);
+
+// Sentry wraps the config last so it sees the final one. Inert without
+// SENTRY_DSN — no instrumentation, no build-time network calls.
 export default withSentryConfig(withNextIntl(nextConfig), {
   silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
   // Route browser events through our own origin, so an ad blocker doesn't
   // silently swallow client-side errors — the ones we are least likely to hear
   // about any other way.
   tunnelRoute: "/monitoring",
-  disableLogger: true,
-  // We upload nothing, so there is nothing to widen or hide.
-  sourcemaps: { disable: true },
+  sourcemaps: {
+    disable: !uploadSourceMaps,
+    // Uploaded maps make the original TypeScript readable to anyone with access
+    // to the Sentry project — acceptable here (no proprietary logic), but there
+    // is no reason to also leave them served from our own origin afterwards.
+    deleteSourcemapsAfterUpload: true,
+  },
 });
