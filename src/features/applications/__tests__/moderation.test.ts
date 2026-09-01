@@ -4,8 +4,12 @@ import { moderationDecisionSchema } from "../moderation";
 import {
   filterToStatus,
   moderationPageCount,
+  isDefaultModerationQuery,
   moderationQueueHref,
+  moderationSearch,
   parseModerationFilter,
+  parseModerationQuery,
+  submittedRange,
   parseModerationPage,
   MODERATION_PAGE_SIZE,
 } from "../moderationFilter";
@@ -145,5 +149,104 @@ describe("moderation queue paging", () => {
       "approved",
     );
     expect(parseModerationPage(params.get("page") ?? undefined)).toBe(2);
+  });
+});
+
+describe("parseModerationQuery", () => {
+  it("defaults to the queue that needs an admin, with no date bounds", () => {
+    expect(parseModerationQuery({})).toEqual({
+      filter: "submitted",
+      submittedFrom: null,
+      submittedTo: null,
+      page: 1,
+    });
+  });
+
+  it("reads a status and a date range out of the url", () => {
+    expect(
+      parseModerationQuery({
+        status: "approved",
+        from: "2026-08-25",
+        to: "2026-09-01",
+        page: "3",
+      }),
+    ).toEqual({
+      filter: "approved",
+      submittedFrom: "2026-08-25",
+      submittedTo: "2026-09-01",
+      page: 3,
+    });
+  });
+
+  // A url that filters everything out looks like a broken page, not a typo.
+  it("drops a backwards range rather than returning nothing", () => {
+    const query = parseModerationQuery({
+      from: "2026-09-01",
+      to: "2026-08-01",
+    });
+    expect(query.submittedFrom).toBe("2026-09-01");
+    expect(query.submittedTo).toBeNull();
+  });
+
+  it("ignores a date it cannot read", () => {
+    expect(
+      parseModerationQuery({ from: "01.09.2026" }).submittedFrom,
+    ).toBeNull();
+  });
+});
+
+describe("submittedRange", () => {
+  // Half-open, in Kyiv time: «по 01.09» has to include the whole of that day,
+  // and «з 01.09» has to include the applications submitted just after midnight
+  // there — three hours before UTC midnight in summer.
+  it("covers the whole of both named days", () => {
+    const range = submittedRange(
+      parseModerationQuery({ from: "2026-09-01", to: "2026-09-01" }),
+    );
+
+    expect(range.submittedFrom?.toISOString()).toBe("2026-08-31T21:00:00.000Z");
+    expect(range.submittedBefore?.toISOString()).toBe(
+      "2026-09-01T21:00:00.000Z",
+    );
+  });
+
+  it("leaves an unset bound undefined rather than guessing one", () => {
+    const range = submittedRange(parseModerationQuery({ from: "2026-09-01" }));
+    expect(range.submittedBefore).toBeUndefined();
+  });
+});
+
+describe("moderationSearch", () => {
+  // The queue view rides in the url so returning from an application lands back
+  // on the queue the admin was actually working.
+  it("round-trips a filtered view", () => {
+    const query = parseModerationQuery({
+      status: "claimed",
+      from: "2026-08-25",
+      to: "2026-09-01",
+      page: "2",
+    });
+
+    expect(
+      parseModerationQuery(
+        Object.fromEntries(new URLSearchParams(moderationSearch(query))),
+      ),
+    ).toEqual(query);
+  });
+
+  it("omits what is unset", () => {
+    expect(moderationSearch(parseModerationQuery({}))).toBe("status=submitted");
+  });
+});
+
+describe("isDefaultModerationQuery", () => {
+  it("is true only when nothing is narrowed", () => {
+    expect(isDefaultModerationQuery(parseModerationQuery({}))).toBe(true);
+    expect(
+      isDefaultModerationQuery(parseModerationQuery({ from: "2026-09-01" })),
+    ).toBe(false);
+    expect(
+      isDefaultModerationQuery(parseModerationQuery({ status: "all" })),
+    ).toBe(false);
   });
 });

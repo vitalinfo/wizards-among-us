@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, lt } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import type { ApplicationStatus } from "@/db/enums";
@@ -24,6 +24,11 @@ export type ModerationRow = {
 type ModerationFilterInput = {
   campaignId?: string;
   status?: ApplicationStatus;
+  // Half-open [submittedFrom, submittedBefore) in UTC. The caller turns the
+  // admin's dates into instants (see submittedRange) — a date is not a point in
+  // time, and comparing a timestamptz to one is how a day goes missing.
+  submittedFrom?: Date;
+  submittedBefore?: Date;
 };
 
 function moderationConditions(filter: ModerationFilterInput) {
@@ -32,6 +37,15 @@ function moderationConditions(filter: ModerationFilterInput) {
       ? eq(applications.campaignId, filter.campaignId)
       : undefined,
     filter.status ? eq(applications.status, filter.status) : undefined,
+    filter.submittedFrom
+      ? gte(applications.submittedAt, filter.submittedFrom)
+      : undefined,
+    // `lt` the day AFTER the one the admin picked: `lte` against midnight would
+    // exclude everything submitted during that day, which is the opposite of
+    // what "по 01.09" means to the person typing it.
+    filter.submittedBefore
+      ? lt(applications.submittedAt, filter.submittedBefore)
+      : undefined,
   ].filter(Boolean);
 }
 

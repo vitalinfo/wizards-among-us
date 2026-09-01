@@ -11,8 +11,7 @@ import { getApplicationForAdmin } from "@/features/applications/adminQueries";
 import { getClaimHolder, searchVolunteers } from "@/features/claims/queries";
 import {
   moderationQueueHref,
-  parseModerationFilter,
-  parseModerationPage,
+  parseModerationQuery,
 } from "@/features/applications/moderationFilter";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { recordAuditLog } from "@/features/audit/log";
@@ -44,6 +43,8 @@ export default async function AdminApplicationPage({
   // the exact view they left instead of the default queue's first page.
   searchParams: Promise<{
     status?: string;
+    from?: string;
+    to?: string;
     page?: string;
     // Claim controls: the volunteer search term and the pending confirmation.
     volunteer?: string;
@@ -53,10 +54,9 @@ export default async function AdminApplicationPage({
   }>;
 }) {
   const [{ applicationId }, query] = await Promise.all([params, searchParams]);
-  const backHref = moderationQueueHref(
-    parseModerationFilter(query.status),
-    parseModerationPage(query.page),
-  );
+  // The whole queue view rides in the url — status, date range and page — so
+  // "back" returns to exactly what the admin was working, not the default.
+  const backHref = moderationQueueHref(parseModerationQuery(query));
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");

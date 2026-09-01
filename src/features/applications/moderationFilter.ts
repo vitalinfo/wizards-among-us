@@ -1,4 +1,9 @@
 import { APPLICATION_STATUSES, type ApplicationStatus } from "@/db/enums";
+import {
+  parseDateOnly,
+  zonedEndOfDayExclusive,
+  zonedStartOfDay,
+} from "@/lib/zonedDate";
 
 // The moderation queue's filter, shared by the queue and the detail page.
 //
@@ -50,14 +55,93 @@ export function moderationPageCount(total: number): number {
   return Math.max(1, Math.ceil(total / MODERATION_PAGE_SIZE));
 }
 
-// The queue url for a filter and page. The filter is spelled out rather than
-// omitted so a "back" link always returns to the same view the admin left, even
-// if the default ever changes; page is omitted at 1 to keep the common url
-// clean and to keep older links working.
+// Everything the queue is filtered by, parsed out of the url.
+export type ModerationQuery = {
+  filter: ModerationFilter;
+  // Calendar dates as YYYY-MM-DD, in Europe/Kyiv — the zone the whole app
+  // renders in. Turned into instants at the query boundary (submittedRange), not
+  // here: a date is not a point in time.
+  submittedFrom: string | null;
+  submittedTo: string | null;
+  page: number;
+};
+
+export function parseModerationQuery(params: {
+  status?: string;
+  from?: string;
+  to?: string;
+  page?: string;
+}): ModerationQuery {
+  const from = parseDateOnly(params.from);
+  const to = parseDateOnly(params.to);
+  return {
+    filter: parseModerationFilter(params.status),
+    submittedFrom: from,
+    // A backwards range returns nothing and reads as a bug in the page rather
+    // than a typo in the form, so the later date wins and the range is dropped.
+    submittedTo: to && from && to < from ? null : to,
+    page: parseModerationPage(params.page),
+  };
+}
+
+// The instants to compare `submitted_at` against — half-open [from, before), so
+// «по 01.09» includes the whole of the first of September.
+export function submittedRange(query: ModerationQuery): {
+  submittedFrom?: Date;
+  submittedBefore?: Date;
+} {
+  return {
+    submittedFrom: query.submittedFrom
+      ? zonedStartOfDay(query.submittedFrom)
+      : undefined,
+    submittedBefore: query.submittedTo
+      ? zonedEndOfDayExclusive(query.submittedTo)
+      : undefined,
+  };
+}
+
+// The queue url for a query. The status is spelled out rather than omitted so a
+// "back" link always returns to the view the admin left, even if the default
+// ever changes; everything else is omitted when unset, to keep the common url
+// clean and older links working.
 export function moderationQueueHref(
-  filter: ModerationFilter,
-  page = 1,
+  query: ModerationQuery | ModerationFilter,
+  page?: number,
 ): string {
-  const base = `/admin/applications?status=${filter}`;
-  return page > 1 ? `${base}&page=${page}` : base;
+  return `/admin/applications?${moderationSearch(query, page)}`;
+}
+
+// The same values as a bare query string, for the link INTO an application —
+// the detail page carries them back out again, so "back" returns to the exact
+// queue the admin left rather than resetting to the default.
+export function moderationSearch(
+  query: ModerationQuery | ModerationFilter,
+  page?: number,
+): string {
+  const q: ModerationQuery =
+    typeof query === "string"
+      ? { filter: query, submittedFrom: null, submittedTo: null, page: 1 }
+      : query;
+  const params = new URLSearchParams({ status: q.filter });
+  if (q.submittedFrom) {
+    params.set("from", q.submittedFrom);
+  }
+  if (q.submittedTo) {
+    params.set("to", q.submittedTo);
+  }
+  const target = page ?? q.page;
+  if (target > 1) {
+    params.set("page", String(target));
+  }
+  return params.toString();
+}
+
+// Whether the admin has narrowed anything at all — drives whether a "reset"
+// control is worth showing.
+export function isDefaultModerationQuery(query: ModerationQuery): boolean {
+  return (
+    query.filter === DEFAULT_MODERATION_FILTER &&
+    query.submittedFrom === null &&
+    query.submittedTo === null
+  );
 }
