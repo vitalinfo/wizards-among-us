@@ -289,6 +289,30 @@ from the browse list, not only from the redirect after claiming.
 releases the claim in the admin UI, so a human sees every drop-out instead of children quietly
 returning to the pool.
 
+### Query plans (Phase 8)
+
+The plan asks to "load-test the volunteer list". A load test on a laptop mostly measures the
+laptop; reading the query plans at realistic volume answers the question that matters — whether
+a query **scales** — so that is what was done (20k applications, seeded and removed).
+
+| query | plan | note |
+|---|---|---|
+| volunteer browse | `applications_campaign_status_idx` (bitmap) | bounded to one campaign |
+| browse count (pager) | same index | |
+| my claims | `claims_volunteer_idx` | |
+| rate-limit lookup | primary key | |
+| moderation queue | **was a full scan** | fixed by `applications_status_submitted_idx` |
+
+The moderation queue was the only hot query with **unbounded growth**: it filters by status
+across all campaigns, and `applications` never shrinks because the archive is derived rather
+than moved. `(campaign_id, status)` cannot serve it — no campaign predicate, and status is the
+second column. At 20k rows: 1.81 ms seq scan → 0.069 ms index scan, with the `ORDER BY` served
+by the same index.
+
+If you ever add an index to an already-large table, note that drizzle generates a plain
+`CREATE INDEX`, which takes a write lock. `CREATE INDEX CONCURRENTLY` cannot run inside a
+transaction and so needs the migration hand-edited.
+
 ### Error monitoring (Phase 8)
 
 Sentry, wired for server, edge and browser. **Entirely inert without `SENTRY_DSN`** — `init()`

@@ -151,6 +151,15 @@ export const applications = pgTable(
     // Volunteer browse: approved + unclaimed within the active campaign.
     index("applications_campaign_status_idx").on(t.campaignId, t.status),
     index("applications_parent_idx").on(t.parentId),
+    // The moderation queue: filter by status, oldest submission first, across
+    // ALL campaigns. The index above cannot serve it — status is its second
+    // column and the queue has no campaign predicate — so this was the one hot
+    // query doing a full scan of a table that grows without bound (the archive
+    // is derived, so applications accumulate across campaigns forever).
+    // Measured at 20k rows: 1.81ms seq scan → 0.069ms index scan, and it stops
+    // scaling with table size. submitted_at is included so the ORDER BY is
+    // served by the same index.
+    index("applications_status_submitted_idx").on(t.status, t.submittedAt),
   ],
 );
 
