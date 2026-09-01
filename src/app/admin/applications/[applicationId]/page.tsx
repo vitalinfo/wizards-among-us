@@ -3,9 +3,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
+import { ClaimSection } from "@/components/admin/ClaimSection";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ModerationDecision } from "@/components/admin/ModerationDecision";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 import { getApplicationForAdmin } from "@/features/applications/adminQueries";
+import { getClaimHolder, searchVolunteers } from "@/features/claims/queries";
 import {
   moderationQueueHref,
   parseModerationFilter,
@@ -13,6 +16,8 @@ import {
 } from "@/features/applications/moderationFilter";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { recordAuditLog } from "@/features/audit/log";
+
+import { assignVolunteerAction, releaseClaimAction } from "../actions";
 import { resolveUserContact } from "@/features/users/contact";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
@@ -37,7 +42,15 @@ export default async function AdminApplicationPage({
   params: Promise<{ applicationId: string }>;
   // Carries the queue filter AND page the admin came from, so "back" returns to
   // the exact view they left instead of the default queue's first page.
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    page?: string;
+    // Claim controls: the volunteer search term and the pending confirmation.
+    volunteer?: string;
+    assign?: string;
+    release?: string;
+    assignError?: string;
+  }>;
 }) {
   const [{ applicationId }, query] = await Promise.all([params, searchParams]);
   const backHref = moderationQueueHref(
@@ -72,6 +85,21 @@ export default async function AdminApplicationPage({
   });
 
   const contact = resolveUserContact(parent);
+
+  // Assignment and release confirm first, through the same page-state modal as
+  // the rest of the admin surface. The target is re-resolved here rather than
+  // trusted from the url, so a stale link cannot put an unrelated volunteer
+  // behind the prompt.
+  const search = query.volunteer?.trim() ? query.volunteer.trim() : null;
+  const assignTarget = query.assign
+    ? ((await searchVolunteers(search ?? "")).find(
+        (volunteer) => volunteer.id === query.assign,
+      ) ?? null)
+    : null;
+  const holder =
+    query.release === "1" ? await getClaimHolder(applicationId) : null;
+  const overlayOpen = assignTarget !== null || holder !== null;
+  const claimHref = `/admin/applications/${applicationId}${search ? `?volunteer=${encodeURIComponent(search)}` : ""}#claim`;
   const giftUrls = Array.isArray(
     (application.typeFields as { giftUrls?: unknown } | null)?.giftUrls,
   )
@@ -157,7 +185,10 @@ export default async function AdminApplicationPage({
   return (
     <>
       <AdminNav />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
+      <main
+        inert={overlayOpen}
+        className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href={backHref}
@@ -244,6 +275,13 @@ export default async function AdminApplicationPage({
           )}
         </section>
 
+        <ClaimSection
+          applicationId={applicationId}
+          status={application.status}
+          search={search}
+          assignError={query.assignError ?? null}
+        />
+
         {/* Only an application awaiting review can be decided; anything else is
             already final (the query guards this too). */}
         {application.status === "submitted" ? (
@@ -256,6 +294,36 @@ export default async function AdminApplicationPage({
           <p className="text-muted-foreground text-sm">{t("alreadyDecided")}</p>
         )}
       </main>
+
+      {assignTarget ? (
+        <ConfirmModal
+          action={assignVolunteerAction.bind(
+            null,
+            applicationId,
+            assignTarget.id,
+          )}
+          title={t("claim.confirmAssign.title", {
+            who: assignTarget.username
+              ? `@${assignTarget.username}`
+              : (assignTarget.firstName ?? t("claim.unnamed")),
+          })}
+          message={t("claim.confirmAssign.body")}
+          confirmLabel={t("claim.assignCta")}
+          cancelHref={claimHref}
+        />
+      ) : holder ? (
+        <ConfirmModal
+          action={releaseClaimAction.bind(null, applicationId)}
+          title={t("claim.confirmRelease.title", {
+            who: holder.username
+              ? `@${holder.username}`
+              : (holder.firstName ?? t("claim.unnamed")),
+          })}
+          message={t("claim.confirmRelease.body")}
+          confirmLabel={t("claim.releaseCta")}
+          cancelHref={claimHref}
+        />
+      ) : null}
     </>
   );
 }

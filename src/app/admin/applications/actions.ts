@@ -13,7 +13,11 @@ import type { AdminEditState } from "@/features/applications/adminEditState";
 import { moderationDecisionSchema } from "@/features/applications/moderation";
 import type { ModerationActionState } from "@/features/applications/moderationState";
 import { recordAuditLog } from "@/features/audit/log";
+import { getApplicationForFileAccess } from "@/features/applications/queries";
 import { adminApplicationEditSchema } from "@/features/applications/validation";
+import { assignVolunteer, releaseClaim } from "@/features/claims/queries";
+import { isContactable } from "@/features/users/contact";
+import { getUserContact } from "@/features/users/queries";
 import { requireAdmin } from "@/lib/auth/session";
 
 // Approve / reject. requireAdmin() first — a server action is a public
@@ -128,5 +132,65 @@ export async function updateApplicationAction(
   revalidatePath("/admin/applications");
   revalidatePath(`/admin/applications/${applicationId}`);
   revalidatePath(`/parent/applications/${applicationId}`);
+  redirect(`/admin/applications/${applicationId}`);
+}
+
+// Assign a volunteer to an application by hand (plan §9 Phase 6).
+//
+// Goes through the SAME write path as a self-claim — one transaction, the same
+// unique index — so the "no double claim" invariant cannot be broken by an
+// admin override. Reassignment replaces the incumbent rather than inserting a
+// second row.
+export async function assignVolunteerAction(
+  applicationId: string,
+  volunteerId: string,
+): Promise<void> {
+  const admin = await requireAdmin();
+
+  const context = await getApplicationForFileAccess(applicationId);
+  if (!context) {
+    redirect("/admin/applications");
+  }
+
+  // The contact gate applies to an admin assignment too: the point is that the
+  // FAMILY can reach the volunteer, which is unaffected by who recorded it.
+  const volunteer = await getUserContact(volunteerId);
+  if (!isContactable(volunteer)) {
+    redirect(`/admin/applications/${applicationId}?assignError=no_contact`);
+  }
+
+  const outcome = await assignVolunteer(applicationId, volunteerId);
+
+  // Logged DISTINCTLY from a self-claim: "who decided this volunteer gets this
+  // child" is exactly the question the audit trail exists to answer, and an
+  // admin assignment is a different answer from a volunteer choosing.
+  await recordAuditLog({
+    actor: admin,
+    action:
+      outcome === "claimed" ? "claim.assigned_by_admin" : "claim.assign_failed",
+    targetType: "application",
+    targetId: applicationId,
+  });
+
+  revalidatePath(`/admin/applications/${applicationId}`);
+  revalidatePath("/volunteer/children");
+  redirect(`/admin/applications/${applicationId}`);
+}
+
+// Release a claim. Admin only by decision (Phase 6): a volunteer who cannot
+// follow through contacts the coordinator, so a human sees every drop-out.
+export async function releaseClaimAction(applicationId: string): Promise<void> {
+  const admin = await requireAdmin();
+  const released = await releaseClaim(applicationId);
+
+  await recordAuditLog({
+    actor: admin,
+    action: released ? "claim.released_by_admin" : "claim.release_noop",
+    targetType: "application",
+    targetId: applicationId,
+  });
+
+  revalidatePath(`/admin/applications/${applicationId}`);
+  revalidatePath("/volunteer/children");
   redirect(`/admin/applications/${applicationId}`);
 }
