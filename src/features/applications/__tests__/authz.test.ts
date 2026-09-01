@@ -319,3 +319,38 @@ describe("canUploadApplicationFile", () => {
     ).toBe(false);
   });
 });
+
+// A parent may keep changing an application until an admin reviews it. The
+// submit gate has always allowed that; the SQL guard behind it did not, so
+// pressing the button after an edit failed and blamed a review that had not
+// happened.
+describe("submitting an already-submitted application", () => {
+  const ctx = {
+    campaign: { status: "active" as const, acceptingApplications: true },
+    settings: { applicationsEnabled: true },
+    contactable: true,
+  };
+
+  it("is allowed while it is still submitted", () => {
+    expect(
+      getSubmitBlockReason(
+        parent,
+        { parentId: "p1", status: "submitted" },
+        ctx,
+      ),
+    ).toBeNull();
+  });
+
+  it("is refused once an admin has decided it", () => {
+    for (const status of [
+      "approved",
+      "rejected",
+      "claimed",
+      "fulfilled",
+    ] as const) {
+      expect(
+        getSubmitBlockReason(parent, { parentId: "p1", status }, ctx),
+      ).toBe("locked");
+    }
+  });
+});

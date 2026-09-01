@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { applications, claims, users } from "@/db/schema";
@@ -93,6 +93,19 @@ export async function saveDraft(
 // The status guard in the WHERE clause is the last line of defence on the edit
 // lock: even if two tabs race, an already-approved application can't be
 // re-submitted. Returns false when nothing was updated.
+// Submit, or RE-submit after an edit.
+//
+// `submitted` is accepted as well as `draft` because a parent may still change
+// an application until an admin reviews it (the edit lock lands on approval,
+// not on submit) — and pressing the button again after an edit is the obvious
+// way to save it. Guarding on `draft` alone made that fail, and the failure was
+// reported as "locked", which told the parent their application had already
+// been reviewed when it had not.
+//
+// submitted_at is set only ONCE. It is the timestamp the two-day review promise
+// is measured from and the moderation queue is ordered by, so refreshing it on
+// every edit would silently push a family to the back of the queue for fixing
+// a typo.
 export async function submitApplication(
   id: string,
   parentId: string,
@@ -100,12 +113,16 @@ export async function submitApplication(
 ): Promise<boolean> {
   const rows = await getDb()
     .update(applications)
-    .set({ ...values, status: "submitted", submittedAt: new Date() })
+    .set({
+      ...values,
+      status: "submitted",
+      submittedAt: sql`coalesce(${applications.submittedAt}, now())`,
+    })
     .where(
       and(
         eq(applications.id, id),
         eq(applications.parentId, parentId),
-        eq(applications.status, "draft"),
+        inArray(applications.status, ["draft", "submitted"]),
       ),
     )
     .returning({ id: applications.id });

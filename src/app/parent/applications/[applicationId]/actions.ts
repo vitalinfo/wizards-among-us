@@ -240,19 +240,36 @@ export async function submitApplicationAction(
     return { status: "invalid", errors, blockReason: null };
   }
 
+  // Was this the first submission, or a parent saving an edit to one already
+  // sent? Read before the write, so the two cases can be told apart afterwards.
+  const wasAlreadySubmitted = application.status === "submitted";
+
   const submitted = await submitApplication(id, actor.id, {});
   if (!submitted) {
-    // The status guard refused it — someone else already moved it on.
+    // The SQL guard refused it, which now means only one thing: an admin
+    // decided the application between this page loading and the parent pressing
+    // the button. Re-submitting an already-submitted one is allowed.
     return { status: "blocked", errors: {}, blockReason: "locked" };
   }
 
   await grantParentRole(actor.id);
+  // Distinct actions, because the audit trail answers "when did this family
+  // apply?". Logging every edit as a submission would show a family applying
+  // five times for editing five times, and would stop matching submitted_at,
+  // which is set once.
   await recordAuditLog({
     actor,
-    action: "application.submitted",
+    action: wasAlreadySubmitted
+      ? "application.updated_by_parent"
+      : "application.submitted",
     targetType: "application",
     targetId: id,
   });
   revalidatePath("/parent/applications");
-  redirect(`/parent/applications/${id}?submitted=1`);
+  // «Анкету подано — ми перевіримо протягом двох днів» is true once. For an
+  // edit it announces a submission that happened days ago and restates a
+  // promise whose clock did not restart.
+  redirect(
+    `/parent/applications/${id}?${wasAlreadySubmitted ? "saved=1" : "submitted=1"}`,
+  );
 }

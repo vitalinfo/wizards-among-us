@@ -27,7 +27,7 @@ export default async function ApplicationPage({
   searchParams,
 }: {
   params: Promise<{ applicationId: string }>;
-  searchParams: Promise<{ submitted?: string }>;
+  searchParams: Promise<{ submitted?: string; saved?: string }>;
 }) {
   const [{ applicationId }, query] = await Promise.all([params, searchParams]);
   const actor = await getSessionActor();
@@ -95,13 +95,20 @@ export default async function ApplicationPage({
           <ApplicationStatusBadge status={application.status} />
         </div>
 
-        {query.submitted ? (
+        {/* Two different things to confirm. A first submission starts the
+            two-day review clock; saving an edit does not restart it, so saying
+            so again would be a fresh promise we are not making. */}
+        {query.submitted || query.saved ? (
           <div
             role="status"
             className="border-primary/30 bg-primary/10 mt-6 rounded-lg border p-4"
           >
-            <h2 className="font-semibold">{t("submitted.title")}</h2>
-            <p className="text-body mt-1 text-sm">{t("submitted.body")}</p>
+            <h2 className="font-semibold">
+              {query.saved ? t("saved.title") : t("submitted.title")}
+            </h2>
+            <p className="text-body mt-1 text-sm">
+              {query.saved ? t("saved.body") : t("submitted.body")}
+            </p>
             <Link
               href="/parent/applications"
               className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
