@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { recordAuditLog } from "@/features/audit/log";
 import { setUserNote } from "@/features/users/adminQueries";
@@ -15,6 +16,10 @@ import { requireAdmin } from "@/lib/auth/session";
 // through to the write.
 export async function saveUserNoteAction(
   userId: string,
+  // Where to go once it saves — the list view the admin came from, search and
+  // page intact. Bound by the page, never read from the form: a redirect target
+  // taken from user input is an open redirect.
+  returnTo: string,
   _prev: UserNoteState,
   formData: FormData,
 ): Promise<UserNoteState> {
@@ -44,7 +49,12 @@ export async function saveUserNoteAction(
   });
 
   revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
   // The banner at the top of every application this parent filed.
   revalidatePath("/admin/applications", "layout");
-  return { status: "saved" };
+
+  // Back to the list, as the admin application edit does. Staying on the form
+  // after a save is the "did that work?" state we removed from the parent flow;
+  // it also makes this POST → redirect → GET, so a reload cannot re-submit.
+  redirect(returnTo);
 }

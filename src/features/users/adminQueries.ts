@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, or, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import type { UserRole } from "@/db/enums";
@@ -20,12 +20,45 @@ export type AdminUserRow = {
   createdAt: Date;
 };
 
-// Same modest page as the moderation queue, for the same reason: the rows are
-// dense and nobody scrolls past markup they didn't ask for.
-export const USERS_PAGE_SIZE = 50;
+// Free-text search over the four things an admin actually knows when they go
+// looking for someone: a first name, a last name, a Telegram handle, or a
+// phone number. Substring, not prefix — an admin is as likely to remember
+// «...Коваль» or the last four digits as the start of either.
+//
+// The phone is matched on DIGITS ONLY, on both sides. A stored number is
+// normalised (userPhoneSchema strips spaces, brackets and dashes) but the
+// person typing rarely is: "067 123" has to find "+380671234567", and a plain
+// LIKE never would.
+//
+// A term with no digits skips the phone branch entirely rather than matching
+// against an empty needle, which every phone would satisfy.
+function searchCondition(term: string) {
+  const trimmed = term.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
 
-export async function countUsers(): Promise<number> {
-  const [row] = await getDb().select({ total: count() }).from(users);
+  const text = `%${trimmed.replace(/^@/, "").toLowerCase()}%`;
+  const digits = trimmed.replace(/\D/g, "");
+
+  return or(
+    sql`lower(coalesce(${users.firstName}, '')) like ${text}`,
+    sql`lower(coalesce(${users.lastName}, '')) like ${text}`,
+    sql`lower(coalesce(${users.username}, '')) like ${text}`,
+    // Also match a full name typed as one string — "Олена Коваль" is neither
+    // column on its own.
+    sql`lower(coalesce(${users.firstName}, '') || ' ' || coalesce(${users.lastName}, '')) like ${text}`,
+    digits === ""
+      ? undefined
+      : sql`regexp_replace(coalesce(${users.phone}, ''), '\D', '', 'g') like ${`%${digits}%`}`,
+  );
+}
+
+export async function countUsers(search = ""): Promise<number> {
+  const [row] = await getDb()
+    .select({ total: count() })
+    .from(users)
+    .where(searchCondition(search));
   return row?.total ?? 0;
 }
 
@@ -61,6 +94,7 @@ function userCounts() {
 export async function listUsers(params: {
   limit: number;
   offset: number;
+  search?: string;
 }): Promise<AdminUserRow[]> {
   const rows = await getDb()
     .select({
@@ -75,6 +109,7 @@ export async function listUsers(params: {
       ...userCounts(),
     })
     .from(users)
+    .where(searchCondition(params.search ?? ""))
     .orderBy(desc(users.createdAt), desc(users.id))
     .limit(params.limit)
     .offset(params.offset);
