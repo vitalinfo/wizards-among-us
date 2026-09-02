@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ModerationFilterForm } from "@/components/admin/ModerationFilterForm";
+import { Pager } from "@/components/ui/Pager";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 import {
   countForModeration,
@@ -119,47 +120,15 @@ export default async function AdminApplicationsPage({
             ))}
           </ul>
         )}
-        {total > 0 ? (
-          <nav
-            aria-label={t("pager.label")}
-            className="flex flex-wrap items-center justify-between gap-3 text-sm"
-          >
-            <p className="text-muted-foreground">
-              {t("pager.range", {
-                from: offset + 1,
-                to: offset + rows.length,
-                total,
-              })}
-            </p>
-            {pageCount > 1 ? (
-              <div className="flex items-center gap-3">
-                {/* Links, not buttons: each page is addressable and this works
-                    with no client JS, like the rest of the admin surface. */}
-                {page > 1 ? (
-                  <Link
-                    href={moderationQueueHref(query, page - 1)}
-                    rel="prev"
-                    className="border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
-                  >
-                    {t("pager.previous")}
-                  </Link>
-                ) : null}
-                <span className="text-muted-foreground">
-                  {t("pager.position", { page, pageCount })}
-                </span>
-                {page < pageCount ? (
-                  <Link
-                    href={moderationQueueHref(query, page + 1)}
-                    rel="next"
-                    className="border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
-                  >
-                    {t("pager.next")}
-                  </Link>
-                ) : null}
-              </div>
-            ) : null}
-          </nav>
-        ) : null}
+        <Pager
+          label={t("pager.label")}
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          from={offset + 1}
+          to={offset + rows.length}
+          hrefFor={(target) => moderationQueueHref(query, target)}
+        />
       </main>
     </>
   );
