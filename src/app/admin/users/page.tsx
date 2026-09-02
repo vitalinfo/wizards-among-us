@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { UserSearchForm } from "@/components/admin/UserSearchForm";
+import { Pager } from "@/components/ui/Pager";
 import { countUsers, listUsers } from "@/features/users/adminQueries";
 import { resolveUserContact } from "@/features/users/contact";
 import {
@@ -35,9 +36,10 @@ export default async function AdminUsersPage({
   // Count before fetching: a stale ?page= (or a search that narrowed the list
   // under it) would otherwise render an empty table that reads as "there is
   // nobody".
-  const total = await countUsers(query.search);
+  const total = await countUsers({ search: query.search });
   const pageCount = usersPageCount(total);
   const page = Math.min(query.page, pageCount);
+  const offset = (page - 1) * USERS_PAGE_SIZE;
   const view = { ...query, page };
 
   const [t, tRoles, format, rows] = await Promise.all([
@@ -46,7 +48,7 @@ export default async function AdminUsersPage({
     getFormatter(),
     listUsers({
       limit: USERS_PAGE_SIZE,
-      offset: (page - 1) * USERS_PAGE_SIZE,
+      offset,
       search: query.search,
     }),
   ]);
@@ -70,10 +72,6 @@ export default async function AdminUsersPage({
           </p>
         ) : (
           <>
-            <p className="text-muted-foreground text-sm">
-              {t("count", { total })}
-            </p>
-
             {/* A real <table>: this is tabular data, and a screen reader
                 announces the column a cell belongs to only if the markup says
                 so. It scrolls inside its own container rather than making the
@@ -180,29 +178,15 @@ export default async function AdminUsersPage({
           </>
         )}
 
-        {pageCount > 1 ? (
-          <nav aria-label={t("pager")} className="flex items-center gap-4">
-            {page > 1 ? (
-              <Link
-                href={usersHref(view, page - 1)}
-                className="text-primary text-sm font-semibold underline underline-offset-4"
-              >
-                {t("previous")}
-              </Link>
-            ) : null}
-            <span className="text-muted-foreground text-sm">
-              {t("pageOf", { page, pageCount })}
-            </span>
-            {page < pageCount ? (
-              <Link
-                href={usersHref(view, page + 1)}
-                className="text-primary text-sm font-semibold underline underline-offset-4"
-              >
-                {t("next")}
-              </Link>
-            ) : null}
-          </nav>
-        ) : null}
+        <Pager
+          label={t("pager.label")}
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          from={offset + 1}
+          to={offset + rows.length}
+          hrefFor={(target) => usersHref(view, target)}
+        />
       </main>
     </>
   );

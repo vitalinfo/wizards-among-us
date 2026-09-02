@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  isDefaultUsersQuery,
   parseUsersQuery,
   userNoteHref,
   usersHref,
@@ -78,5 +79,15 @@ describe("userNoteHref", () => {
 
   it("omits an empty view", () => {
     expect(userNoteHref("u1", parseUsersQuery({}))).toBe("/admin/users/u1");
+  });
+});
+
+// Mirrors isDefaultModerationQuery — the two lists answer "has the admin
+// narrowed anything?" the same way.
+describe("isDefaultUsersQuery", () => {
+  it("is true only when nothing is searched", () => {
+    expect(isDefaultUsersQuery(parseUsersQuery({}))).toBe(true);
+    expect(isDefaultUsersQuery(parseUsersQuery({ page: "3" }))).toBe(true);
+    expect(isDefaultUsersQuery(parseUsersQuery({ q: "Коваль" }))).toBe(false);
   });
 });

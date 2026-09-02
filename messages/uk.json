@@ -31,6 +31,12 @@
       "close": "Закрити",
       "openInTab": "Відкрити в новій вкладці",
       "open": "{title} — відкрити"
+    },
+    "pager": {
+      "range": "Показано {from}–{to} з {total}",
+      "position": "Сторінка {page} з {pageCount}",
+      "previous": "← Попередня",
+      "next": "Наступна →"
     }
   },
   "landing": {
@@ -407,11 +413,7 @@
         "reset": "Скинути"
       },
       "pager": {
-        "label": "Сторінки списку",
-        "range": "Показано {from}–{to} з {total}",
-        "position": "Сторінка {page} з {pageCount}",
-        "previous": "← Попередня",
-        "next": "Наступна →"
+        "label": "Сторінки списку"
       },
       "town": "м. {town}",
       "movedTo": "переїхали до",
@@ -634,11 +636,7 @@
         "not_found": "Анкету не знайдено."
       },
       "pager": {
-        "label": "Сторінки черги",
-        "range": "Показано {from}–{to} з {total}",
-        "position": "Сторінка {page} з {pageCount}",
-        "previous": "← Попередня",
-        "next": "Наступна →"
+        "label": "Сторінки черги"
       },
       "claim": {
         "title": "Чарівник",
@@ -713,10 +711,9 @@
       "empty": "Поки нікого немає.",
       "unnamed": "Без імені",
       "noRole": "Без ролі",
-      "pager": "Сторінки списку",
-      "previous": "← Назад",
-      "next": "Далі →",
-      "pageOf": "Сторінка {page} з {pageCount}",
+      "pager": {
+        "label": "Сторінки списку"
+      },
       "roles": {
         "parent": "Батьки",
         "volunteer": "Чарівник"
@@ -734,7 +731,6 @@
         "editFor": "Нотатка про {name}"
       },
       "noMatches": "Нікого не знайдено за цим запитом.",
-      "count": "Знайдено: {total}",
       "tableCaption": "Список користувачів",
       "backCta": "← До користувачів",
       "columns": {

@@ -54,11 +54,15 @@ function searchCondition(term: string) {
   );
 }
 
-export async function countUsers(search = ""): Promise<number> {
+type UsersFilterInput = { search?: string };
+
+export async function countUsers(
+  filter: UsersFilterInput = {},
+): Promise<number> {
   const [row] = await getDb()
     .select({ total: count() })
     .from(users)
-    .where(searchCondition(search));
+    .where(searchCondition(filter.search ?? ""));
   return row?.total ?? 0;
 }
 
@@ -91,11 +95,9 @@ function userCounts() {
 
 // Newest first: the reason to open this list is almost always someone who just
 // appeared — a family that has written in, or a volunteer asking about a claim.
-export async function listUsers(params: {
-  limit: number;
-  offset: number;
-  search?: string;
-}): Promise<AdminUserRow[]> {
+export async function listUsers(
+  params: UsersFilterInput & { limit: number; offset: number },
+): Promise<AdminUserRow[]> {
   const rows = await getDb()
     .select({
       id: users.id,

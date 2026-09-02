@@ -1,7 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
-import type { UsersQuery } from "@/features/users/listQuery";
+import {
+  isDefaultUsersQuery,
+  type UsersQuery,
+} from "@/features/users/listQuery";
 
 // A plain GET form, like the moderation filters: the browser builds the query
 // string the page already parses, so searching needs no client JavaScript and
@@ -43,7 +46,7 @@ export async function UserSearchForm({ query }: { query: UsersQuery }) {
 
       {/* Only once something is actually searched — a reset that resets nothing
           is noise on every page load. */}
-      {query.search === "" ? null : (
+      {isDefaultUsersQuery(query) ? null : (
         <Link
           href="/admin/users"
           className="text-primary text-sm font-semibold underline underline-offset-4"

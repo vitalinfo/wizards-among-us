@@ -31,6 +31,12 @@ export function usersPageCount(total: number): number {
 
 // Omits what is unset, so the plain url stays clean and older links keep
 // working.
+// Whether the admin has narrowed anything — drives whether a "reset" is worth
+// showing. Mirrors isDefaultModerationQuery.
+export function isDefaultUsersQuery(query: UsersQuery): boolean {
+  return query.search === "";
+}
+
 export function usersHref(query: UsersQuery, page?: number): string {
   const params = new URLSearchParams();
   if (query.search !== "") {

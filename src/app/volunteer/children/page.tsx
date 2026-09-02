@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { BrowseFilterForm } from "@/components/volunteer/BrowseFilterForm";
 import { ChildCard } from "@/components/volunteer/ChildCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { Pager } from "@/components/ui/Pager";
 import {
   ageBand,
   browseHref,
@@ -143,45 +144,15 @@ export default async function BrowseChildrenPage({
           </ul>
         )}
 
-        {total > 0 ? (
-          <nav
-            aria-label={t("pager.label")}
-            className="mt-8 flex flex-wrap items-center justify-between gap-3 text-sm"
-          >
-            <p className="text-muted-foreground">
-              {t("pager.range", {
-                from: (page - 1) * BROWSE_PAGE_SIZE + 1,
-                to: (page - 1) * BROWSE_PAGE_SIZE + rows.length,
-                total,
-              })}
-            </p>
-            {pageCount > 1 ? (
-              <div className="flex items-center gap-3">
-                {page > 1 ? (
-                  <Link
-                    href={browseHref(query, { page: page - 1 })}
-                    rel="prev"
-                    className="border-border hover:bg-surface-muted rounded-md border px-3 py-1.5 font-medium"
-                  >
-                    {t("pager.previous")}
-                  </Link>
-                ) : null}
-                <span className="text-muted-foreground">
-                  {t("pager.position", { page, pageCount })}
-                </span>
-                {page < pageCount ? (
-                  <Link
-                    href={browseHref(query, { page: page + 1 })}
-                    rel="next"
-                    className="border-border hover:bg-surface-muted rounded-md border px-3 py-1.5 font-medium"
-                  >
-                    {t("pager.next")}
-                  </Link>
-                ) : null}
-              </div>
-            ) : null}
-          </nav>
-        ) : null}
+        <Pager
+          label={t("pager.label")}
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          from={(page - 1) * BROWSE_PAGE_SIZE + 1}
+          to={(page - 1) * BROWSE_PAGE_SIZE + rows.length}
+          hrefFor={(target) => browseHref(query, { page: target })}
+        />
       </main>
 
       {pendingClaim ? (
