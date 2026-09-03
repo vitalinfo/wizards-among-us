@@ -1,12 +1,15 @@
 import { getFormatter, getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Pager } from "@/components/ui/Pager";
 import { countAuditLogs, listAuditLogs } from "@/features/audit/adminQueries";
 import {
+  auditActorHref,
   auditHref,
   auditPageCount,
+  auditTargetHref,
   parseAuditQuery,
   splitAuditAction,
   AUDIT_PAGE_SIZE,
@@ -52,6 +55,8 @@ export default async function AdminAuditPage({
   ]);
 
   const cell = "border-border border-b px-3 py-2 align-top";
+  const linkClass =
+    "text-primary focus-visible:outline-ring rounded break-all underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2";
 
   return (
     <>
@@ -90,6 +95,11 @@ export default async function AdminAuditPage({
                   // that was viewed, or the field names an admin edited. Split
                   // so the action itself stays scannable down the column.
                   const [action, detail] = splitAuditAction(row.action);
+                  const actorHref = auditActorHref(row.actorType, row.actorId);
+                  const targetHref = auditTargetHref(
+                    row.targetType,
+                    row.targetId,
+                  );
                   return (
                     <tr key={row.id}>
                       {/* The row's header cell: a screen reader then reads
@@ -105,10 +115,16 @@ export default async function AdminAuditPage({
                         {/* The label is a SNAPSHOT taken when the row was
                             written, so it stays readable after the actor is
                             deleted — which is when a trail matters most. */}
-                        <span className="break-all">{row.actorLabel}</span>
-                        <span className="text-muted-foreground ml-2 text-xs">
+                        {actorHref ? (
+                          <Link href={actorHref} className={linkClass}>
+                            {row.actorLabel}
+                          </Link>
+                        ) : (
+                          <span className="break-all">{row.actorLabel}</span>
+                        )}
+                        <p className="text-muted-foreground text-xs">
                           {t(`actorType.${row.actorType}`)}
-                        </span>
+                        </p>
                       </td>
                       <td className={cell}>
                         {/* Raw codes, not translated copy. They are the
@@ -118,20 +134,34 @@ export default async function AdminAuditPage({
                             someone adds an action. */}
                         <code className="font-mono text-xs">{action}</code>
                         {detail ? (
-                          <span className="text-muted-foreground ml-2 font-mono text-xs">
+                          <p className="text-muted-foreground font-mono text-xs">
                             {detail}
-                          </span>
+                          </p>
                         ) : null}
                       </td>
                       <td className={cell}>
-                        <span className="text-muted-foreground text-xs">
-                          {row.targetType}
-                        </span>
                         {row.targetId ? (
-                          <span className="ml-2 font-mono text-xs break-all">
-                            {row.targetId}
-                          </span>
-                        ) : null}
+                          targetHref ? (
+                            <Link
+                              href={targetHref}
+                              className={`${linkClass} font-mono text-xs`}
+                            >
+                              {row.targetId}
+                            </Link>
+                          ) : (
+                            <span className="font-mono text-xs break-all">
+                              {row.targetId}
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                        {/* The type on the second line: it qualifies the id
+                            above it, and putting it first pushed the value you
+                            came to read into the middle of the cell. */}
+                        <p className="text-muted-foreground text-xs">
+                          {row.targetType}
+                        </p>
                       </td>
                     </tr>
                   );
