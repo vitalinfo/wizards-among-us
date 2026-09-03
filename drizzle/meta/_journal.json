@@ -57,6 +57,13 @@
       "when": 1788278093520,
       "tag": "0007_bumpy_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788454557092,
+      "tag": "0008_steep_squirrel_girl",
+      "breakpoints": true
     }
   ]
 }

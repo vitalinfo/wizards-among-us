@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -185,6 +185,11 @@ export const auditLogs = pgTable(
     // are poor prefixes): "activity on this target" and "everything this actor did".
     index("audit_logs_target_idx").on(t.targetId, t.targetType),
     index("audit_logs_actor_idx").on(t.actorId, t.actorType),
+    // The admin log view's only ordering. Append-only and the fastest-growing
+    // table here — every browse and every file view writes a row — so the
+    // default plan (seq scan + sort on every page load) degrades with use
+    // rather than staying flat.
+    index("audit_logs_created_at_idx").on(desc(t.createdAt), desc(t.id)),
   ],
 );
 
