@@ -30,6 +30,19 @@ describe("GlobalErrorContent", () => {
     ).toHaveAttribute("href", "/");
   });
 
+  // The root-layout boundary is a 500, and shares its artwork with the 404 —
+  // the only difference is the number on the blob.
+  it("shows the 500 artwork rather than the 404 one", () => {
+    const { container } = render(
+      <NextIntlClientProvider locale="uk" messages={messages}>
+        <GlobalErrorContent reset={vi.fn()} />
+      </NextIntlClientProvider>,
+    );
+    const art = container.querySelector('main [aria-hidden="true"]');
+    expect(art).toHaveTextContent("500");
+    expect(art).not.toHaveTextContent("404");
+  });
+
   it("calls reset when retry is pressed", async () => {
     const user = userEvent.setup();
     const reset = renderContent();

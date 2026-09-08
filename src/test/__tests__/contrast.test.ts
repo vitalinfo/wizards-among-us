@@ -69,6 +69,9 @@ describe("colour contrast (WCAG AA)", () => {
     // absent on purpose: it fills a disabled control, which is exempt.
     ["primary-foreground", "status-open", AA_NORMAL],
     ["primary-foreground", "status-closed", AA_NORMAL],
+    // The status code on the dead-end pages: display type on the solid cream
+    // blob, and the blob is the only place --cream carries any foreground.
+    ["primary", "cream", AA_NORMAL],
   ])("%s on %s meets %s:1", (fg, bg, threshold) => {
     const value = ratio(fg, bg);
     expect(
