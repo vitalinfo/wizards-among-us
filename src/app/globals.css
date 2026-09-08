@@ -17,10 +17,37 @@
      contrast is a property of the token rather than of wherever it lands; the
      two composites it replaces (over white and over canvas) differ by ~1%. */
   --muted-foreground: #626161;
+  /* The design greys back a clause inside the "Про проєкт" lead paragraph —
+     #403d3a at 40%, flattened here for the same reason. 3.40:1 on white: it is
+     LARGE-TEXT-ONLY (>=18.66px bold), which is the only size the design uses
+     it at. Do not reach for it at body size. */
+  --muted-faint: #8c8b89;
   --body: #626161;
   --surface: #ffffff;
   --surface-muted: #fafafa;
   --canvas: #e8f2ff; /* the soft blue the public pages sit on */
+  /* The warm side of the palette, new with the landing page. The design
+     paints one solid cream (#fffadc) as the hero's blob and reuses it at ~54%
+     opacity for the panels — the quote card, the "Для родин" band, an opened
+     FAQ row. Flattened to a solid token for the same reason --muted-foreground
+     is: an alpha fill is a different colour on every backdrop, and the two
+     composites the design actually produces (#fffcec and #fffce9) differ by
+     3/255 on one channel. --cream-warm is a separate, deeper cream and the
+     only place it appears is the founder-quote band. */
+  --cream: #fffadc;
+  --cream-soft: #fffce9;
+  --cream-warm: #fcefcf;
+
+  /* The hero's first call to action. The design fills it #ecd01c and sets the
+     label in WHITE, which is 1.54:1 — it fails AA by a factor of three and is
+     genuinely hard to read, not a borderline call. The fill is the design's;
+     the label is the foreground text colour instead, at 6.98:1. If the
+     designer wants a light label on yellow, the fill has to darken. */
+  --accent: #ecd01c;
+  --accent-foreground: #403d3a;
+  /* Also not from the design, which specs no hover — the primary's rule
+     (darken ~12%) applied to the accent. */
+  --accent-hover: #d0b719;
 
   --border: #c5c7c7; /* 1.5px card borders */
   --divider: #e6e7e7; /* 1px section dividers */
@@ -31,6 +58,9 @@
   --primary-hover: #18447f;
   --primary-foreground: #ffffff;
   --primary-tint: #ecf4fd; /* badge / step-number background */
+  /* The step-card icon disc: the design fills it #1e5299 at 12%. Always over a
+     white card, so the composite is stable and stored solid. */
+  --primary-soft: #e4ebf3;
   --primary-tint-foreground: #1e3f91;
 
   --header: #004084; /* dark-blue top bar */
@@ -41,6 +71,17 @@
   --footer: #1e2425;
   --footer-foreground: #f3f4f5;
   --footer-muted: #a6a8aa;
+
+  /* Initiative status pills. --status-open is the design's green (4.52:1 with
+     white). --status-closed is NOT the design's #c1c1c1, which carries white
+     text at 1.80:1 — a state label has to be readable, so it is darkened to
+     the lightest grey that clears AA. --disabled keeps the design's grey: it
+     fills a genuinely disabled control, which WCAG exempts, and making it
+     darker would make it look enabled. */
+  --status-open: #577f69;
+  --status-closed: #767676;
+  --disabled: #c1c1c1;
+  --disabled-foreground: #ffffff;
 
   --star: #e4a443;
   --warning: #e4a443;
@@ -54,16 +95,24 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
+  --color-muted-faint: var(--muted-faint);
   --color-body: var(--body);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-canvas: var(--canvas);
+  --color-cream: var(--cream);
+  --color-cream-soft: var(--cream-soft);
+  --color-cream-warm: var(--cream-warm);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-hover: var(--accent-hover);
   --color-border: var(--border);
   --color-divider: var(--divider);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-tint: var(--primary-tint);
+  --color-primary-soft: var(--primary-soft);
   --color-primary-tint-foreground: var(--primary-tint-foreground);
   --color-header: var(--header);
   --color-header-foreground: var(--header-foreground);
@@ -72,6 +121,10 @@
   --color-footer: var(--footer);
   --color-footer-foreground: var(--footer-foreground);
   --color-footer-muted: var(--footer-muted);
+  --color-status-open: var(--status-open);
+  --color-status-closed: var(--status-closed);
+  --color-disabled: var(--disabled);
+  --color-disabled-foreground: var(--disabled-foreground);
   --color-star: var(--star);
   --color-warning: var(--warning);
   --color-warning-surface: var(--warning-surface);

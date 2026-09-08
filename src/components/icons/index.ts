@@ -1,3 +1,4 @@
+export { ArrowRightIcon } from "./ArrowRightIcon";
 export { CheckIcon } from "./CheckIcon";
 export { ClockIcon } from "./ClockIcon";
 export { CloseIcon } from "./CloseIcon";
