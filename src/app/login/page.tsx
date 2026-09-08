@@ -7,7 +7,9 @@ import { CheckIcon } from "@/components/icons";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BrandMark } from "@/components/site/BrandMark";
+import { TelegramCard } from "@/components/site/TelegramCard";
 import { isAdmin, isUser } from "@/lib/authz";
+import { SITE } from "@/lib/site";
 import { isDevLoginEnabled } from "@/lib/auth/devLogin";
 import { safeReturnPath } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
@@ -46,21 +48,35 @@ export default async function LoginPage({
       <div className="bg-canvas relative isolate flex flex-1 flex-col overflow-hidden">
         <SiteHeader />
         <main className="flex flex-1 flex-col items-center px-5 pt-4 pb-16 sm:px-8">
-          {/* The design's blob: white, sweeping up from the bottom so the canvas
-          reads as a band across the top. One path, so it scales without
-          artefacts — but it is decoration, hidden from assistive tech, and it
-          never intercepts a click. */}
+          {/* The white shape the canvas sits on top of, and the two
+              floating Telegram cards. All decoration: hidden from assistive
+              tech, never intercepting a click.
+
+              The blob's box is the design's own numbers, as percentages of the
+              frame it was drawn in — desktop 1920x1420, mobile 360x1497 — which
+              are wildly different shapes, hence two sets. Read from the frames
+              rather than from the exported path's own position, which does not
+              reconcile with what the frame actually renders. */}
           <svg
             aria-hidden="true"
             viewBox="0 0 2492 2286"
             preserveAspectRatio="none"
-            className="pointer-events-none absolute inset-x-[-15%] top-[52%] -z-10 h-[150%] w-[130%]"
+            className="pointer-events-none absolute top-[40.6%] left-[-108%] -z-10 h-[61%] w-[285%] lg:top-[59.5%] lg:left-[-15.5%] lg:h-[161%] lg:w-[130%]"
           >
             <path
               fill="var(--surface)"
               d="M1253.2 2285.96C1458.67 2287.88 1662.52 2222.77 1827 2081.06C1919.79 2001.11 1959.07 1899.27 2009.86 1794.02C2092.1 1623.62 2172.14 1452.33 2249.97 1280.18C2317.27 1131.29 2408.21 987.786 2462.22 834.43C2586.71 480.677 2302.7 172.681 1948.43 74.1114C1235.09 -124.37 292.531 63.8748 33.4554 783.887C-54.4594 1028.21 45.5503 1307.13 164.008 1528.96C289.342 1763.69 482.249 1966.55 712.504 2118.78C874.693 2226.02 1064.64 2284.21 1253.2 2285.96Z"
             />
           </svg>
+
+          {/* Composed rather than exported. The exported asset is a raster
+              whose SOURCE fill is a Google Drive icon left over from the
+              template — the Telegram look is painted over it — so shipping the
+              PNG would mean 40KB of someone else's placeholder per card. A
+              rotated rounded square plus the Telegram glyph we already have is
+              the same picture, crisp at any size, and costs nothing. */}
+          <TelegramCard className="bg-surface text-foreground hidden -rotate-12 lg:top-[34%] lg:left-[4%] lg:grid lg:size-[13vw] lg:max-w-[250px]" />
+          <TelegramCard className="hidden rotate-12 bg-[#1abaf0] text-white lg:top-[42%] lg:right-[6%] lg:grid lg:size-[12vw] lg:max-w-[234px]" />
 
           <div className="flex w-full max-w-[580px] flex-col items-center gap-8 text-center">
             <BrandMark className="h-[70px] w-auto" />
@@ -118,7 +134,21 @@ export default async function LoginPage({
               ))}
             </ul>
 
-            <p className="text-muted-foreground text-base">{t("consent")}</p>
+            <p className="text-muted-foreground text-base">
+              {/* One message with a <link> tag rather than two keys glued
+                together: the sentence stays whole, so a translator can reorder
+                it. */}
+              {t.rich("consent", {
+                link: (chunks) => (
+                  <Link
+                    href={SITE.privacyUrl}
+                    className="text-primary underline underline-offset-4"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+              })}
+            </p>
 
             {isDevLoginEnabled() && (
               <Link

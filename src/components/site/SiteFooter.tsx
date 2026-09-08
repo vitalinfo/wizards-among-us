@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
-import { TelegramIcon } from "@/components/icons";
+import { InstagramIcon, TelegramIcon } from "@/components/icons";
 import { SiteLogo } from "@/components/site/SiteLogo";
 import { SITE } from "@/lib/site";
 
@@ -64,9 +64,18 @@ export function SiteFooter() {
               {SITE.email}
             </a>
             <div className="flex items-center gap-3">
-              {/* The design also shows an Instagram badge. We have no account,
-                  and a social icon linking nowhere is worse than one missing —
-                  add it here once there is a url. */}
+              {/* Each is labelled by the NETWORK, not by the icon: «Instagram»
+                  is what a screen-reader user needs to hear, and the glyph
+                  itself carries no accessible name. */}
+              <a
+                href={SITE.instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t("instagram")}
+                className={SOCIAL}
+              >
+                <InstagramIcon className="size-5" />
+              </a>
               <a
                 href={SITE.telegramUrl}
                 target="_blank"
@@ -82,8 +91,12 @@ export function SiteFooter() {
 
         <div className="border-divider text-muted-foreground mt-12 flex flex-col gap-2 border-t pt-6 text-sm sm:flex-row sm:justify-between">
           <p>{t("copyright", { year: new Date().getFullYear() })}</p>
-          {/* Real policy pages are added in a later phase. */}
-          <p>{t("privacy")}</p>
+          <Link
+            href={SITE.privacyUrl}
+            className="hover:text-primary focus-visible:outline-ring rounded underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            {t("privacy")}
+          </Link>
         </div>
       </div>
     </footer>
