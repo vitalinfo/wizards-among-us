@@ -4,16 +4,9 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { InstagramIcon, TelegramIcon } from "@/components/icons";
+import { SITE_NAV } from "@/components/site/nav";
 import { SiteLogo } from "@/components/site/SiteLogo";
 import { SITE } from "@/lib/site";
-
-// Same set as the header, and absent for the same reason: «Ініціативи» and
-// «Партнерам» are in the design but have no route.
-const MENU = [
-  { key: "about", href: "/#about" },
-  { key: "parents", href: "/parent" },
-  { key: "volunteers", href: "/volunteer" },
-] as const;
 
 // Filled by default, outlined on hover — the design's resting state is a solid
 // blue disc with a white glyph.
@@ -27,15 +20,22 @@ export function SiteFooter() {
 
   return (
     <footer id="contacts" className="bg-surface mt-auto scroll-mt-20">
-      {/* Same gutter as the header, so the logo and columns line up with the nav above. */}
-      <div className="mx-auto w-full max-w-[1920px] px-4 py-12 sm:px-6 lg:px-[5.2%]">
+      {/* Same gutter as the header, so the logo and columns line up with the
+          nav above. Less room at the very bottom than at the top: the design
+          leaves 19px under the copyright row, not a symmetric block. */}
+      <div className="mx-auto w-full max-w-[1920px] px-4 pt-12 pb-5 sm:px-6 lg:px-[5.2%]">
         <div className="flex flex-col gap-10 lg:flex-row lg:justify-between lg:gap-16">
-          <div className="flex max-w-sm flex-col gap-4">
+          {/* The mark is CENTRED over the paragraph rather than flush left —
+              measured off their render: logo centre 232, tagline centre 237.
+              On MOBILE the paragraph runs the full width and the logo centres
+              on the PAGE; the 273px column is a desktop-only measurement, and
+              applying it at every size pulled the logo 34px left of centre. */}
+          <div className="flex flex-col gap-4 lg:max-w-[273px]">
             <SiteLogo
               width={265}
               height={196}
               label={brand}
-              className="h-auto w-[200px]"
+              className="h-auto w-[208px] self-center"
             />
             <p className="text-muted-foreground text-sm leading-relaxed">
               {t("tagline")}
@@ -45,7 +45,7 @@ export function SiteFooter() {
           <nav aria-label={t("menuLabel")} className="flex flex-col gap-4">
             <h2 className="text-base font-semibold">{t("menuLabel")}</h2>
             <ul className="flex flex-col gap-3">
-              {MENU.map((item) => (
+              {SITE_NAV.map((item) => (
                 <li key={item.key}>
                   <Link
                     href={item.href}

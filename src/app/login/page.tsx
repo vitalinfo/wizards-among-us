@@ -112,7 +112,7 @@ export default async function LoginPage({
               rotated rounded square plus the Telegram glyph we already have is
               the same picture, crisp at any size, and costs nothing. */}
           <TelegramCard className="bg-surface text-foreground hidden -rotate-12 lg:top-[27.4vw] lg:left-[5%] lg:grid lg:size-[10.3vw]" />
-          <TelegramCard className="top-[82%] left-1/2 grid size-[30vw] -translate-x-1/2 rotate-12 bg-[#1abaf0] text-white lg:top-[32.4vw] lg:right-[8.2%] lg:left-auto lg:size-[9.7vw] lg:translate-x-0" />
+          <TelegramCard className="top-[85%] left-1/2 grid size-[30vw] -translate-x-1/2 rotate-12 bg-[#1abaf0] text-white lg:top-[32.4vw] lg:right-[8.2%] lg:left-auto lg:size-[9.7vw] lg:translate-x-0" />
 
           <div className="flex w-full max-w-[580px] flex-col items-center gap-8 text-center">
             <BrandMark className="h-[70px] w-auto" />

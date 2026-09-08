@@ -11,22 +11,9 @@ import {
   TelegramIcon,
   UserIcon,
 } from "@/components/icons";
+import { SITE_NAV } from "@/components/site/nav";
 import { SiteLogo } from "@/components/site/SiteLogo";
 import { SITE } from "@/lib/site";
-
-// The design's nav, in its order.
-//
-// «Ініціативи» and «Партнерам» are sections of the redesigned landing page,
-// which is not built yet — so they are anchors, like «Про нас» and «Контакти»
-// already are. An anchor to an id that does not exist yet simply does nothing;
-// it starts working the moment the section lands, with no change here.
-const NAV = [
-  { key: "about", href: "/#about" },
-  { key: "parents", href: "/parent" },
-  { key: "volunteers", href: "/volunteer" },
-  { key: "initiatives", href: "/#initiatives" },
-  { key: "partners", href: "/#partners" },
-] as const;
 
 const PILL =
   "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -95,7 +82,7 @@ export function SiteHeaderClient({
           aria-label={t("nav.label")}
           className="hidden flex-1 items-center gap-4 lg:flex xl:gap-6"
         >
-          {NAV.map((item) => (
+          {SITE_NAV.map((item) => (
             <Link
               key={item.key}
               href={item.href}
@@ -166,7 +153,7 @@ export function SiteHeaderClient({
 
               <nav aria-label={t("nav.label")}>
                 <ul className="flex flex-col gap-6 text-lg">
-                  {[...NAV, { key: "contacts", href: "/#contacts" }].map(
+                  {[...SITE_NAV, { key: "contacts", href: "/#contacts" }].map(
                     (item) => (
                       <li key={item.key}>
                         <Link
