@@ -1,23 +1,34 @@
 @import "tailwindcss";
 
-/* Design system — from the "Wizards Among Us v2" Claude Design project.
-   Light theme (the design is light-only). Onest is the brand typeface. */
+/* Design system — from the 2026 Figma redesign ("Wizards among us",
+   file wAMQbwVwJ6D7Afj2fB9Joh). Light-only, as the design is.
+
+   Values are read out of the design rather than declared by it: the file has no
+   Figma Variables, so every token here was extracted from a node's generated
+   CSS or sampled from a render, and the names are ours. Worth knowing when the
+   designer changes something — there is no automatic sync to fall back on. */
 :root {
   color-scheme: light;
 
   --background: #ffffff;
-  --foreground: #1a1a1a;
-  --muted-foreground: #6e7173; /* secondary text */
-  --body: #4f5053; /* body copy inside cards */
+  --foreground: #403d3a; /* warm near-black, not a neutral grey */
+  /* The design writes secondary text as #403d3a at 80% opacity, which is a
+     different colour on every background. Flattened to one solid value here so
+     contrast is a property of the token rather than of wherever it lands; the
+     two composites it replaces (over white and over canvas) differ by ~1%. */
+  --muted-foreground: #626161;
+  --body: #626161;
   --surface: #ffffff;
   --surface-muted: #fafafa;
-  --canvas: #eef0f0;
+  --canvas: #e8f2ff; /* the soft blue the public pages sit on */
 
   --border: #c5c7c7; /* 1.5px card borders */
   --divider: #e6e7e7; /* 1px section dividers */
 
-  --primary: #1561d2;
-  --primary-hover: #1c4fb2;
+  --primary: #1e5299;
+  /* NOT from the design — it specs no hover state. Derived by darkening the
+     primary ~12%; replace it if the designer supplies one. */
+  --primary-hover: #18447f;
   --primary-foreground: #ffffff;
   --primary-tint: #ecf4fd; /* badge / step-number background */
   --primary-tint-foreground: #1e3f91;
@@ -66,7 +77,8 @@
   --color-warning-surface: var(--warning-surface);
   --color-warning-foreground: var(--warning-foreground);
   --color-ring: var(--ring);
-  --font-sans: var(--font-onest);
+  --font-sans: var(--font-raleway);
+  --font-display: var(--font-caveat);
 }
 
 body {
