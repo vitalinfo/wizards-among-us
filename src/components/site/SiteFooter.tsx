@@ -15,8 +15,10 @@ const MENU = [
   { key: "volunteers", href: "/volunteer" },
 ] as const;
 
+// Filled by default, outlined on hover — the design's resting state is a solid
+// blue disc with a white glyph.
 const SOCIAL =
-  "border-primary/25 text-primary hover:bg-primary hover:text-primary-foreground focus-visible:outline-ring inline-flex size-12 items-center justify-center rounded-full border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
+  "bg-primary text-primary-foreground border-primary hover:bg-surface hover:text-primary focus-visible:outline-ring inline-flex size-12 items-center justify-center rounded-full border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export function SiteFooter() {
   const t = useTranslations("common.footer");

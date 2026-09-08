@@ -45,26 +45,39 @@ export default async function LoginPage({
       {/* Header and page share one canvas: in the design the blue runs behind
           the header rather than starting under it, and the logo overhangs the
           header's lower edge onto it. The footer sits outside, on white. */}
-      <div className="bg-canvas relative isolate flex flex-1 flex-col overflow-hidden">
+      <div className="bg-surface relative isolate flex flex-1 flex-col overflow-hidden">
         <SiteHeader />
         <main className="flex flex-1 flex-col items-center px-5 pt-4 pb-16 sm:px-8">
           {/* The white shape the canvas sits on top of, and the two
               floating Telegram cards. All decoration: hidden from assistive
               tech, never intercepting a click.
 
-              The blob's box is the design's own numbers, as percentages of the
-              frame it was drawn in — desktop 1920x1420, mobile 360x1497 — which
-              are wildly different shapes, hence two sets. Read from the frames
-              rather than from the exported path's own position, which does not
-              reconcile with what the frame actually renders. */}
+              The blue is a SHAPE on a white page, not a background with a
+              white shape cut out of it — its lower edge bulges downward, which
+              is the opposite of what I first built.
+
+              Its box is FITTED: I measured where the blue/white edge falls in
+              the design's own renders, sampled the path's own outline in the
+              browser, and least-squares solved for the offset and scale that
+              map one onto the other. Figma's reported coordinates for this
+              vector do not reconcile with where it actually renders, so they
+              are not usable. Desktop and mobile were drawn in frames of very
+              different proportions (1920x1420 vs 360x1497), hence two sets —
+              on mobile the visible slice is nearly flat.
+
+              Desktop sizes the box in vw, not %: a percentage height is a
+              percentage of THIS SECTION, which grows and shrinks with the
+              content, so the curve drifted up the page as the page got taller.
+              Tying it to viewport width fixes the proportions the design was
+              drawn at. */}
           <svg
             aria-hidden="true"
             viewBox="0 0 2492 2286"
             preserveAspectRatio="none"
-            className="pointer-events-none absolute top-[40.6%] left-[-108%] -z-10 h-[61%] w-[285%] lg:top-[59.5%] lg:left-[-15.5%] lg:h-[161%] lg:w-[130%]"
+            className="pointer-events-none absolute top-[-154%] left-[-150%] -z-10 h-[200%] w-[400%] lg:top-[-110vw] lg:left-[-39%] lg:h-[154vw] lg:w-[194%]"
           >
             <path
-              fill="var(--surface)"
+              fill="var(--canvas)"
               d="M1253.2 2285.96C1458.67 2287.88 1662.52 2222.77 1827 2081.06C1919.79 2001.11 1959.07 1899.27 2009.86 1794.02C2092.1 1623.62 2172.14 1452.33 2249.97 1280.18C2317.27 1131.29 2408.21 987.786 2462.22 834.43C2586.71 480.677 2302.7 172.681 1948.43 74.1114C1235.09 -124.37 292.531 63.8748 33.4554 783.887C-54.4594 1028.21 45.5503 1307.13 164.008 1528.96C289.342 1763.69 482.249 1966.55 712.504 2118.78C874.693 2226.02 1064.64 2284.21 1253.2 2285.96Z"
             />
           </svg>
@@ -75,8 +88,8 @@ export default async function LoginPage({
               PNG would mean 40KB of someone else's placeholder per card. A
               rotated rounded square plus the Telegram glyph we already have is
               the same picture, crisp at any size, and costs nothing. */}
-          <TelegramCard className="bg-surface text-foreground hidden -rotate-12 lg:top-[34%] lg:left-[4%] lg:grid lg:size-[13vw] lg:max-w-[250px]" />
-          <TelegramCard className="hidden rotate-12 bg-[#1abaf0] text-white lg:top-[42%] lg:right-[6%] lg:grid lg:size-[12vw] lg:max-w-[234px]" />
+          <TelegramCard className="bg-surface text-foreground hidden -rotate-12 lg:top-[39%] lg:left-[5%] lg:grid lg:size-[10.3vw] lg:max-w-[198px]" />
+          <TelegramCard className="hidden rotate-12 bg-[#1abaf0] text-white lg:top-[42%] lg:right-[8%] lg:grid lg:size-[9.7vw] lg:max-w-[186px]" />
 
           <div className="flex w-full max-w-[580px] flex-col items-center gap-8 text-center">
             <BrandMark className="h-[70px] w-auto" />
