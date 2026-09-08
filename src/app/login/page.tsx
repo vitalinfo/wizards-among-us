@@ -44,10 +44,19 @@ export default async function LoginPage({
     <>
       {/* Header and page share one canvas: in the design the blue runs behind
           the header rather than starting under it, and the logo overhangs the
-          header's lower edge onto it. The footer sits outside, on white. */}
-      <div className="bg-surface relative isolate flex flex-1 flex-col overflow-hidden">
+          header's lower edge onto it. The footer sits outside, on white.
+
+          min-h is in vw because the artwork inside is: the shape's lowest point
+          is at 44vw and the lower card ends at 42vw, while the content that
+          would otherwise set this height does not grow with the viewport. Below
+          about 1740px wide the content is already taller and this does nothing;
+          above it — including at 1920, the width the design was drawn at — it
+          is what stops overflow-hidden slicing the curve and the card off flat
+          against the footer. Bottom padding alone cannot hold, because the
+          amount needed depends on the viewport width. */}
+      <div className="bg-surface relative isolate flex flex-1 flex-col overflow-hidden lg:min-h-[46vw]">
         <SiteHeader />
-        <main className="flex flex-1 flex-col items-center px-5 pt-4 pb-16 sm:px-8">
+        <main className="flex flex-1 flex-col items-center px-5 pt-4 pb-19 sm:px-8">
           {/* The white shape the canvas sits on top of, and the two
               floating Telegram cards. All decoration: hidden from assistive
               tech, never intercepting a click.
@@ -82,14 +91,22 @@ export default async function LoginPage({
             />
           </svg>
 
-          {/* Composed rather than exported. The exported asset is a raster
+          {/* Positioned in vw, like the shape above, and for the same
+              reason: they straddle the blue/white edge, so anything that moves
+              that edge has to move them with it. A % top is a % of this
+              section, which grows with the content — the cards would float off
+              the boundary as the page got taller. Measured from the design:
+              the right card's centre sits exactly on the edge, the left one
+              just below it.
+
+              Composed rather than exported. The exported asset is a raster
               whose SOURCE fill is a Google Drive icon left over from the
               template — the Telegram look is painted over it — so shipping the
               PNG would mean 40KB of someone else's placeholder per card. A
               rotated rounded square plus the Telegram glyph we already have is
               the same picture, crisp at any size, and costs nothing. */}
-          <TelegramCard className="bg-surface text-foreground hidden -rotate-12 lg:top-[39%] lg:left-[5%] lg:grid lg:size-[10.3vw] lg:max-w-[198px]" />
-          <TelegramCard className="hidden rotate-12 bg-[#1abaf0] text-white lg:top-[42%] lg:right-[8%] lg:grid lg:size-[9.7vw] lg:max-w-[186px]" />
+          <TelegramCard className="bg-surface text-foreground hidden -rotate-12 lg:top-[27.4vw] lg:left-[5%] lg:grid lg:size-[10.3vw]" />
+          <TelegramCard className="hidden rotate-12 bg-[#1abaf0] text-white lg:top-[32.4vw] lg:right-[8.2%] lg:grid lg:size-[9.7vw]" />
 
           <div className="flex w-full max-w-[580px] flex-col items-center gap-8 text-center">
             <BrandMark className="h-[70px] w-auto" />
