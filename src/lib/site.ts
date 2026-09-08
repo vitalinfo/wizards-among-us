@@ -1,8 +1,7 @@
 // Site-wide configuration (non-translatable values like contact links).
 export const SITE = {
-  // Canonical URL — used by robots.txt / sitemap. Override via
-  // NEXT_PUBLIC_SITE_URL; placeholder until the real domain is set.
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://wizards.xyz",
+  // Canonical URL — used by robots.txt, sitemap and metadataBase.
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://wizards-among-us.pp.ua",
   // Public contact channels (provided by the project owner).
   telegramUrl: "https://t.me/+XlZ9JMfByQZhMTU6",
   instagramUrl: "https://www.instagram.com/wizards.among.us/",
