@@ -4,17 +4,21 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { logout } from "@/app/auth/actions";
-import { StarIcon, TelegramIcon } from "@/components/icons";
+import { UserIcon } from "@/components/icons";
+import { SiteLogo } from "@/components/site/SiteLogo";
 
+// The design's header nav. «Ініціативи» and «Партнерам» are in the Figma file
+// but have no route, so they are not rendered — a nav item that goes nowhere is
+// worse on every page than one that is absent. Add the page, add the key, add
+// the line.
 const NAV = [
   { key: "about", href: "/#about" },
-  { key: "how", href: "/#how" },
-  { key: "reviews", href: "/#reviews" },
-  { key: "contacts", href: "/#contacts" },
+  { key: "parents", href: "/parent" },
+  { key: "volunteers", href: "/volunteer" },
 ] as const;
 
-const ACTION_CLASS =
-  "border-header-outline text-header-outline hover:bg-header-outline/10 focus-visible:outline-ring inline-flex h-11 items-center gap-2 rounded-md border-[1.5px] px-4 text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
+const PILL =
+  "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export function SiteHeaderClient({
   user,
@@ -31,61 +35,83 @@ export function SiteHeaderClient({
   const t = useTranslations("common");
 
   return (
-    <header className="bg-header text-header-foreground sticky top-0 z-40">
-      <div className="mx-auto flex h-17 w-full max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5 rounded-md">
-          <span
-            aria-hidden="true"
-            className="bg-header-outline/20 text-header-outline flex size-7 items-center justify-center rounded-[5px]"
-          >
-            <StarIcon className="size-4" />
-          </span>
-          <span className="text-[17px] font-semibold tracking-tight">
-            {t("brand")}
-          </span>
-        </Link>
-
+    // Transparent, not a coloured bar: the design lets the page canvas run
+    // behind the header, and the logo overhangs its bottom edge.
+    <header className="relative z-40">
+      <div className="mx-auto flex w-full max-w-[1720px] items-center gap-4 px-5 py-4 sm:px-8 lg:py-6">
+        {/* Three columns on desktop so the logo is centred on the PAGE rather
+            than on whatever the nav happens to measure. */}
         <nav
-          aria-label={t("brand")}
-          className="hidden items-center gap-7 md:flex"
+          aria-label={t("nav.label")}
+          className="hidden flex-1 items-center gap-6 lg:flex"
         >
           {NAV.map((item) => (
             <Link
               key={item.key}
               href={item.href}
-              className="text-header-muted hover:text-header-foreground text-[15px] transition-colors"
+              className="hover:text-primary focus-visible:outline-ring rounded text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {t(`nav.${item.key}`)}
             </Link>
           ))}
         </nav>
 
-        {user ? (
-          <div className="flex items-center gap-3">
-            <span className="text-[15px] font-semibold">
-              {/* A Telegram @username is optional; fall back to the first name
-                  so the signed-in state always names *someone*, and only then
-                  to a generic label. */}
-              {user.username
-                ? `@${user.username}`
-                : (user.firstName ?? t("account"))}
-            </span>
-            <form action={logout}>
-              <button type="submit" className={ACTION_CLASS}>
-                {t("signOut")}
-              </button>
-            </form>
-          </div>
-        ) : isAdmin ? (
-          <Link href="/admin" className={ACTION_CLASS}>
-            {t("adminPanel")}
+        <Link
+          href="/"
+          aria-label={t("brand")}
+          className="focus-visible:outline-ring order-first shrink-0 rounded lg:order-none"
+        >
+          <SiteLogo
+            width={135}
+            height={100}
+            priority
+            className="h-14 w-auto lg:h-[100px]"
+          />
+        </Link>
+
+        <div className="flex flex-1 items-center justify-end gap-4">
+          <Link
+            href="/#contacts"
+            className="hover:text-primary focus-visible:outline-ring hidden rounded text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:inline"
+          >
+            {t("nav.contacts")}
           </Link>
-        ) : (
-          <Link href="/login" className={ACTION_CLASS}>
-            <TelegramIcon className="size-4" />
-            {t("login")}
-          </Link>
-        )}
+
+          {user ? (
+            <div className="flex items-center gap-3">
+              <span className="hidden text-base font-medium sm:inline">
+                {/* A Telegram @username is optional; fall back to the first
+                    name so the signed-in state always names *someone*, and only
+                    then to a generic label. */}
+                {user.username
+                  ? `@${user.username}`
+                  : (user.firstName ?? t("account"))}
+              </span>
+              <form action={logout}>
+                <button type="submit" className={PILL}>
+                  {t("signOut")}
+                </button>
+              </form>
+            </div>
+          ) : isAdmin ? (
+            <Link href="/admin" className={PILL}>
+              {t("adminPanel")}
+            </Link>
+          ) : (
+            // ONE control, not a mobile copy and a desktop copy hidden from
+            // each other by media query: two links with the same accessible
+            // name is a duplicate in the a11y tree at any width where the CSS
+            // has not loaded, and a needless second tab stop besides. The label
+            // is always the accessible name; only its rendering collapses.
+            <Link
+              href="/login"
+              aria-label={t("login")}
+              className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex size-11 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:size-[60px]"
+            >
+              <UserIcon className="size-5 lg:size-6" />
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );
