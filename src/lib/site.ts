@@ -6,7 +6,6 @@ export const SITE = {
   // Public contact channels (provided by the project owner).
   telegramUrl: "https://t.me/+XlZ9JMfByQZhMTU6",
   instagramUrl: "https://www.instagram.com/wizards.among.us/",
-  // Placeholder — replace with a real inbox before launch.
   email: "charivnyky.org@gmail.com",
   // The design links the consent line and the footer's policy line. The page
   // itself does not exist yet — this is the one place to repoint them once it

@@ -89,7 +89,12 @@ export default async function LoginPage({
             </h1>
 
             <p className="text-muted-foreground max-w-[446px] text-lg leading-[1.25]">
-              {t("body")}
+              {/* <b>, not <strong>: the design bolds the product name for visual
+                  prominence, and this is not text of greater importance — which is
+                  the one thing <strong> is supposed to mean. */}
+              {t.rich("body", {
+                b: (chunks) => <b className="font-bold">{chunks}</b>,
+              })}
             </p>
 
             {signedInAsAdmin ? (
