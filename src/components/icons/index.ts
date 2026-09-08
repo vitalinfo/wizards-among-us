@@ -1,5 +1,9 @@
 export { CheckIcon } from "./CheckIcon";
 export { ClockIcon } from "./ClockIcon";
+export { CloseIcon } from "./CloseIcon";
+export { MenuIcon } from "./MenuIcon";
+export { InstagramIcon } from "./InstagramIcon";
 export { ShieldIcon } from "./ShieldIcon";
 export { StarIcon } from "./StarIcon";
 export { TelegramIcon } from "./TelegramIcon";
+export { UserIcon } from "./UserIcon";
