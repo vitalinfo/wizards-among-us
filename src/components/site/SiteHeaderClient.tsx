@@ -83,21 +83,23 @@ export function SiteHeaderClient({
           generic scale. HEIGHT: 56px on mobile, 107px from lg — a fixed height,
           not padding, because the logo is TALLER than the row it sits in (135px
           in a 107px header) and overhangs it, which padding cannot express.
-          GUTTER: 16px on mobile; 100px from lg, which is where the nav starts
-          and where the account button ends in the 1920 frame. The container is
+          GUTTER: 16px on mobile; from lg it is 5.2% — the design's 100px as a
+          FRACTION of its 1920 frame, so it stays proportional rather than
+          eating a fifth of a 1024 viewport and wrapping «Про нас» onto two
+          lines. The container is
           capped at the frame width itself, NOT at 1920-minus-gutters — capping
           at 1720 and then adding 100px of padding centres the container first
           and pads inside it, which doubled the gutter to 200. */}
-      <div className="mx-auto mt-4 flex h-14 w-full max-w-[1920px] items-center gap-4 px-4 sm:px-6 lg:mt-0 lg:h-[107px] lg:px-25">
+      <div className="mx-auto mt-4 flex h-14 w-full max-w-[1920px] items-center gap-4 px-4 sm:px-6 lg:mt-0 lg:h-[107px] lg:px-[5.2%]">
         <nav
           aria-label={t("nav.label")}
-          className="hidden flex-1 items-center gap-6 lg:flex"
+          className="hidden flex-1 items-center gap-4 lg:flex xl:gap-6"
         >
           {NAV.map((item) => (
             <Link
               key={item.key}
               href={item.href}
-              className="hover:text-primary focus-visible:outline-ring rounded text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="hover:text-primary focus-visible:outline-ring rounded text-base whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {t(`nav.${item.key}`)}
             </Link>
@@ -109,18 +111,23 @@ export function SiteHeaderClient({
           aria-label={t("brand")}
           className="focus-visible:outline-ring order-first shrink-0 rounded lg:order-none"
         >
+          {/* Sized to FIT the row, not to overhang it. The design's logo is
+              135px in a 107px header, but its asset carries transparent
+              padding so that overhang is empty space; ours is tight artwork,
+              and the page wrapper's overflow-hidden sliced the top off the
+              wordmark. */}
           <SiteLogo
             width={135}
             height={135}
             priority
-            className="h-14 w-auto lg:h-[135px]"
+            className="h-12 w-auto lg:h-[103px]"
           />
         </Link>
 
         <div className="flex flex-1 items-center justify-end gap-3 lg:gap-4">
           <Link
             href="/#contacts"
-            className="hover:text-primary focus-visible:outline-ring hidden rounded text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:inline"
+            className="hover:text-primary focus-visible:outline-ring hidden rounded text-base whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:inline"
           >
             {t("nav.contacts")}
           </Link>

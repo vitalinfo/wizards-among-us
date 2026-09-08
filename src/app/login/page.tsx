@@ -56,7 +56,9 @@ export default async function LoginPage({
           amount needed depends on the viewport width. */}
       <div className="bg-surface relative isolate flex flex-1 flex-col overflow-hidden lg:min-h-[46vw]">
         <SiteHeader />
-        <main className="flex flex-1 flex-col items-center px-5 pt-4 pb-19 sm:px-8">
+        {/* Gap below the header is the design's: 32px on mobile, 91px from lg
+            (the heart sits at y=198 under a 107px header). */}
+        <main className="flex flex-1 flex-col items-center px-5 pt-8 pb-44 sm:px-8 lg:pt-[91px] lg:pb-19">
           {/* The white shape the canvas sits on top of, and the two
               floating Telegram cards. All decoration: hidden from assistive
               tech, never intercepting a click.
@@ -72,7 +74,11 @@ export default async function LoginPage({
               vector do not reconcile with where it actually renders, so they
               are not usable. Desktop and mobile were drawn in frames of very
               different proportions (1920x1420 vs 360x1497), hence two sets —
-              on mobile the visible slice is nearly flat.
+              on mobile the visible slice is nearly flat, and its edge is
+              placed as a percentage of THIS SECTION so it always lands below
+              the copy — the design keeps every word on blue, and a fixed
+              offset would leave text stranded on white as soon as the wording
+              grew.
 
               Desktop sizes the box in vw, not %: a percentage height is a
               percentage of THIS SECTION, which grows and shrinks with the
@@ -83,7 +89,7 @@ export default async function LoginPage({
             aria-hidden="true"
             viewBox="0 0 2492 2286"
             preserveAspectRatio="none"
-            className="pointer-events-none absolute top-[-154%] left-[-150%] -z-10 h-[200%] w-[400%] lg:top-[-110vw] lg:left-[-39%] lg:h-[154vw] lg:w-[194%]"
+            className="pointer-events-none absolute top-[-106%] left-[-150%] -z-10 h-[200%] w-[400%] lg:top-[-110vw] lg:left-[-39%] lg:h-[154vw] lg:w-[194%]"
           >
             <path
               fill="var(--canvas)"
@@ -106,7 +112,7 @@ export default async function LoginPage({
               rotated rounded square plus the Telegram glyph we already have is
               the same picture, crisp at any size, and costs nothing. */}
           <TelegramCard className="bg-surface text-foreground hidden -rotate-12 lg:top-[27.4vw] lg:left-[5%] lg:grid lg:size-[10.3vw]" />
-          <TelegramCard className="hidden rotate-12 bg-[#1abaf0] text-white lg:top-[32.4vw] lg:right-[8.2%] lg:grid lg:size-[9.7vw]" />
+          <TelegramCard className="top-[82%] left-1/2 grid size-[30vw] -translate-x-1/2 rotate-12 bg-[#1abaf0] text-white lg:top-[32.4vw] lg:right-[8.2%] lg:left-auto lg:size-[9.7vw] lg:translate-x-0" />
 
           <div className="flex w-full max-w-[580px] flex-col items-center gap-8 text-center">
             <BrandMark className="h-[70px] w-auto" />
