@@ -38,6 +38,13 @@ describe("colour contrast (WCAG AA)", () => {
     ["primary", "surface", AA_NORMAL],
     ["primary-foreground", "primary", AA_NORMAL],
     ["primary-tint-foreground", "primary-tint", AA_NORMAL],
+    // The 2026 redesign puts the public pages on a soft blue canvas rather than
+    // white, so every foreground that was only ever checked against white needs
+    // checking against that too.
+    ["foreground", "canvas", AA_NORMAL],
+    ["muted-foreground", "canvas", AA_NORMAL],
+    ["body", "canvas", AA_NORMAL],
+    ["primary", "canvas", AA_NORMAL],
     ["header-foreground", "header", AA_NORMAL],
     ["header-muted", "header", AA_NORMAL],
     // The outline button in the header: large bold text on the dark bar.
