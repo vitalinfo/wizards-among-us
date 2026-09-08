@@ -27,7 +27,8 @@ export function SiteFooter() {
 
   return (
     <footer id="contacts" className="bg-surface mt-auto scroll-mt-20">
-      <div className="mx-auto w-full max-w-[1720px] px-5 py-12 sm:px-8">
+      {/* Same gutter as the header, so the logo and columns line up with the nav above. */}
+      <div className="mx-auto w-full max-w-[1920px] px-4 py-12 sm:px-6 lg:px-25">
         <div className="flex flex-col gap-10 lg:flex-row lg:justify-between lg:gap-16">
           <div className="flex max-w-sm flex-col gap-4">
             <SiteLogo

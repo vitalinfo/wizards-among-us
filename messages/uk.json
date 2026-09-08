@@ -12,7 +12,10 @@
       "contacts": "Контакти",
       "label": "Основне меню",
       "parents": "Батькам",
-      "volunteers": "Волонтерам"
+      "volunteers": "Волонтерам",
+      "initiatives": "Ініціативи",
+      "partners": "Партнерам",
+      "menu": "Меню"
     },
     "login": "Увійти",
     "signOut": "Вийти",
