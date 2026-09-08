@@ -19,8 +19,19 @@ export function Blob({ className }: { className?: string }) {
       preserveAspectRatio="none"
       className={cn("pointer-events-none", className)}
     >
+      {/* Flipped vertically. The design uses this shape in three places — the
+          hero, the initiative cards and the dead-end pages — and every one of
+          them is scaleY(-1) of the exported path; the Figma code for the cards
+          spells it out as `-rotate-180 -scale-x-100`, which composes to
+          exactly this. Baked in here rather than left to each caller, because
+          two of the three had already shipped the wrong way up.
+
+          Measured, not eyeballed: sampling the outline of the designer's own
+          renders every 1% of the height, the exported orientation misses their
+          edges by 56-67px at 690 wide, and this one by 6-10. */}
       <path
         fill="currentColor"
+        transform="translate(0 300.17) scale(1 -1)"
         d="M164.948 300.164C191.991 300.416 218.823 291.867 240.472 273.259C252.685 262.762 257.855 249.389 264.54 235.568C275.364 213.193 285.9 190.702 296.144 168.097C305.002 148.548 316.971 129.704 324.08 109.567C340.466 63.1167 303.084 22.6744 256.455 9.73141C162.564 -16.3308 38.5033 8.38726 4.40344 102.931C-7.16801 135.012 5.99539 171.637 21.5869 200.765C38.0835 231.586 63.4742 258.223 93.7807 278.213C115.29 292.401 139.164 299.924 164.948 300.164Z"
       />
     </svg>
