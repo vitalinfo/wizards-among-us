@@ -4,8 +4,10 @@ import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
 import { ErrorScreen } from "@/components/errors/ErrorScreen";
-import { Button } from "@/components/ui/Button";
-import { ButtonLink } from "@/components/ui/ButtonLink";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { SiteHeaderClient } from "@/components/site/SiteHeaderClient";
+import { CtaButton } from "@/components/ui/CtaButton";
+import { CtaLink } from "@/components/ui/CtaLink";
 
 // Error boundary for the whole app (every route segment inherits it). Must be a
 // client component — React needs `reset` to re-render the segment.
@@ -29,11 +31,21 @@ export default function Error({
   }, [error]);
 
   return (
-    <ErrorScreen title={t("title")} body={t("body")}>
-      <Button onClick={reset}>{t("retry")}</Button>
-      <ButtonLink href="/" variant="outline">
-        {t("home")}
-      </ButtonLink>
-    </ErrorScreen>
+    <>
+      {/* SiteHeaderClient, not SiteHeader: a client boundary cannot render an
+          async server component, so the session is not available here. The
+          header therefore shows its signed-out state even to someone signed
+          in — the account control just links to /login, which bounces a
+          signed-in user straight back, so the cost is one redirect and never
+          a lost session. */}
+      <SiteHeaderClient user={null} isAdmin={false} />
+      <ErrorScreen code="500" title={t("title")} body={t("body")}>
+        <CtaButton onClick={reset}>{t("retry")}</CtaButton>
+        <CtaLink href="/" variant="outline">
+          {t("home")}
+        </CtaLink>
+      </ErrorScreen>
+      <SiteFooter />
+    </>
   );
 }
