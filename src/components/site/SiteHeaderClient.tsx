@@ -11,9 +11,11 @@ import {
   TelegramIcon,
   UserIcon,
 } from "@/components/icons";
+import { SITE_CONTAINER } from "@/components/site/layout";
 import { SITE_NAV } from "@/components/site/nav";
 import { SiteLogo } from "@/components/site/SiteLogo";
 import { SITE } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 const PILL =
   "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -70,14 +72,13 @@ export function SiteHeaderClient({
           generic scale. HEIGHT: 56px on mobile, 107px from lg — a fixed height,
           not padding, because the logo is TALLER than the row it sits in (135px
           in a 107px header) and overhangs it, which padding cannot express.
-          GUTTER: 16px on mobile; from lg it is 5.2% — the design's 100px as a
-          FRACTION of its 1920 frame, so it stays proportional rather than
-          eating a fifth of a 1024 viewport and wrapping «Про нас» onto two
-          lines. The container is
-          capped at the frame width itself, NOT at 1920-minus-gutters — capping
-          at 1720 and then adding 100px of padding centres the container first
-          and pads inside it, which doubled the gutter to 200. */}
-      <div className="mx-auto mt-4 flex h-14 w-full max-w-[1920px] items-center gap-4 px-4 sm:px-6 lg:mt-0 lg:h-[107px] lg:px-[5.2%]">
+          The gutter comes from SITE_CONTAINER. */}
+      <div
+        className={cn(
+          SITE_CONTAINER,
+          "mt-4 flex h-14 items-center gap-4 lg:mt-0 lg:h-[107px]",
+        )}
+      >
         <nav
           aria-label={t("nav.label")}
           className="hidden flex-1 items-center gap-4 lg:flex xl:gap-6"

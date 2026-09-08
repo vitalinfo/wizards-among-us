@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { InstagramIcon, TelegramIcon } from "@/components/icons";
+import { SITE_CONTAINER } from "@/components/site/layout";
 import { SITE_NAV } from "@/components/site/nav";
 import { SiteLogo } from "@/components/site/SiteLogo";
 import { SITE } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 // Filled by default, outlined on hover — the design's resting state is a solid
 // blue disc with a white glyph.
@@ -23,7 +25,7 @@ export function SiteFooter() {
       {/* Same gutter as the header, so the logo and columns line up with the
           nav above. Less room at the very bottom than at the top: the design
           leaves 19px under the copyright row, not a symmetric block. */}
-      <div className="mx-auto w-full max-w-[1920px] px-4 pt-12 pb-5 sm:px-6 lg:px-[5.2%]">
+      <div className={cn(SITE_CONTAINER, "pt-12 pb-5")}>
         <div className="flex flex-col gap-10 lg:flex-row lg:justify-between lg:gap-16">
           {/* The mark is CENTRED over the paragraph rather than flush left —
               measured off their render: logo centre 232, tagline centre 237.

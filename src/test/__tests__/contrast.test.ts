@@ -49,6 +49,26 @@ describe("colour contrast (WCAG AA)", () => {
     ["header-muted", "header", AA_NORMAL],
     // The outline button in the header: large bold text on the dark bar.
     ["header-outline", "header", AA_LARGE],
+    // The landing page's warm surfaces: the hero promise card, the "Для
+    // родин" band, an opened FAQ row (cream-soft) and the founder-quote band
+    // (cream-warm).
+    ["foreground", "cream-soft", AA_NORMAL],
+    ["muted-foreground", "cream-soft", AA_NORMAL],
+    ["body", "cream-soft", AA_NORMAL],
+    ["primary", "cream-soft", AA_NORMAL],
+    ["foreground", "cream-warm", AA_NORMAL],
+    ["muted-foreground", "cream-warm", AA_NORMAL],
+    // The hero's first CTA. The design sets this label in WHITE on the yellow,
+    // which is 1.54:1 — this is the assertion that says we did not ship that.
+    ["accent-foreground", "accent", AA_NORMAL],
+    ["accent-foreground", "accent-hover", AA_NORMAL],
+    // Greyed-back words inside the 26px semibold lead paragraph. LARGE only —
+    // it does not reach 4.5:1 and must not be used at body size.
+    ["muted-faint", "background", AA_LARGE],
+    // Initiative status pills, white label on a solid fill. --disabled is
+    // absent on purpose: it fills a disabled control, which is exempt.
+    ["primary-foreground", "status-open", AA_NORMAL],
+    ["primary-foreground", "status-closed", AA_NORMAL],
   ])("%s on %s meets %s:1", (fg, bg, threshold) => {
     const value = ratio(fg, bg);
     expect(
