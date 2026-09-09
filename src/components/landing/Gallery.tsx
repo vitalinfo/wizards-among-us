@@ -11,10 +11,12 @@ import { cn } from "@/lib/utils";
 import { nextScrollLeft } from "./galleryPaging";
 import { SectionLabel } from "./SectionLabel";
 
-const PHOTOS = ["1", "2", "3", "4"] as const;
-
-// The design's gap between photos: 12px on a phone, 20px from lg.
-const GAP = { base: 12, lg: 20 };
+// 25 of them, and the count is expected to keep growing — the families keep
+// sending photos. Generated rather than listed, and the alt text is one
+// numbered string rather than 25 written ones, so adding a photo is a file in
+// public/ and a bump here. See the note on the alt below.
+export const PHOTO_COUNT = 25;
+const PHOTOS = Array.from({ length: PHOTO_COUNT }, (_, i) => String(i + 1));
 
 const DURATION = 550;
 
@@ -76,20 +78,24 @@ export function Gallery() {
   const page = useCallback(
     (direction: 1 | -1) => {
       const el = row.current;
-      const card = el?.firstElementChild;
-      if (!el || !card) {
+      if (!el) {
         return;
       }
-      // Measured, not hardcoded: the photo is 303px on a phone and 502px from
-      // lg, and reading it back keeps this right at both without a matchMedia.
-      const gap = window.innerWidth >= 1024 ? GAP.lg : GAP.base;
-      const step = card.getBoundingClientRect().width + gap;
+      // Measured, never derived. The snap position of a card is its offset
+      // minus the row's scroll-padding, and both change with the breakpoint —
+      // reading them back is shorter than restating them here, and cannot
+      // disagree with the stylesheet.
+      const pad = parseFloat(getComputedStyle(el).scrollPaddingLeft) || 0;
+      const left = el.getBoundingClientRect().left - el.scrollLeft;
+      const offsets = [...el.children].map(
+        (card) => card.getBoundingClientRect().left - left - pad,
+      );
       animateTo(
         el,
         nextScrollLeft({
           scrollLeft: el.scrollLeft,
           maxScroll: el.scrollWidth - el.clientWidth,
-          step,
+          offsets,
           direction,
         }),
       );
@@ -111,25 +117,58 @@ export function Gallery() {
         </p>
       </div>
 
-      {/* The row runs off the right edge on purpose — the design shows a
+      {/* Photos are sized by HEIGHT, with the width following the picture's
+          own ratio — the opposite of everywhere else on this page, because
+          height is the dimension that runs out. The design draws them 502x670
+          in a 1920x1424 frame, where 670 is under half the viewport; on a
+          laptop window 652px tall it is 103% of it, so you could never see a
+          whole photo and the paging arrows sat off-screen below. The cap only
+          bites when there genuinely is not room (photo + arrows + air ≈ 160px
+          of chrome), so at any normal window the design's 502x670 is
+          untouched. svh, not vh or dvh: vh uses the tallest viewport and
+          clips on a phone, dvh resizes the cards as the URL bar collapses.
+
+          The row runs off the right edge on purpose — the design shows a
           fourth photo half-visible, which is what says "there is more here".
           tabIndex makes the scroller reachable by keyboard: a scrollable
           region only a mouse can move is a real barrier, and unlike the arrows
-          below it needs no JavaScript. */}
+          below it needs no JavaScript.
+
+          scroll-padding is the GAP, not the page gutter. It decides where a
+          snapped card comes to rest, and anything wider than the gap leaves a
+          slice of the previous photo pinned to the left edge: at 24px against
+          a 20px gap that was 4px of the last child, on every page. Zero from
+          lg, where the row has no padding of its own, so a card lands flush
+          with the copy above it and the one before it clears the edge by the
+          full gap.
+
+          pb-[15px] is room for the scrollbar. On a trackpad it is an overlay
+          and paints inside the padding box, so without this it draws across
+          the bottom of the photos. */}
       <ul
         ref={row}
         tabIndex={0}
         aria-label={t("region")}
-        className="focus-visible:outline-ring -mx-4 mt-8 flex snap-x snap-mandatory scroll-pl-4 gap-3 overflow-x-auto px-4 focus-visible:outline-2 sm:-mx-6 sm:scroll-pl-6 sm:px-6 lg:mx-0 lg:mt-20 lg:gap-5 lg:px-0"
+        className="focus-visible:outline-ring -mx-4 mt-8 flex snap-x snap-mandatory scroll-pl-3 gap-3 overflow-x-auto px-4 pb-[15px] focus-visible:outline-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:mt-20 lg:scroll-pl-0 lg:gap-5 lg:px-0"
       >
         {PHOTOS.map((key) => (
           <li key={key} className="shrink-0 snap-start">
+            {/* A numbered alt, at Vital's call, because 25 hand-written
+                descriptions would be guesses from thumbnails that nobody can
+                verify or will maintain — and a wrong description of a real
+                child's photo is worse than none. Worth knowing what it costs:
+                "Галерея фото №7" tells a screen-reader user nothing the
+                heading has not already said, so it is noise rather than
+                access. If we are not going to describe them, alt="" is the
+                better of the two — the row is already a labelled group, and
+                the reader would skip the images instead of announcing 25
+                empty labels. One line either way. */}
             <Image
               src={`/gallery-${key}.webp`}
-              alt={t(`photos.${key}`)}
+              alt={t("photoAlt", { n: key })}
               width={1004}
               height={1340}
-              className="w-[303px] rounded-[20px] lg:w-[502px]"
+              className="h-[404px] max-h-[max(240px,calc(100svh-160px))] w-auto rounded-[20px] lg:h-[670px]"
             />
           </li>
         ))}
