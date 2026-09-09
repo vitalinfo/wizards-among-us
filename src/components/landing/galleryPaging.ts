@@ -2,24 +2,32 @@
 //
 // Pure, and separate from the component, because the interesting part is the
 // arithmetic — the wrap at either end, and the fact that the last page is
-// usually a PARTIAL step (the row is 2068 wide in a 1720 box, so the final
-// position is "as far as it goes", not "card index 3"). jsdom reports every
-// width as 0, so this could not be tested through the DOM.
+// usually a PARTIAL step (the row is far wider than the box, so the final
+// position is "as far as it goes", not "the last card's offset"). jsdom
+// reports every width as 0, so this could not be tested through the DOM.
+//
+// It takes the cards' actual SNAP POSITIONS rather than a card width and a
+// gap. Those are not the same number: the row carries a scroll-padding so
+// that snapping stops at the page gutter instead of scrolling it out of
+// sight, and a snap position is the card's offset MINUS that padding.
+// Computing `index * step` instead landed 24px off every time, and restoring
+// scroll-snap after the animation yanked it the rest of the way — a visible
+// jerk at the end of every page.
 export function nextScrollLeft({
   scrollLeft,
   maxScroll,
-  step,
+  offsets,
   direction,
 }: {
   // Current horizontal scroll offset of the row.
   scrollLeft: number;
   // The largest offset it can reach (scrollWidth − clientWidth).
   maxScroll: number;
-  // One card plus one gap.
-  step: number;
+  // Each card's snap position, ascending. Measured, not derived.
+  offsets: readonly number[];
   direction: 1 | -1;
 }): number {
-  if (step <= 0 || maxScroll <= 0) {
+  if (offsets.length === 0 || maxScroll <= 0) {
     return 0;
   }
 
@@ -34,9 +42,21 @@ export function nextScrollLeft({
     return maxScroll;
   }
 
-  // Snap to a card boundary rather than adding a delta to wherever a trackpad
-  // left us, so paging cannot drift out of alignment over time.
-  const index = Math.round(scrollLeft / step);
-  const target = (index + direction) * step;
+  // Step from the card we are nearest to, so paging cannot drift out of
+  // alignment after a trackpad drag has left us between two cards.
+  let nearest = 0;
+  for (let i = 1; i < offsets.length; i++) {
+    if (
+      Math.abs(offsets[i] - scrollLeft) <
+      Math.abs(offsets[nearest] - scrollLeft)
+    ) {
+      nearest = i;
+    }
+  }
+
+  const target = offsets[nearest + direction];
+  if (target === undefined) {
+    return direction === 1 ? maxScroll : 0;
+  }
   return Math.max(0, Math.min(target, maxScroll));
 }
