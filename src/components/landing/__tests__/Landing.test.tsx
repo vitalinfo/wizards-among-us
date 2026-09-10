@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 
 import messages from "../../../../messages/uk.json";
 import type { CampaignStates } from "@/features/campaigns/queries";
+import type { PublicFaq } from "@/features/faqs/queries";
 import { SITE } from "@/lib/site";
 import { axe } from "@/test/axe";
 
@@ -12,10 +13,24 @@ import { Landing } from "../Landing";
 // span; the accessible name is the sentence with the markup taken out.
 const heroTitle = messages.landing.hero.title.replace(/<\/?em>/g, "");
 
-function renderLanding(campaigns: CampaignStates = {}) {
+// The FAQ rows are admin-managed data now, so the composer is handed them.
+// Faq has its own spec; here they only need to be present so the section
+// renders at all.
+const FAQS: PublicFaq[] = [
+  {
+    id: "11111111-1111-4111-8111-111111111111",
+    title: "Хто може подати заявку?",
+    description: "Родини з дітьми, які через війну виїхали з дому.",
+  },
+];
+
+function renderLanding(
+  campaigns: CampaignStates = {},
+  faqs: readonly PublicFaq[] = FAQS,
+) {
   return render(
     <NextIntlClientProvider locale="uk" messages={messages}>
-      <Landing campaigns={campaigns} />
+      <Landing campaigns={campaigns} faqs={faqs} />
     </NextIntlClientProvider>,
   );
 }
@@ -147,6 +162,29 @@ describe("Landing", () => {
     expect(
       screen.queryByRole("link", { name: messages.landing.initiatives.cta }),
     ).not.toBeInTheDocument();
+  });
+
+  // Every other section is copy, so it renders whatever happens. The FAQ is
+  // now data, and the composer has to survive it being absent — an empty list
+  // is what a database failure looks like from here.
+  it("still renders the rest of the page when there are no FAQ entries", () => {
+    renderLanding({}, []);
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: heroTitle }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: messages.landing.faq.title }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the FAQ questions it was given", () => {
+    renderLanding();
+
+    expect(
+      screen.getByRole("heading", { name: messages.landing.faq.title }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(FAQS[0].title)).toBeVisible();
   });
 
   it("has no accessibility violations", async () => {

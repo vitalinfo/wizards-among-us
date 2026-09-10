@@ -25,6 +25,7 @@ export {
   applicationStatusSchema,
   campaignStatusSchema,
   campaignTypeSchema,
+  faqStatusSchema,
   fileKindSchema,
   regionSchema,
   userRoleSchema,
@@ -34,6 +35,8 @@ export {
   campaignCreateSchema,
   type CampaignCreateInput,
 } from "@/features/campaigns/validation";
+
+export { faqInputSchema, type FaqInput } from "@/features/faqs/validation";
 
 export {
   moderationDecisionSchema,

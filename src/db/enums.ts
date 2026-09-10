@@ -41,6 +41,11 @@ export function isCreatableCampaignType(
 export const CAMPAIGN_STATUSES = ["draft", "active", "archived"] as const;
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 
+// Landing-page FAQ entries. `inactive` keeps an answer we may want back
+// without deleting it — the alternative to a soft-delete column.
+export const FAQ_STATUSES = ["active", "inactive"] as const;
+export type FaqStatus = (typeof FAQ_STATUSES)[number];
+
 export const APPLICATION_STATUSES = [
   "draft",
   "submitted",
