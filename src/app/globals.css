@@ -139,6 +139,26 @@ body {
   color: var(--foreground);
 }
 
+/* A <button> gets the browser's arrow cursor, not a pointer — Tailwind v3
+   used to override that in preflight and v4 deliberately stopped. Defensible
+   for a native form control, wrong for every button in this product: they all
+   read as things you click, and the gallery's paging discs in particular look
+   inert under the mouse.
+
+   Restored here rather than as a `cursor-pointer` on each of the ~25 call
+   sites, so the next button added is right without anyone remembering. In
+   @layer base, so a utility can still override it where a button genuinely
+   should not look clickable.
+
+   Disabled controls keep the arrow on purpose — the cursor is the honest
+   signal that clicking will do nothing. */
+@layer base {
+  button:not(:disabled),
+  input:where([type="button"], [type="reset"], [type="submit"]):not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 /* Design spec: visible focus ring on interactive elements. */
 :focus-visible {
   outline: 2px solid var(--ring);
