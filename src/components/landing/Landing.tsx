@@ -1,4 +1,5 @@
 import type { CampaignStates } from "@/features/campaigns/queries";
+import type { PublicFaq } from "@/features/faqs/queries";
 import { SITE } from "@/lib/site";
 import { yearsSince } from "@/lib/years";
 
@@ -17,9 +18,13 @@ import { Stats } from "./Stats";
 // the sections; each section is its own (client) component.
 export function Landing({
   campaigns,
+  faqs,
 }: {
   // Which initiatives exist as campaigns, and which one is running.
   campaigns: CampaignStates;
+  // The active FAQ entries, in display order. Admin-managed, so they are data
+  // loaded by the page rather than copy in messages/uk.json.
+  faqs: readonly PublicFaq[];
 }) {
   return (
     <main className="flex flex-1 flex-col">
@@ -32,7 +37,7 @@ export function Landing({
       <Manifesto namespace="volunteers" href="/volunteer" />
       <FounderQuote />
       <Initiatives campaigns={campaigns} />
-      <Faq />
+      <Faq items={faqs} />
       <Gallery />
     </main>
   );

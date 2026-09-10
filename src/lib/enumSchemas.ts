@@ -7,6 +7,7 @@ import {
   CONTACT_METHODS,
   CREATABLE_CAMPAIGN_TYPES,
   DISPLACED_FROM_REGIONS,
+  FAQ_STATUSES,
   FILE_KINDS,
   UKRAINE_REGIONS,
   USER_ROLES,
@@ -24,6 +25,7 @@ export const campaignTypeSchema = z.enum(CAMPAIGN_TYPES);
 export const creatableCampaignTypeSchema = z.enum(CREATABLE_CAMPAIGN_TYPES);
 export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
 export const applicationStatusSchema = z.enum(APPLICATION_STATUSES);
+export const faqStatusSchema = z.enum(FAQ_STATUSES);
 export const fileKindSchema = z.enum(FILE_KINDS);
 export const regionSchema = z.enum(UKRAINE_REGIONS);
 // Where a family was displaced FROM is narrower than where they live now. Same

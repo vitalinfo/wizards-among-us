@@ -19,6 +19,7 @@ import {
   APPLICATION_STATUSES,
   CAMPAIGN_STATUSES,
   CAMPAIGN_TYPES,
+  FAQ_STATUSES,
   FILE_KINDS,
   IDENTITY_PROVIDERS,
   UKRAINE_REGIONS,
@@ -249,6 +250,35 @@ export const claims = pgTable(
   (t) => [
     uniqueIndex("claims_application_unique").on(t.applicationId),
     index("claims_volunteer_idx").on(t.volunteerId),
+  ],
+);
+
+// The landing page's «Питання та відповіді». Content, not UI chrome — which is
+// why it lives here rather than in messages/uk.json: the answers state what a
+// volunteer can see and whether we take money, and those change with policy,
+// not with a release. There is one locale (uk), so no per-language columns.
+//
+// `ordinal` is the display order, renumbered 0..n-1 by the admin move actions
+// (see features/faqs/adminQueries). Deliberately NOT unique: uniqueness is a
+// structural guard for races, and two rows briefly sharing a position is a
+// cosmetic problem, not a corrupt one — a unique index would instead force a
+// temp-value dance through every reorder. Reads order by (ordinal, created_at)
+// so a tie still resolves the same way on every request.
+export const faqs = pgTable(
+  "faqs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(), // the question
+    description: text("description").notNull(), // the answer
+    status: text("status", { enum: FAQ_STATUSES }).notNull().default("active"),
+    ordinal: integer("ordinal").notNull().default(0),
+    ...timestamps(),
+  },
+  (t) => [
+    check("faqs_status_valid", oneOf("status", FAQ_STATUSES)),
+    // The landing query: active rows in display order, served entirely by the
+    // index so the public page never sorts.
+    index("faqs_status_ordinal_idx").on(t.status, t.ordinal, t.createdAt),
   ],
 );
 

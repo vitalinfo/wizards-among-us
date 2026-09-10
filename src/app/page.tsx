@@ -4,6 +4,7 @@ import { Landing } from "@/components/landing";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { getCampaignStates } from "@/features/campaigns/queries";
+import { listActiveFaqs } from "@/features/faqs/queries";
 
 // The landing page is the ONLY indexable route (§10 crawler policy) — override
 // the app-wide noindex default set in the root layout.
@@ -16,12 +17,17 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const campaigns = await getCampaignStates();
+  // Independent reads — one round trip each, so run them together. Both
+  // swallow their own failures: the landing renders even with no database.
+  const [campaigns, faqs] = await Promise.all([
+    getCampaignStates(),
+    listActiveFaqs(),
+  ]);
 
   return (
     <>
       <SiteHeader />
-      <Landing campaigns={campaigns} />
+      <Landing campaigns={campaigns} faqs={faqs} />
       <SiteFooter />
     </>
   );

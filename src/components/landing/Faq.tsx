@@ -5,14 +5,25 @@ import { useTranslations } from "next-intl";
 
 import { ArrowRightIcon, CloseIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
+import type { PublicFaq } from "@/features/faqs/queries";
 import { cn } from "@/lib/utils";
 
 import { SectionLabel } from "./SectionLabel";
 
-const QUESTIONS = ["who", "address", "price", "edit", "pay", "check"] as const;
-
-export function Faq() {
+// The questions come from the DATABASE (admin-managed at /admin/faqs), not from
+// messages/uk.json: the answers state what a volunteer can see and whether we
+// take money, and those follow policy rather than releases. Only the section
+// heading and lead-in are copy.
+//
+// No entries means no section — not a heading over an empty box, and
+// deliberately no hardcoded fallback (see listActiveFaqs for why a second copy
+// of these answers would be a privacy hazard rather than a nicety).
+export function Faq({ items }: { items: readonly PublicFaq[] }) {
   const t = useTranslations("landing.faq");
+
+  if (items.length === 0) {
+    return null;
+  }
 
   return (
     <section className={cn(SITE_CONTAINER, "relative py-15 lg:py-25")}>
@@ -46,15 +57,15 @@ export function Faq() {
             anywhere else. The browser gives us the toggling, the keyboard
             handling and the aria-expanded for free. */}
         <div className="flex min-w-0 flex-1 flex-col gap-4">
-          {QUESTIONS.map((key) => (
+          {items.map((item) => (
             <details
-              key={key}
+              key={item.id}
               name="faq"
               className="border-foreground/6 open:bg-cream-soft group rounded-3xl border px-5 py-5 lg:px-8 lg:py-6"
             >
               <summary className="focus-visible:outline-ring flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-4 [&::-webkit-details-marker]:hidden">
                 <span className="text-muted-foreground text-lg leading-[30px] font-semibold tracking-[-0.03em] lg:text-2xl">
-                  {t(`items.${key}.q`)}
+                  {item.title}
                 </span>
                 {/* One control, two faces: a blue disc with an arrow while
                     closed, and the panel's own cream with a cross once open —
@@ -64,8 +75,10 @@ export function Faq() {
                   <CloseIcon className="hidden size-6 group-open:block" />
                 </span>
               </summary>
-              <p className="text-muted-foreground mt-3 max-w-[682px] text-base leading-[22px] tracking-[-0.03em] lg:text-lg">
-                {t(`items.${key}.a`)}
+              {/* pre-line: the answer is admin-written in a textarea, so the
+                  paragraph breaks they typed have to survive. */}
+              <p className="text-muted-foreground mt-3 max-w-[682px] text-base leading-[22px] tracking-[-0.03em] whitespace-pre-line lg:text-lg">
+                {item.description}
               </p>
             </details>
           ))}
