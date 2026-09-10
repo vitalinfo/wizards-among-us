@@ -4,16 +4,11 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 import { logout } from "@/app/auth/actions";
-import {
-  CloseIcon,
-  InstagramIcon,
-  MenuIcon,
-  TelegramIcon,
-  UserIcon,
-} from "@/components/icons";
+import { CloseIcon, MenuIcon, UserIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
 import { SITE_NAV } from "@/components/site/nav";
 import { SiteLogo } from "@/components/site/SiteLogo";
+import { SocialLinks } from "@/components/site/SocialLinks";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -114,7 +109,7 @@ export function SiteHeaderClient({
 
         <div className="flex flex-1 items-center justify-end gap-3 lg:gap-4">
           <Link
-            href="/#contacts"
+            href="/contacts"
             className="hover:text-primary focus-visible:outline-ring hidden rounded text-base whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:inline"
           >
             {t("nav.contacts")}
@@ -154,7 +149,7 @@ export function SiteHeaderClient({
 
               <nav aria-label={t("nav.label")}>
                 <ul className="flex flex-col gap-6 text-lg">
-                  {[...SITE_NAV, { key: "contacts", href: "/#contacts" }].map(
+                  {[...SITE_NAV, { key: "contacts", href: "/contacts" }].map(
                     (item) => (
                       <li key={item.key}>
                         <Link
@@ -176,26 +171,11 @@ export function SiteHeaderClient({
                 >
                   {SITE.email}
                 </a>
-                <div className="flex items-center gap-3">
-                  <a
-                    href={SITE.instagramUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={t("footer.instagram")}
-                    className="bg-primary text-primary-foreground inline-flex size-11 items-center justify-center rounded-full"
-                  >
-                    <InstagramIcon className="size-5" />
-                  </a>
-                  <a
-                    href={SITE.telegramUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={t("footer.telegram")}
-                    className="bg-primary text-primary-foreground inline-flex size-11 items-center justify-center rounded-full"
-                  >
-                    <TelegramIcon className="size-5" />
-                  </a>
-                </div>
+                <SocialLinks
+                  instagramLabel={t("footer.instagram")}
+                  telegramLabel={t("footer.telegram")}
+                  size={44}
+                />
               </div>
             </div>
           </details>

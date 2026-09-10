@@ -3,17 +3,12 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
-import { InstagramIcon, TelegramIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
 import { SITE_NAV } from "@/components/site/nav";
 import { SiteLogo } from "@/components/site/SiteLogo";
+import { SocialLinks } from "@/components/site/SocialLinks";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
-
-// Filled by default, outlined on hover — the design's resting state is a solid
-// blue disc with a white glyph.
-const SOCIAL =
-  "bg-primary text-primary-foreground border-primary hover:bg-surface hover:text-primary focus-visible:outline-ring inline-flex size-12 items-center justify-center rounded-full border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export function SiteFooter() {
   const t = useTranslations("common.footer");
@@ -68,29 +63,10 @@ export function SiteFooter() {
             >
               {SITE.email}
             </a>
-            <div className="flex items-center gap-3">
-              {/* Each is labelled by the NETWORK, not by the icon: «Instagram»
-                  is what a screen-reader user needs to hear, and the glyph
-                  itself carries no accessible name. */}
-              <a
-                href={SITE.instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t("instagram")}
-                className={SOCIAL}
-              >
-                <InstagramIcon className="size-5" />
-              </a>
-              <a
-                href={SITE.telegramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t("telegram")}
-                className={SOCIAL}
-              >
-                <TelegramIcon className="size-5" />
-              </a>
-            </div>
+            <SocialLinks
+              instagramLabel={t("instagram")}
+              telegramLabel={t("telegram")}
+            />
           </div>
         </div>
 

@@ -64,6 +64,22 @@ describe("SiteHeaderClient auth state", () => {
 // An admin holds a session but is not a `user`, so `user` is null for them.
 // Showing «Увійти» sent them to a page they were already past — and, with the
 // parent pages' guard, into an infinite redirect loop.
+// «Контакти» used to be an anchor to the footer. It is a page now, and the
+// header is the only route to it — it is deliberately not in SITE_NAV.
+describe("SiteHeaderClient contacts link", () => {
+  it("points at the contacts page from both the bar and the mobile menu", () => {
+    renderHeader(null);
+
+    const links = screen.getAllByRole("link", {
+      name: messages.common.nav.contacts,
+    });
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link).toHaveAttribute("href", "/contacts");
+    }
+  });
+});
+
 describe("SiteHeaderClient for an admin", () => {
   it("links to the admin panel instead of offering sign-in", () => {
     renderHeader(null, true);
