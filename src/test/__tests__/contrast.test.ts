@@ -70,8 +70,12 @@ describe("colour contrast (WCAG AA)", () => {
     ["primary-foreground", "status-open", AA_NORMAL],
     ["primary-foreground", "status-closed", AA_NORMAL],
     // The status code on the dead-end pages: display type on the solid cream
-    // blob, and the blob is the only place --cream carries any foreground.
+    // blob. The partners page then puts a whole SECTION on that same solid
+    // cream — heading, lead-in and the cards' surround — so it carries body
+    // copy now, not just display type.
     ["primary", "cream", AA_NORMAL],
+    ["foreground", "cream", AA_NORMAL],
+    ["muted-foreground", "cream", AA_NORMAL],
   ])("%s on %s meets %s:1", (fg, bg, threshold) => {
     const value = ratio(fg, bg);
     expect(
