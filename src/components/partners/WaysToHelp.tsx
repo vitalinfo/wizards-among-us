@@ -33,7 +33,7 @@ export function WaysToHelp() {
             these four out in a row 1179px wide inside a 360px frame, and that
             IS the intent here (Vital), not the accident it was on the landing
             page's «Наші ініціативи». Four columns from lg. */}
-        <ul className="-mx-4 mt-8 flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-4 pb-[15px] sm:-mx-6 sm:px-6 lg:mx-0 lg:mt-20 lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:px-0 lg:pb-0">
+        <ul className="-mx-4 mt-8 flex snap-x snap-mandatory scroll-pl-4 gap-4 overflow-x-auto px-4 pb-[15px] sm:-mx-6 sm:scroll-pl-6 sm:gap-6 sm:px-6 lg:mx-0 lg:mt-20 lg:grid lg:scroll-pl-0 lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:px-0 lg:pb-0">
           {WAYS.map(({ key, emoji }) => (
             <li
               key={key}
