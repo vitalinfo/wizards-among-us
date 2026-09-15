@@ -29,15 +29,15 @@ export function WaysToHelp() {
           subtitle={t("subtitle")}
         />
 
-        {/* One column on a phone. The design lays the four out in a row 1179px
-            wide inside a 360px frame, which is a horizontal scrollbar rather
-            than a layout — the same thing «Як це працює» and «Наші ініціативи»
-            were corrected for on the landing page. */}
-        <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:mt-20 lg:grid-cols-4">
+        {/* The same scroller as the partner list below lg — the design lays
+            these four out in a row 1179px wide inside a 360px frame, and that
+            IS the intent here (Vital), not the accident it was on the landing
+            page's «Наші ініціативи». Four columns from lg. */}
+        <ul className="-mx-4 mt-8 flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-4 pb-[15px] sm:-mx-6 sm:px-6 lg:mx-0 lg:mt-20 lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:px-0 lg:pb-0">
           {WAYS.map(({ key, emoji }) => (
             <li
               key={key}
-              className="bg-surface flex flex-col gap-6 rounded-3xl px-5 py-8"
+              className="bg-surface flex w-[287px] shrink-0 snap-start flex-col gap-6 rounded-3xl px-5 py-8 lg:w-auto"
             >
               {/* Decorative: the heading underneath names the route, and an
                   emoji read aloud ("busts in silhouette") would only get in

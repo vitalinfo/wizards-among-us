@@ -12,6 +12,11 @@ export type Partner = {
   // not warn. NOT the display size — see `shape`.
   width: number;
   height: number;
+  // Kept in the roster but not rendered (Vital, this change). A flag rather
+  // than a deleted block: the logo, the copy and the badge stay together and
+  // in review, so putting the partner back is one word — and a commented-out
+  // object is the kind of thing that rots until nobody dares restore it.
+  hidden?: true;
   // How the design sizes the mark. Four of the five are wordmarks laid out to
   // a common 164px width; Newsoft's is a disc, and stretching a disc to a
   // wordmark's width is how a logo gets bent. Two fixed classes rather than a
@@ -40,6 +45,7 @@ export const PARTNERS: readonly Partner[] = [
     width: 143,
     height: 61,
     shape: "wordmark",
+    hidden: true,
   },
   {
     key: "newsoft",

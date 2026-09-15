@@ -28,7 +28,7 @@ export function PartnerCard({
   return (
     <li
       className={cn(
-        "bg-surface relative isolate overflow-hidden rounded-3xl p-5 lg:min-h-[258px] lg:px-5 lg:pt-8 lg:pb-[74px]",
+        "bg-surface relative isolate w-[287px] shrink-0 snap-start overflow-hidden rounded-3xl p-5 lg:min-h-[258px] lg:px-5 lg:pt-8 lg:pb-[74px]",
         className,
       )}
     >
