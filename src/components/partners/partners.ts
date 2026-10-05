@@ -49,7 +49,6 @@ export const PARTNERS: readonly Partner[] = [
     width: 328,
     height: 164,
     shape: "wordmark",
-    hidden: true,
   },
   {
     key: "newsoft",
