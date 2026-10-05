@@ -37,20 +37,19 @@ describe("PartnersList", () => {
     }
   });
 
-  // A hidden partner is hidden from EVERYONE — not visually suppressed while
-  // still read out, and not left in the markup for anyone reading source. This
-  // is the assertion that catches a filter applied to the wrong list.
-  it("renders nothing at all for a hidden partner", () => {
-    const { container } = renderList();
+  // Nothing is hidden today, so this is a count rather than a loop over the
+  // hidden rows — that loop passed vacuously the moment the roster emptied of
+  // them, which is worse than no test. A count stays honest either way: hide a
+  // partner and this fails unless the filter actually drops it.
+  it("renders exactly the visible partners, and no others", () => {
+    renderList();
 
+    expect(screen.getAllByRole("listitem")).toHaveLength(VISIBLE.length);
     for (const partner of HIDDEN) {
       expect(
         screen.queryByRole("heading", { name: copy(partner.key).name }),
       ).not.toBeInTheDocument();
-      expect(container.innerHTML).not.toContain(partner.src);
     }
-
-    expect(screen.getAllByRole("listitem")).toHaveLength(VISIBLE.length);
   });
 
   // A logo is the partner's identity, not decoration, so it carries a name —

@@ -40,12 +40,15 @@ export const PARTNERS: readonly Partner[] = [
     shape: "wordmark",
   },
   {
-    key: "dvlGroup",
-    src: "/partner-dvl-group.svg",
-    width: 143,
-    height: 61,
+    key: "datagroupLifecell",
+    // A raster, and the only logo here that is not a transparent mark: the
+    // designer's lockup puts both brands on the solid yellow field they share,
+    // so the card shows a yellow block rather than two marks on white. That is
+    // the file, not a missing alpha channel.
+    src: "/partner-datagroup-lifecell.webp",
+    width: 328,
+    height: 164,
     shape: "wordmark",
-    hidden: true,
   },
   {
     key: "newsoft",
