@@ -41,7 +41,7 @@ export function InitiativeSteps({
       <div className={cn(SITE_CONTAINER, "py-15 lg:py-25")}>
         <div className="mx-auto flex flex-col items-center gap-4.5 text-center lg:max-w-[min(35.99vw,691px)] lg:gap-8">
           <SectionLabel>{label}</SectionLabel>
-          <h2 className="font-display text-[32px] leading-9 font-bold tracking-[-0.06em] lg:text-[min(4.17vw,80px)] lg:leading-[min(3.65vw,70px)]">
+          <h2 className="font-display text-[48px] leading-9 font-bold tracking-[-0.06em] lg:text-[min(4.17vw,80px)] lg:leading-[min(3.65vw,70px)]">
             {title}
           </h2>
           <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em] lg:text-lg">
