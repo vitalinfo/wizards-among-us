@@ -39,7 +39,7 @@ export const INITIATIVES: readonly Initiative[] = [
   { key: "family", slug: "family", image: "/initiative-family.webp" },
   {
     key: "school",
-    slug: "school",
+    slug: "new-school-year",
     image: "/initiative-school.webp",
     campaignType: "new_school_year",
   },

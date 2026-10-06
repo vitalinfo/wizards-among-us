@@ -166,7 +166,7 @@ describe("Landing", () => {
     expect(links.map((l) => l.getAttribute("href"))).toEqual([
       "/initiatives/saint-nicholas-day",
       "/initiatives/family",
-      "/initiatives/school",
+      "/initiatives/new-school-year",
     ]);
   });
 
