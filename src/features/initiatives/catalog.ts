@@ -36,7 +36,13 @@ export const INITIATIVES: readonly Initiative[] = [
     image: "/initiative-mykolai.webp",
     campaignType: "saint_nicholas_day",
   },
-  { key: "family", slug: "family", image: "/initiative-family.webp" },
+  {
+    key: "family",
+    // No campaign type to borrow a slug from — this is the on-demand one and
+    // we never run it as a campaign, so the name stays descriptive.
+    slug: "family",
+    image: "/initiative-family.webp",
+  },
   {
     key: "school",
     slug: "new-school-year",
