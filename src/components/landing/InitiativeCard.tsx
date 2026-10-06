@@ -48,12 +48,20 @@ export function InitiativeCard({
         {t(`status.${status}`)}
       </span>
 
+      {/* Starts BELOW the badge rather than behind it. The design overlaps the
+          two — the badge sits over the panel's top-left corner while the
+          artwork's only content at that height is a narrow, centred hat — but
+          that clearance is a property of the illustration, not of the layout:
+          two of the three have wide content up there (stars, a tilted hat) and
+          the badge landed on them at every width, the design's own 1920
+          included. The offset is the badge's height, so nothing can collide
+          whatever the artwork does or however long the label gets. */}
       <Image
         src={image}
         alt={t(`items.${itemKey}.imageAlt`)}
         width={608}
         height={760}
-        className="mx-auto mt-2.5 w-[62%] lg:w-[52%]"
+        className="mx-auto mt-[54px] w-[62%] lg:mt-[74px] lg:w-[52%]"
       />
 
       <div className="flex flex-1 flex-col gap-6 px-[18px] pt-2 pb-[18px] lg:px-[26px] lg:pb-[26px]">
