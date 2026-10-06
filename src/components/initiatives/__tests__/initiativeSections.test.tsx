@@ -46,26 +46,26 @@ describe("InitiativeHero", () => {
     ).toHaveAttribute("href", "/parent");
   });
 
-  // A control that cannot be used should not be focusable or announced as a
-  // link — so it is a disabled button, not a greyed-out anchor.
-  it("disables it when intake is shut", () => {
-    hero("soon");
+  it("offers the volunteer route while intake is open", () => {
+    hero("open");
     expect(
-      screen.getByRole("button", { name: messages.initiatives.apply }),
-    ).toBeDisabled();
-    expect(
-      screen.queryByRole("link", { name: messages.initiatives.apply }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("link", { name: messages.initiatives.volunteer }),
+    ).toHaveAttribute("href", "/volunteer");
   });
 
-  // Signing up to help never depends on whether a campaign is taking
-  // applications from families.
-  it("always offers the volunteer route", () => {
-    for (const status of ["open", "soon", "closed"] as const) {
+  // BOTH buttons follow the campaign (Vital). An initiative with nothing
+  // running offers no way in at all — and they are disabled BUTTONS, not
+  // greyed-out links, so neither is focusable or announced as a link.
+  it("disables both actions when intake is shut", () => {
+    for (const status of ["soon", "closed"] as const) {
       const { unmount } = hero(status);
-      expect(
-        screen.getByRole("link", { name: messages.initiatives.volunteer }),
-      ).toHaveAttribute("href", "/volunteer");
+      for (const name of [
+        messages.initiatives.apply,
+        messages.initiatives.volunteer,
+      ]) {
+        expect(screen.getByRole("button", { name })).toBeDisabled();
+        expect(screen.queryByRole("link", { name })).not.toBeInTheDocument();
+      }
       unmount();
     }
   });

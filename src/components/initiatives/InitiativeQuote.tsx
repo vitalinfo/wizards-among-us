@@ -11,11 +11,11 @@ import { InitiativeCtas } from "./InitiativeCtas";
 // sign-off, which is deliberate — both are the last word on their page.
 export function InitiativeQuote({
   children,
-  applyOpen,
+  intakeOpen,
   className,
 }: {
   children: ReactNode;
-  applyOpen: boolean;
+  intakeOpen: boolean;
   className?: string;
 }) {
   return (
@@ -31,7 +31,7 @@ export function InitiativeQuote({
           {children}
         </p>
 
-        <InitiativeCtas applyOpen={applyOpen} className="mt-10 lg:mt-15" />
+        <InitiativeCtas intakeOpen={intakeOpen} className="mt-10 lg:mt-15" />
       </div>
     </section>
   );

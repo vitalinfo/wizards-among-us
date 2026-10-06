@@ -166,7 +166,7 @@ export default async function SchoolPage() {
           </p>
         </InitiativeBand>
 
-        <InitiativeQuote applyOpen={status === "open"}>
+        <InitiativeQuote intakeOpen={status === "open"}>
           {t.rich("quote", { br: () => <br /> })}
         </InitiativeQuote>
 

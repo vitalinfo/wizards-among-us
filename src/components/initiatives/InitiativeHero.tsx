@@ -57,7 +57,7 @@ export function InitiativeHero({
           </div>
 
           <InitiativeCtas
-            applyOpen={status === "open"}
+            intakeOpen={status === "open"}
             className="items-center"
           />
         </div>

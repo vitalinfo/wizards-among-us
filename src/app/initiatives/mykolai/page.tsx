@@ -148,7 +148,7 @@ export default async function MykolaiPage() {
           ))}
         </InitiativeSplit>
 
-        <InitiativeQuote applyOpen={status === "open"}>
+        <InitiativeQuote intakeOpen={status === "open"}>
           {t("quote")}
         </InitiativeQuote>
 
