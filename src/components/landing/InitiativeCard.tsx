@@ -3,12 +3,11 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 
+import type { InitiativeStatus } from "@/features/initiatives/catalog";
 import { CtaLink } from "@/components/ui/CtaLink";
 import { cn } from "@/lib/utils";
 
 import { Blob } from "./Blob";
-
-export type InitiativeStatus = "open" | "soon" | "closed";
 
 const STATUS_TONES: Record<InitiativeStatus, string> = {
   open: "bg-status-open",
@@ -20,11 +19,16 @@ export function InitiativeCard({
   itemKey,
   image,
   status,
+  detailsHref,
 }: {
   // Copy key under `landing.initiatives.items`.
   itemKey: string;
   image: string;
   status: InitiativeStatus;
+  // The initiative's own page. Optional only so the card can still be rendered
+  // in a context that has no page behind it — which was the whole card's
+  // situation until /initiatives/<slug> existed.
+  detailsHref?: string;
 }) {
   const t = useTranslations("landing.initiatives");
 
@@ -62,23 +66,46 @@ export function InitiativeCard({
           </p>
         </div>
 
-        {/* Open: a real link into the application form. Otherwise a real
-            DISABLED BUTTON rather than a greyed-out link — a control that
-            cannot be used should not be focusable, announced as a link, or
-            reachable by keyboard as one. */}
-        {status === "open" ? (
-          <CtaLink href="/parent" className="w-full lg:w-auto lg:self-start">
-            {t("cta")}
-          </CtaLink>
-        ) : (
-          <button
-            type="button"
-            disabled
-            className="bg-disabled text-disabled-foreground inline-flex h-16 w-full items-center justify-center rounded-full px-11 text-base font-medium lg:h-[78px] lg:w-auto lg:self-start lg:text-xl"
-          >
-            {t("cta")}
-          </button>
-        )}
+        {/* wrap + grow, NOT a breakpoint. The design puts the pair in a row,
+            and at the 557px card it drew that fits — our shared pill carries
+            88px of padding around its label, so the two need ~448px of inner
+            width. Below that they have to stack, and the width where that
+            happens depends on the card, the grid and the label, not on a
+            number I can pick: a `2xl:flex-row` guess clipped «Детальніше» by
+            29px at 1600. Flex wrapping decides it from the real measurements,
+            and `grow` makes a wrapped button fill its own row. */}
+        <div className="flex flex-wrap gap-3">
+          {/* Open: a real link into the application form. Otherwise a real
+              DISABLED BUTTON rather than a greyed-out link — a control that
+              cannot be used should not be focusable, announced as a link, or
+              reachable by keyboard as one. */}
+          {status === "open" ? (
+            <CtaLink href="/parent" className="grow whitespace-nowrap">
+              {t("cta")}
+            </CtaLink>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="bg-disabled text-disabled-foreground inline-flex h-16 grow items-center justify-center rounded-full px-11 text-base font-medium whitespace-nowrap lg:h-[78px] lg:text-xl"
+            >
+              {t("cta")}
+            </button>
+          )}
+
+          {/* «Детальніше» was in the design from the start and was left out
+              because there was no page behind it — a button that goes nowhere
+              is worse than a missing one. Now there is. */}
+          {detailsHref ? (
+            <CtaLink
+              href={detailsHref}
+              variant="outline"
+              className="grow whitespace-nowrap"
+            >
+              {t("details")}
+            </CtaLink>
+          ) : null}
+        </div>
       </div>
     </li>
   );
