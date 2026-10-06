@@ -14,26 +14,17 @@ import { cn } from "@/lib/utils";
 //
 // Disabled BUTTONS rather than greyed-out links: a control that cannot be used
 // should not be focusable, announced as a link, or followable by keyboard.
-// The landing hero's shape, which is also the design's: stacked and full
-// width up to 271px on a phone, a row from lg. 271 is what the mobile frame
-// draws (a 271 wrapper inset 28 either side of a 328 column) and what
-// Hero.tsx already uses, so the two surfaces behave the same.
+// Equal widths (Vital). The design draws them 291 and 309 — content-width
+// around labels of different lengths — and a mismatched pair reads as an
+// accident rather than a choice.
 //
-// EQUAL widths in the row (Vital). The design draws them 291 and 309 —
-// content-width around labels of different lengths — and a mismatched pair
-// reads as an accident rather than a choice. `grid-flow-col auto-cols-fr`
-// makes every column 1fr, and in a shrink-to-fit grid 1fr resolves to the
-// widest item's max-content, so both end up as wide as «Хочу стати
-// Чарівником» without that width being written down anywhere.
-//
-// `w-fit` keeps the row from inheriting its container: in the quote band the
-// column runs to 1568px and 1fr of that would be two 780px buttons.
-//
-// The switch is at lg, not sm, for the reason the landing's is: the pair needs
-// ~630px and a 640px viewport has 608 inside the gutter, so switching at sm
-// would overflow by the width of the gap.
-const ROW =
-  "mx-auto grid w-full max-w-[271px] gap-3 lg:mx-0 lg:w-fit lg:max-w-none lg:grid-flow-col lg:auto-cols-fr";
+// `grid-flow-col auto-cols-fr` makes every column 1fr, and in a shrink-to-fit
+// grid 1fr resolves to the widest item's max-content — so both buttons end up
+// as wide as «Хочу стати Чарівником» without that width being written down
+// anywhere. `w-fit` keeps the row from inheriting its container: in the quote
+// band the column is up to 1568px wide and 1fr of that would be two 780px
+// buttons.
+const ROW = "grid w-full gap-3 sm:w-fit sm:grid-flow-col sm:auto-cols-fr";
 
 const DISABLED =
   "bg-disabled text-disabled-foreground inline-flex h-16 items-center justify-center rounded-full px-11 text-base font-medium whitespace-nowrap lg:h-[78px] lg:text-xl";

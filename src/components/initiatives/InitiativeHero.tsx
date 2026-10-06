@@ -84,7 +84,7 @@ export function InitiativeHero({
 
       <InitiativeCtas
         intakeOpen={status === "open"}
-        className={centred ? "lg:mx-auto" : undefined}
+        className={centred ? "items-center" : undefined}
       />
     </div>
   );
