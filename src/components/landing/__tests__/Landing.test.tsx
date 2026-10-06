@@ -2,7 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 
 import messages from "../../../../messages/uk.json";
-import type { CampaignStates } from "@/features/campaigns/queries";
+import type { ResolvedSettings } from "@/features/campaigns/authz";
+import type {
+  CampaignState,
+  CampaignStates,
+} from "@/features/campaigns/queries";
 import type { PublicFaq } from "@/features/faqs/queries";
 import { SITE } from "@/lib/site";
 import { axe } from "@/test/axe";
@@ -24,13 +28,22 @@ const FAQS: PublicFaq[] = [
   },
 ];
 
+// A live campaign with submissions open. The pill and the button follow the
+// full intake gate now, so a test that only says "active" would be asserting
+// against a state no parent could actually use.
+const live = (
+  status: CampaignState["status"] = "active",
+  acceptingApplications = true,
+): CampaignState => ({ status, acceptingApplications });
+
 function renderLanding(
   campaigns: CampaignStates = {},
   faqs: readonly PublicFaq[] = FAQS,
+  settings: ResolvedSettings = { applicationsEnabled: true },
 ) {
   return render(
     <NextIntlClientProvider locale="uk" messages={messages}>
-      <Landing campaigns={campaigns} faqs={faqs} />
+      <Landing campaigns={campaigns} settings={settings} faqs={faqs} />
     </NextIntlClientProvider>,
   );
 }
@@ -128,7 +141,7 @@ describe("Landing", () => {
   // not: it comes from the active campaign, so the badge and the button have
   // to follow it rather than repeating what the mock happened to show.
   it("opens only the initiative whose campaign is running", () => {
-    renderLanding({ saint_nicholas_day: "active" });
+    renderLanding({ saint_nicholas_day: live() });
     const s = messages.landing.initiatives.status;
     expect(screen.getByText(s.open)).toBeInTheDocument();
     expect(
@@ -157,10 +170,54 @@ describe("Landing", () => {
     ]);
   });
 
+  // The card used to read `status === 'active'` alone, so a live campaign with
+  // submissions paused still said «Відбувається набір» over a working link
+  // into a form that refused the family. The pill and the button come from one
+  // answer now, so they cannot disagree.
+  it("offers no way in while a live campaign has paused submissions", () => {
+    renderLanding({ saint_nicholas_day: live("active", false) });
+    expect(
+      screen.queryByText(messages.landing.initiatives.status.open),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: messages.landing.initiatives.cta }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", {
+        name: messages.landing.initiatives.cta,
+      }),
+    ).toHaveLength(3);
+  });
+
+  it("offers no way in while the global kill switch is off", () => {
+    renderLanding({ saint_nicholas_day: live() }, FAQS, {
+      applicationsEnabled: false,
+    });
+    expect(
+      screen.queryByText(messages.landing.initiatives.status.open),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: messages.landing.initiatives.cta }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Campaigns are CREATED as draft. Draft used to collapse into the same
+  // answer as archived, so preparing next year's Миколай announced on the
+  // landing page that recruitment had finished.
+  it("reads a draft campaign as not yet open, not as finished", () => {
+    renderLanding({ saint_nicholas_day: live("draft") });
+    expect(
+      screen.queryByText(messages.landing.initiatives.status.closed),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText(messages.landing.initiatives.status.soon),
+    ).toHaveLength(3);
+  });
+
   // Three states, and the difference between the last two is whether we have
   // ever run that campaign — not something the copy can know.
   it("distinguishes a campaign that has ended from one never run", () => {
-    renderLanding({ saint_nicholas_day: "inactive" });
+    renderLanding({ saint_nicholas_day: live("archived") });
     const s = messages.landing.initiatives.status;
     expect(screen.getByText(s.closed)).toBeInTheDocument();
     // «Чарівник для родини» has no campaign type, and «Шкільний Чарівник» has

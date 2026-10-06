@@ -1,45 +1,96 @@
 import { describe, expect, it } from "vitest";
 
 import messages from "../../../../messages/uk.json";
+import type { CampaignState } from "@/features/campaigns/queries";
 import { INITIATIVES, initiativeStatus } from "../catalog";
 
-// Three states, and the difference between the last two is whether we have
-// ever run that campaign — not something the copy can know. Previously this
-// lived inside the landing section as a private helper with no test; it is
-// domain logic and two surfaces depend on it now.
+const ON = { applicationsEnabled: true };
+const OFF = { applicationsEnabled: false };
+
+const campaign = (
+  status: CampaignState["status"],
+  acceptingApplications = true,
+): CampaignState => ({ status, acceptingApplications });
+
+// The pill sits over a button labelled «Прийняти участь», so it has to follow
+// whether a parent can ACTUALLY apply — which is three conditions, not one.
+// Reading only `status === 'active'` advertised recruitment above a link into
+// a form that then refused the family.
 describe("initiativeStatus", () => {
-  it("is open only while that campaign is active", () => {
+  it("is open only when all three intake conditions hold", () => {
     expect(
-      initiativeStatus({ saint_nicholas_day: "active" }, "saint_nicholas_day"),
+      initiativeStatus(
+        { saint_nicholas_day: campaign("active") },
+        ON,
+        "saint_nicholas_day",
+      ),
     ).toBe("open");
   });
 
-  it("is closed once that campaign has run and stopped", () => {
+  it("is not open while that campaign has paused submissions", () => {
     expect(
       initiativeStatus(
-        { saint_nicholas_day: "inactive" },
+        { saint_nicholas_day: campaign("active", false) },
+        ON,
+        "saint_nicholas_day",
+      ),
+    ).toBe("soon");
+  });
+
+  it("is not open while the global kill switch is off", () => {
+    expect(
+      initiativeStatus(
+        { saint_nicholas_day: campaign("active") },
+        OFF,
+        "saint_nicholas_day",
+      ),
+    ).toBe("soon");
+  });
+
+  // The bug this replaces: campaigns are CREATED as `draft`, and draft used to
+  // collapse into the same answer as archived — so preparing next year's
+  // Миколай told every family on the landing page that they had missed it.
+  it("reads a draft campaign as not yet open, NOT as finished", () => {
+    expect(
+      initiativeStatus(
+        { saint_nicholas_day: campaign("draft") },
+        ON,
+        "saint_nicholas_day",
+      ),
+    ).toBe("soon");
+  });
+
+  it("is closed once that campaign is archived", () => {
+    expect(
+      initiativeStatus(
+        { saint_nicholas_day: campaign("archived") },
+        ON,
         "saint_nicholas_day",
       ),
     ).toBe("closed");
   });
 
-  it("is 'soon' for a campaign that has never run", () => {
-    expect(initiativeStatus({}, "new_school_year")).toBe("soon");
+  it("is 'soon' for a campaign type that has never existed", () => {
+    expect(initiativeStatus({}, ON, "new_school_year")).toBe("soon");
   });
 
   // «Чарівник для родини» is the on-demand one — we never run it as a
   // campaign, so it has no type and must not be reported as finished.
   it("is 'soon' for an initiative with no campaign type at all", () => {
-    expect(initiativeStatus({ saint_nicholas_day: "active" }, undefined)).toBe(
-      "soon",
-    );
+    expect(
+      initiativeStatus(
+        { saint_nicholas_day: campaign("active") },
+        ON,
+        undefined,
+      ),
+    ).toBe("soon");
   });
 
-  // A database failure arrives here as an empty object. Nothing may read as
-  // open on the strength of it.
-  it("opens nothing when there is no campaign state at all", () => {
+  // A database failure arrives here as an empty map and a kill switch read as
+  // off. Nothing may read as open on the strength of it.
+  it("opens nothing when both reads have failed", () => {
     for (const item of INITIATIVES) {
-      expect(initiativeStatus({}, item.campaignType)).toBe("soon");
+      expect(initiativeStatus({}, OFF, item.campaignType)).toBe("soon");
     }
   });
 });

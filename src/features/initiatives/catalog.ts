@@ -1,3 +1,5 @@
+import type { ResolvedSettings } from "@/features/campaigns/authz";
+import { intakeOpen } from "@/features/campaigns/authz";
 import type { CampaignStates } from "@/features/campaigns/queries";
 
 export type InitiativeStatus = "open" | "soon" | "closed";
@@ -39,16 +41,42 @@ export const INITIATIVES: readonly Initiative[] = [
   },
 ];
 
+// Which of the design's three pills an initiative shows.
+//
+// It follows WHETHER A PARENT CAN ACTUALLY APPLY, not just whether a campaign
+// row says `active` — because the pill sits over a button labelled «Прийняти
+// участь», and the real gate is three conditions, not one: an active campaign,
+// that campaign still accepting submissions, and the global kill switch on
+// (`intakeOpen`, §6). Reading only the first meant a paused campaign — or a
+// thrown kill switch — still advertised «Відбувається набір» above a live link
+// into a form that then turned the family away.
+//
+// Deriving both the pill and the button from this one answer is the point:
+// they cannot disagree.
+//
+//   open    intake is genuinely open            → «Відбувається набір»
+//   closed  that campaign is archived           → «Набір завершено»
+//   soon    everything else                     → «Набір ще не відкрито»
+//
+// «everything else» is doing real work: no campaign of that type, one still in
+// `draft`, or a live one whose submissions are shut. All three mean the same
+// thing to a parent — you cannot apply right now — and «Набір ще не відкрито»
+// is the least wrong of the three labels the design gives us. If the designer
+// wants to tell «paused» apart from «not yet», that is a fourth pill.
 export function initiativeStatus(
   campaigns: CampaignStates,
+  settings: ResolvedSettings,
   campaignType?: keyof CampaignStates,
 ): InitiativeStatus {
   if (!campaignType) {
     return "soon";
   }
-  const state = campaigns[campaignType];
-  if (state === undefined) {
+  const campaign = campaigns[campaignType];
+  if (campaign === undefined) {
     return "soon";
   }
-  return state === "active" ? "open" : "closed";
+  if (intakeOpen({ campaign, settings })) {
+    return "open";
+  }
+  return campaign.status === "archived" ? "closed" : "soon";
 }
