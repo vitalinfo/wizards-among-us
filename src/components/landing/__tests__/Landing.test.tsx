@@ -164,7 +164,7 @@ describe("Landing", () => {
       name: messages.landing.initiatives.details,
     });
     expect(links.map((l) => l.getAttribute("href"))).toEqual([
-      "/initiatives/mykolai",
+      "/initiatives/saint-nicholas-day",
       "/initiatives/family",
       "/initiatives/school",
     ]);
