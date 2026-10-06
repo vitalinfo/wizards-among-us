@@ -133,6 +133,8 @@ describe("the initiative illustrations", () => {
       "public/initiative-mykolai-letter.webp",
       "public/initiative-school-supplies.webp",
       "public/initiative-school-wizard.webp",
+      "public/initiative-family-hero.webp",
+      "public/initiative-family-help.webp",
     ]) {
       expect(() => statSync(file), `missing ${file}`).not.toThrow();
     }
