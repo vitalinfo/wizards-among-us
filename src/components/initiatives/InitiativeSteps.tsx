@@ -4,7 +4,15 @@ import { SectionLabel } from "@/components/landing/SectionLabel";
 import { SITE_CONTAINER } from "@/components/site/layout";
 import { cn } from "@/lib/utils";
 
-export type Step = { key: string; emoji: string; title: string; body: string };
+export type Step = {
+  key: string;
+  emoji: string;
+  title: string;
+  body: string;
+  // The design picks one step out with a yellow disc instead of the tinted
+  // blue — the one the whole initiative turns on.
+  accent?: true;
+};
 
 // «Ось що відбувається далі, крок за кроком» — the cream band of numbered-ish
 // cards every initiative page carries. Same card as the partners page's «як
@@ -18,14 +26,18 @@ export function InitiativeSteps({
   title,
   subtitle,
   steps,
+  tone = "cream",
 }: {
   label: string;
   title: ReactNode;
   subtitle: string;
   steps: readonly Step[];
+  // «Чарівний Миколай» sits this band on the solid cream; «Шкільний
+  // Чарівник» on the lighter one.
+  tone?: "cream" | "cream-soft";
 }) {
   return (
-    <section className="bg-cream">
+    <section className={tone === "cream" ? "bg-cream" : "bg-cream-soft"}>
       <div className={cn(SITE_CONTAINER, "py-15 lg:py-25")}>
         <div className="mx-auto flex flex-col items-center gap-4.5 text-center lg:max-w-[min(35.99vw,691px)] lg:gap-8">
           <SectionLabel>{label}</SectionLabel>
@@ -56,7 +68,10 @@ export function InitiativeSteps({
                   emoji read aloud ("writing hand") would only get in its way. */}
               <span
                 aria-hidden="true"
-                className="bg-primary-soft flex size-15 shrink-0 items-center justify-center rounded-full text-[32px] leading-[30px]"
+                className={cn(
+                  "flex size-15 shrink-0 items-center justify-center rounded-full text-[32px] leading-[30px]",
+                  step.accent ? "bg-accent" : "bg-primary-soft",
+                )}
               >
                 {step.emoji}
               </span>

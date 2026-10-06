@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import messages from "../../../../messages/uk.json";
 import { axe } from "@/test/axe";
 import type { InitiativeStatus } from "@/features/initiatives/catalog";
+import { InitiativeBand } from "../InitiativeBand";
 import { InitiativeHero } from "../InitiativeHero";
 import { InitiativeSteps, type Step } from "../InitiativeSteps";
 
@@ -124,14 +125,34 @@ describe("InitiativeSteps", () => {
 
 // Each illustration is welded to a committed file, so a typo'd path is a
 // broken picture on a page a family reads.
-describe("the Mykolai illustrations", () => {
+describe("the initiative illustrations", () => {
   it("exist in public/", async () => {
     const { statSync } = await import("node:fs");
     for (const file of [
       "public/initiative-mykolai-why.webp",
       "public/initiative-mykolai-letter.webp",
+      "public/initiative-school-supplies.webp",
+      "public/initiative-school-wizard.webp",
     ]) {
       expect(() => statSync(file), `missing ${file}`).not.toThrow();
     }
+  });
+});
+
+describe("InitiativeBand", () => {
+  it("renders its label, heading and prose", () => {
+    const a = messages.initiatives.school.approach;
+    const { container } = wrap(
+      <InitiativeBand tone="canvas" label={a.label} title={a.title}>
+        <p>{a.body}</p>
+      </InitiativeBand>,
+    );
+
+    expect(screen.getByText(a.label)).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: a.title, level: 2 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(a.body)).toBeInTheDocument();
+    expect(container.firstElementChild?.className).toContain("bg-canvas");
   });
 });
