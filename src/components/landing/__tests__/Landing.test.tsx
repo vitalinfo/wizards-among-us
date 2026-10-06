@@ -142,6 +142,21 @@ describe("Landing", () => {
     ).toHaveLength(2);
   });
 
+  // «Детальніше» sat in the design from the first PR and was left out because
+  // there was no page behind it. There is now, and it must point at the
+  // initiative's OWN page rather than all three landing on one.
+  it("sends each card to its own initiative page", () => {
+    renderLanding({});
+    const links = screen.getAllByRole("link", {
+      name: messages.landing.initiatives.details,
+    });
+    expect(links.map((l) => l.getAttribute("href"))).toEqual([
+      "/initiatives/mykolai",
+      "/initiatives/family",
+      "/initiatives/school",
+    ]);
+  });
+
   // Three states, and the difference between the last two is whether we have
   // ever run that campaign — not something the copy can know.
   it("distinguishes a campaign that has ended from one never run", () => {
