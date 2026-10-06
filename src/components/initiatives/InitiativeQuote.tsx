@@ -31,7 +31,10 @@ export function InitiativeQuote({
           {children}
         </p>
 
-        <InitiativeCtas intakeOpen={intakeOpen} className="mt-10 lg:mt-15" />
+        <InitiativeCtas
+          intakeOpen={intakeOpen}
+          className="mt-10 lg:mx-auto lg:mt-15"
+        />
       </div>
     </section>
   );

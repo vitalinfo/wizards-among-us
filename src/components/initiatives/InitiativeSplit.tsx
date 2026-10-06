@@ -37,7 +37,16 @@ export function InitiativeSplit({
   className?: string;
 }) {
   return (
-    <section className={cn(SITE_CONTAINER, "py-12 lg:py-20", className)}>
+    // overflow-hidden for the reason the landing hero has it: the blob behind a
+    // cut-out is deliberately wider than the picture, and nothing decorative
+    // may leak a horizontal scrollbar onto a narrow screen.
+    <section
+      className={cn(
+        SITE_CONTAINER,
+        "overflow-hidden py-12 lg:py-20",
+        className,
+      )}
+    >
       <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-6">
         {/* Prose FIRST in the DOM. On a phone the design stacks the text above
             the picture in both of these sections, and that is also the order a
@@ -59,8 +68,14 @@ export function InitiativeSplit({
             side === "start" && "lg:order-first",
           )}
         >
+          {/* An explicit WIDTH, not inset-x-0. An <svg> is a REPLACED element,
+              and `width: auto` on one of those ignores `right` and takes the
+              intrinsic size instead — so inset-x-0 left this blob 865px wide
+              inside a 720px wrapper and the document grew to match. Invisible
+              on the pages whose blob sits inside something with
+              overflow-hidden; a horizontal scrollbar at 768 on this one. */}
           {blob ? (
-            <Blob className="text-cream absolute inset-x-0 -bottom-[8%] -z-10 h-[88%]" />
+            <Blob className="text-cream absolute -bottom-[8%] -left-[8%] -z-10 h-[88%] w-[116%]" />
           ) : null}
           <Image
             src={image}
