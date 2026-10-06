@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { SITE_CONTAINER } from "@/components/site/layout";
+import type { ResolvedSettings } from "@/features/campaigns/authz";
 import type { CampaignStates } from "@/features/campaigns/queries";
 import { INITIATIVES, initiativeStatus } from "@/features/initiatives/catalog";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,15 @@ import { cn } from "@/lib/utils";
 import { InitiativeCard } from "./InitiativeCard";
 import { SectionLabel } from "./SectionLabel";
 
-export function Initiatives({ campaigns }: { campaigns: CampaignStates }) {
+export function Initiatives({
+  campaigns,
+  settings,
+}: {
+  campaigns: CampaignStates;
+  // The global applications kill switch. Part of whether an initiative reads
+  // as open at all — see initiativeStatus.
+  settings: ResolvedSettings;
+}) {
   const t = useTranslations("landing.initiatives");
 
   return (
@@ -46,7 +55,7 @@ export function Initiatives({ campaigns }: { campaigns: CampaignStates }) {
             key={item.key}
             itemKey={item.key}
             image={item.image}
-            status={initiativeStatus(campaigns, item.campaignType)}
+            status={initiativeStatus(campaigns, settings, item.campaignType)}
             detailsHref={`/initiatives/${item.slug}`}
           />
         ))}

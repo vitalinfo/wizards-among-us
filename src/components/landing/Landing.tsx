@@ -1,3 +1,4 @@
+import type { ResolvedSettings } from "@/features/campaigns/authz";
 import type { CampaignStates } from "@/features/campaigns/queries";
 import type { PublicFaq } from "@/features/faqs/queries";
 import { SITE } from "@/lib/site";
@@ -18,10 +19,14 @@ import { Stats } from "./Stats";
 // the sections; each section is its own (client) component.
 export function Landing({
   campaigns,
+  settings,
   faqs,
 }: {
   // Which initiatives exist as campaigns, and which one is running.
   campaigns: CampaignStates;
+  // The global applications kill switch — the initiative pills read it too,
+  // because «Відбувається набір» has to mean a parent can actually apply.
+  settings: ResolvedSettings;
   // The active FAQ entries, in display order. Admin-managed, so they are data
   // loaded by the page rather than copy in messages/uk.json.
   faqs: readonly PublicFaq[];
@@ -36,7 +41,7 @@ export function Landing({
       <ForVolunteers />
       <Manifesto namespace="volunteers" href="/volunteer" />
       <FounderQuote />
-      <Initiatives campaigns={campaigns} />
+      <Initiatives campaigns={campaigns} settings={settings} />
       <Faq items={faqs} />
       <Gallery />
     </main>

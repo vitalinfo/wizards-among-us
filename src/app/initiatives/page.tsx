@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { getCampaignStates } from "@/features/campaigns/queries";
 import { INITIATIVES, initiativeStatus } from "@/features/initiatives/catalog";
+import { getResolvedSettings } from "@/features/settings/queries";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,9 +17,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Reflect live campaign state per request, and keep the DB out of the build —
-// the same reasons the landing page is dynamic. getCampaignStates swallows its
-// own failures, so the page renders with every card reading «Набір ще не
-// відкрито» rather than 500ing if the database is unreachable.
+// the same reasons the landing page is dynamic. Both reads fail SAFE: an
+// unreachable database gives no campaign states and a kill switch read as
+// off, so every card reads «Набір ще не відкрито» rather than the page 500ing
+// or, worse, inviting applications we cannot accept.
 export const dynamic = "force-dynamic";
 
 // «Ініціативи» in the header and the footer pointed at #initiatives, a section
@@ -27,7 +29,10 @@ export const dynamic = "force-dynamic";
 //
 // Inherits the app-wide noindex, like /contacts and /partners.
 export default async function InitiativesPage() {
-  const campaigns = await getCampaignStates();
+  const [campaigns, settings] = await Promise.all([
+    getCampaignStates(),
+    getResolvedSettings(),
+  ]);
   const t = await getTranslations("landing.initiatives");
   const tPage = await getTranslations("initiatives");
   const tNav = await getTranslations("common.nav");
@@ -74,7 +79,7 @@ export default async function InitiativesPage() {
               key={item.key}
               itemKey={item.key}
               image={item.image}
-              status={initiativeStatus(campaigns, item.campaignType)}
+              status={initiativeStatus(campaigns, settings, item.campaignType)}
               detailsHref={`/initiatives/${item.slug}`}
             />
           ))}

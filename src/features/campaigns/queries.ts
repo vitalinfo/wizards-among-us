@@ -32,16 +32,24 @@ export async function getActiveCampaignForIntake(): Promise<ActiveCampaignForInt
   return row ?? null;
 }
 
-// What the landing page needs in order to say whether an initiative is open.
-// One entry per campaign TYPE we have ever run:
+// What the public pages need in order to say whether an initiative is open:
+// one entry per campaign TYPE we have ever had a row for.
 //
-//   "active"    a campaign of that type is running now  → «Відбувається набір»
-//   "inactive"  we have run one, none is running now    → «Набір завершено»
-//   absent      we have never run one                   → «Набір ще не відкрито»
+// Carries the campaign's own STATUS rather than a two-way open/closed flag.
+// It used to collapse everything that was not `active` into "inactive", which
+// read as «Набір завершено» — and campaigns are CREATED as `draft`, so
+// preparing next year's Миколай told every family on the landing page that
+// they had missed it. `draft` and `archived` are different claims and the
+// public copy says different things about them.
 //
-// The three states are the design's, and they are the reason this is a query
-// rather than a flag in the copy: "which initiative is open" changes several
-// times a year and nobody would remember to edit a message file for it.
+// `acceptingApplications` rides along because the pill and the button next to
+// it have to agree: a campaign can be live while new submissions are paused,
+// and a page that says «Відбувається набір» over a link into a form that
+// refuses the parent is worse than one that says nothing.
+//
+// PRECEDENCE when a type has several rows: active > draft > archived. A type
+// with last year archived and next year drafted is "not open yet", not
+// "finished" — the next one is coming.
 //
 // selectDistinct over the whole table rather than an aggregate: `campaigns`
 // holds a handful of rows (one per campaign we have ever run), and the plain
@@ -50,21 +58,39 @@ export async function getActiveCampaignForIntake(): Promise<ActiveCampaignForInt
 // Resilient by design — the landing must render even if the database is
 // unavailable, so a failure returns an empty map: every initiative then reads
 // as not yet open, which is the safe way to be wrong.
+export type CampaignState = {
+  status: (typeof campaigns.$inferSelect)["status"];
+  acceptingApplications: boolean;
+};
+
 export type CampaignStates = Partial<
-  Record<(typeof campaigns.$inferSelect)["type"], "active" | "inactive">
+  Record<(typeof campaigns.$inferSelect)["type"], CampaignState>
 >;
+
+const STATUS_RANK = { active: 3, draft: 2, archived: 1 } as const;
 
 export async function getCampaignStates(): Promise<CampaignStates> {
   try {
     const rows = await getDb()
-      .selectDistinct({ type: campaigns.type, status: campaigns.status })
+      .selectDistinct({
+        type: campaigns.type,
+        status: campaigns.status,
+        acceptingApplications: campaigns.acceptingApplications,
+      })
       .from(campaigns);
 
     const states: CampaignStates = {};
     for (const row of rows) {
-      // "active" wins over "inactive" whatever order the rows arrive in.
-      if (row.status === "active" || states[row.type] === undefined) {
-        states[row.type] = row.status === "active" ? "active" : "inactive";
+      const held = states[row.type];
+      // Highest-ranking status wins, whatever order the rows arrive in.
+      if (
+        held === undefined ||
+        STATUS_RANK[row.status] > STATUS_RANK[held.status]
+      ) {
+        states[row.type] = {
+          status: row.status,
+          acceptingApplications: row.acceptingApplications,
+        };
       }
     }
     return states;
