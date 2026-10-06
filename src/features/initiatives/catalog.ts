@@ -28,7 +28,11 @@ export type Initiative = {
 export const INITIATIVES: readonly Initiative[] = [
   {
     key: "mykolai",
-    slug: "mykolai",
+    // The slug is the CAMPAIGN TYPE, hyphenated (Vital) — the same word the
+    // database uses for this initiative, so a URL and a `campaigns.type` row
+    // cannot drift into describing different things. `key` stays short
+    // because it only indexes message copy.
+    slug: "saint-nicholas-day",
     image: "/initiative-mykolai.webp",
     campaignType: "saint_nicholas_day",
   },
