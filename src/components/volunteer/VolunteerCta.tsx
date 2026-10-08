@@ -1,59 +1,74 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 import { becomeVolunteerAction } from "@/app/volunteer/actions";
-import { buttonBase, buttonVariants } from "@/components/ui/buttonStyles";
-import { hasRole, isUser } from "@/lib/actor";
-import { getSessionActor } from "@/lib/auth/session";
+import { ctaBase, ctaShell, ctaVariants } from "@/components/ui/ctaStyles";
+import { type Actor, hasRole, isUser } from "@/lib/actor";
+import { loginPathFor } from "@/lib/auth/returnPath";
+import { cn } from "@/lib/utils";
 
-const CTA = `${buttonBase} ${buttonVariants.primary} w-full`;
-
-// The volunteer entry point's call to action, resolved server-side because it
-// depends on the session. Three states, in the order someone moves through them:
+// Where the visitor stands on the way to becoming a Чарівник. Three states, in
+// the order someone moves through them:
 //
-//   anonymous          → sign in (returning here afterwards)
-//   signed in, no role → opt in; the role is self-serve (Phase 6 decision),
-//                        because nothing else grants it and canBrowseChildren
-//                        requires it
-//   volunteer          → browse
+//   anonymous → sign in (returning here afterwards)
+//   candidate → signed in with no volunteer role; opt in. The role is
+//               self-serve (Phase 6 decision), because nothing else grants it
+//               and canBrowseChildren requires it
+//   volunteer → browse
 //
-// This replaced a button that went nowhere.
-export async function VolunteerCta() {
-  const t = await getTranslations("volunteer");
-  const actor = await getSessionActor();
+// Resolved from the actor by the page, ONCE, and passed to each of the three
+// places the design repeats the button. getSessionActor is a database query
+// and is not request-cached, so an async component rendered three times would
+// be three round trips for one answer.
+export type VolunteerCtaState = "anonymous" | "candidate" | "volunteer";
 
+export function volunteerCtaState(actor: Actor | null): VolunteerCtaState {
   if (!isUser(actor)) {
-    return (
-      <Link href="/login?next=%2Fvolunteer" className={CTA}>
-        {t("signInCta")}
-      </Link>
-    );
+    return "anonymous";
   }
+  return hasRole(actor, "volunteer") ? "volunteer" : "candidate";
+}
 
-  if (!hasRole(actor, "volunteer")) {
+// The design draws one blue pill and labels it «Хочу стати Чарівником», and
+// that label stands in every state (Vital) — only the destination moves.
+//
+// Naming the promise rather than the step is the point: «Увійти через
+// Telegram» or «Стати чарівником» would make the page argue its case and then
+// offer paperwork. A volunteer who is already one lands on the children they
+// can help, which is what wanting to be a Чарівник means here.
+export function VolunteerCta({
+  state,
+  className,
+}: {
+  state: VolunteerCtaState;
+  className?: string;
+}) {
+  const t = useTranslations("initiatives");
+
+  const pill = cn(ctaBase, ctaVariants.primary, "w-full");
+
+  if (state === "candidate") {
     return (
-      <form action={becomeVolunteerAction} className="w-full">
+      <form action={becomeVolunteerAction} className={cn(ctaShell, className)}>
         <input type="hidden" name="next" value="/volunteer/children" />
-        <button type="submit" className={CTA}>
-          {t("joinCta")}
+        <button type="submit" className={pill}>
+          {t("volunteer")}
         </button>
       </form>
     );
   }
 
-  // Already a volunteer: browsing AND their own children. Without the second
-  // link, "Мої діти" was reachable only by the one-time redirect right after
-  // claiming — close the tab and it was gone.
   return (
-    <div className="flex w-full flex-col gap-2.5">
-      <Link href="/volunteer/children" className={CTA}>
-        {t("browseCta")}
-      </Link>
+    <div className={cn(ctaShell, className)}>
       <Link
-        href="/volunteer/claims"
-        className={`${buttonBase} ${buttonVariants.outline} w-full`}
+        href={
+          state === "volunteer"
+            ? "/volunteer/children"
+            : loginPathFor("/volunteer")
+        }
+        className={pill}
       >
-        {t("myClaimsCta")}
+        {t("volunteer")}
       </Link>
     </div>
   );

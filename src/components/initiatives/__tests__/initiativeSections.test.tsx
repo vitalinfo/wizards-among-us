@@ -1,4 +1,5 @@
 import { NextIntlClientProvider } from "next-intl";
+import Link from "next/link";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -7,6 +8,7 @@ import { axe } from "@/test/axe";
 import type { InitiativeStatus } from "@/features/initiatives/catalog";
 import { InitiativeBand } from "../InitiativeBand";
 import { InitiativeHero } from "../InitiativeHero";
+import { InitiativeQuote } from "../InitiativeQuote";
 import { InitiativeSteps, type Step } from "../InitiativeSteps";
 
 function wrap(ui: React.ReactNode) {
@@ -121,6 +123,90 @@ describe("InitiativeSteps", () => {
     const { container } = renderSteps();
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  // «Волонтерам» lays four cards on the blue canvas and picks one out with a
+  // solid blue disc; the warm bands pick theirs out in yellow. The column
+  // count is written out rather than interpolated, because Tailwind reads
+  // class names as literals — a `lg:grid-cols-${n}` compiles to nothing and
+  // the row silently collapses to one column.
+  it("lays out as many columns as there are steps", () => {
+    const s = messages.volunteer.info.steps;
+    const four = STEPS.slice(0, 4);
+    const { container } = wrap(
+      <InitiativeSteps
+        label={s.label}
+        title={s.title}
+        subtitle={s.subtitle}
+        steps={four}
+        tone="canvas"
+      />,
+    );
+    expect(container.firstElementChild?.className).toContain("bg-canvas");
+    expect(container.querySelector("ul")?.className).toContain(
+      "lg:grid-cols-4",
+    );
+  });
+
+  it("picks the accented step out in the tone it is given", () => {
+    const accented: Step[] = STEPS.map((step, i) =>
+      i === 2 ? { ...step, accent: true as const } : step,
+    );
+    const s = messages.initiatives.mykolai.steps;
+    for (const [accentTone, expected] of [
+      [undefined, "bg-accent"],
+      ["primary", "bg-primary"],
+    ] as const) {
+      const { unmount } = wrap(
+        <InitiativeSteps
+          label={s.label}
+          title={s.title}
+          subtitle={s.subtitle}
+          steps={accented}
+          accentTone={accentTone}
+        />,
+      );
+      expect(screen.getByText("🪄").className).toContain(expected);
+      unmount();
+    }
+  });
+});
+
+describe("InitiativeQuote", () => {
+  // The initiative pages derive their actions from the campaign; «Батькам»
+  // and «Волонтерам» supply one of their own. Either, never both.
+  it("derives the pair from the campaign when given intakeOpen", () => {
+    wrap(
+      <InitiativeQuote intakeOpen>
+        {messages.initiatives.family.quote}
+      </InitiativeQuote>,
+    );
+    expect(
+      screen.getByRole("link", { name: messages.initiatives.apply }),
+    ).toHaveAttribute("href", "/parent");
+    expect(
+      screen.getByRole("link", { name: messages.initiatives.volunteer }),
+    ).toHaveAttribute("href", "/volunteer");
+  });
+
+  it("renders the single action it is given instead", () => {
+    wrap(
+      <InitiativeQuote
+        cta={
+          <Link href="/parent/applications">
+            {messages.parent.info.applyCta}
+          </Link>
+        }
+      >
+        {messages.parent.info.closing}
+      </InitiativeQuote>,
+    );
+    expect(
+      screen.getByRole("link", { name: messages.parent.info.applyCta }),
+    ).toHaveAttribute("href", "/parent/applications");
+    expect(
+      screen.queryByRole("link", { name: messages.initiatives.volunteer }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 // Each illustration is welded to a committed file, so a typo'd path is a
@@ -135,6 +221,10 @@ describe("the initiative illustrations", () => {
       "public/initiative-school-wizard.webp",
       "public/initiative-family-hero.webp",
       "public/initiative-family-help.webp",
+      "public/parent-hero.webp",
+      "public/parent-no-initiative.webp",
+      "public/volunteer-hero.webp",
+      "public/volunteer-approach.webp",
     ]) {
       expect(() => statSync(file), `missing ${file}`).not.toThrow();
     }

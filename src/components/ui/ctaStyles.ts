@@ -13,6 +13,14 @@ export type CtaVariant = "accent" | "primary" | "outline";
 export const ctaBase =
   "focus-visible:outline-ring inline-flex h-16 items-center justify-center rounded-full px-11 text-center text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:h-[78px] lg:text-xl";
 
+// A single action standing on its own, as «Батькам» and «Волонтерам» draw it:
+// full width up to 271px on a phone, shrink-to-fit from lg. 271 is the figure
+// the landing hero and InitiativeCtas already share (a 271 wrapper inset 28
+// either side of a 328 column), so every page's lone button is the same size.
+// The control inside takes `w-full`.
+export const ctaShell =
+  "mx-auto w-full max-w-[271px] lg:mx-0 lg:w-fit lg:max-w-none";
+
 export const ctaVariants: Record<CtaVariant, string> = {
   accent: "bg-accent text-accent-foreground hover:bg-accent-hover",
   primary: "bg-primary text-primary-foreground hover:bg-primary-hover",
