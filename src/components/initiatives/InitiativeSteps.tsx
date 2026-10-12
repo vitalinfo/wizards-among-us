@@ -8,7 +8,9 @@ export type Step = {
   key: string;
   emoji: string;
   title: string;
-  body: string;
+  // Optional: «Про нас» draws these cards as a line each — «Хтось віддавав
+  // одяг» — with no paragraph under them.
+  body?: string;
   // The design picks one step out with a solid disc instead of the tinted
   // blue — the one the whole initiative turns on. Which solid is the
   // section's `accentTone`.
@@ -57,7 +59,9 @@ export function InitiativeSteps({
 }: {
   label: string;
   title: ReactNode;
-  subtitle: string;
+  // A node, not a string: «Про нас» picks the project's name out of its
+  // subtitle in the brand blue.
+  subtitle: ReactNode;
   steps: readonly Step[];
   // «Чарівний Миколай» sits this band on the solid cream; «Шкільний
   // Чарівник» on the lighter one; «Волонтерам» on the blue canvas.
@@ -115,9 +119,11 @@ export function InitiativeSteps({
                 <h3 className="text-lg leading-[30px] font-semibold tracking-[-0.03em] lg:text-2xl">
                   {step.title}
                 </h3>
-                <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em]">
-                  {step.body}
-                </p>
+                {step.body ? (
+                  <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em]">
+                    {step.body}
+                  </p>
+                ) : null}
               </div>
             </li>
           ))}

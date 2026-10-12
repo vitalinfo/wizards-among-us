@@ -147,6 +147,25 @@ describe("InitiativeSteps", () => {
     );
   });
 
+  // «Про нас» draws its cards as a line each — «Хтось віддавав одяг» — so a
+  // step with no body must render the heading and nothing under it, rather
+  // than an empty paragraph a screen reader would stop at.
+  it("renders a step that has no body", () => {
+    const s = messages.about.birth;
+    const { container } = wrap(
+      <InitiativeSteps
+        label={s.label}
+        title={s.title}
+        subtitle={s.subtitle}
+        steps={[{ key: "clothes", emoji: "\u{1F457}", title: s.items.clothes }]}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { level: 3, name: s.items.clothes }),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll("li p")).toHaveLength(0);
+  });
+
   it("picks the accented step out in the tone it is given", () => {
     const accented: Step[] = STEPS.map((step, i) =>
       i === 2 ? { ...step, accent: true as const } : step,
@@ -188,6 +207,21 @@ describe("InitiativeQuote", () => {
     ).toHaveAttribute("href", "/volunteer");
   });
 
+  // «Про нас» closes a chapter with this band rather than asking for
+  // anything, so a band with neither a campaign nor an action renders no
+  // action at all — not a pair of disabled buttons, which is what
+  // `intakeOpen={false}` would have drawn.
+  it("renders no action at all when given neither", () => {
+    wrap(
+      <InitiativeQuote note={<p>{messages.about.quote.note}</p>}>
+        {messages.about.quote.title}
+      </InitiativeQuote>,
+    );
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getByText(messages.about.quote.note)).toBeInTheDocument();
+  });
+
   it("renders the single action it is given instead", () => {
     wrap(
       <InitiativeQuote
@@ -225,6 +259,9 @@ describe("the initiative illustrations", () => {
       "public/parent-no-initiative.webp",
       "public/volunteer-hero.webp",
       "public/volunteer-approach.webp",
+      "public/about-founder.webp",
+      "public/about-chat.webp",
+      "public/about-community.webp",
     ]) {
       expect(() => statSync(file), `missing ${file}`).not.toThrow();
     }

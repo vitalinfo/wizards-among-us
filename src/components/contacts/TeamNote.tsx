@@ -18,11 +18,7 @@ export function TeamNote({ className }: { className?: string }) {
     <div className={cn("flex flex-col items-center text-center", className)}>
       {/* The logotype's heart on its own — the same asset the other sub-pages
           use above a heading, at the design's 84x93 from lg. */}
-      <BrandMark
-        width={84}
-        height={93}
-        className="h-[62px] w-auto lg:h-[93px]"
-      />
+      <BrandMark className="h-[62px] w-auto lg:h-[93px]" />
 
       {/* Sized in vw from lg for the reason every other display heading here
           is: three balanced lines at 1920 become five ragged ones on a laptop

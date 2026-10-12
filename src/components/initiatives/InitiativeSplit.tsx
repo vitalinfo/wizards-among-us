@@ -19,6 +19,10 @@ export function InitiativeSplit({
   imageHeight,
   side = "start",
   blob = false,
+  // How much of the column the picture takes, when the design does not give
+  // it the whole one. «Про нас» draws its chat composition at 761 of 848 and
+  // left-aligned: the air around the ring of faces is part of the drawing.
+  imageClassName,
   label,
   title,
   children,
@@ -31,6 +35,7 @@ export function InitiativeSplit({
   // Which side the picture takes from lg. Stacked above the prose below it.
   side?: "start" | "end";
   blob?: boolean;
+  imageClassName?: string;
   label: string;
   title: ReactNode;
   children: ReactNode;
@@ -86,6 +91,7 @@ export function InitiativeSplit({
             className={cn(
               "mx-auto h-auto w-full",
               blob ? "lg:w-[83%]" : "rounded-3xl",
+              imageClassName,
             )}
           />
         </div>
