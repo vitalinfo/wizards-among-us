@@ -115,17 +115,24 @@ export default async function AboutPage() {
         <PageHero
           title={t.rich("title", { em })}
           titleClassName="lg:max-w-[min(38.8vw,745px)]"
-          leadClassName="lg:max-w-[min(25.3vw,486px)]"
+          // 500, not the 486 the ink measures: the widest line the design
+          // draws is not the column, and at 486 the second sentence loses a
+          // word onto a fourth line. Anything from 492 up reproduces the
+          // drawn 409/485/486, so this sits clear of that edge.
+          leadClassName="lg:max-w-[min(26.04vw,500px)]"
           lead={
             <>
+              {/* ONE paragraph with a break inside it, not two. The design
+                  gives the first sentence a line of its own from lg — it ends
+                  at 409 of a 486 measure, so that is a typed break — and runs
+                  the two together on a phone, where splitting them leaves
+                  «році.» alone on a line. */}
               <p>
-                {t.rich("intro.first", {
+                {t.rich("intro.story", {
+                  br,
                   b: (chunks) => <b className="font-bold">{chunks}</b>,
                 })}
               </p>
-              {/* No gap after the first sentence: the design runs the two
-                  together as one block and breaks only before the line below. */}
-              <p>{t("intro.second")}</p>
               {/* The line the whole page turns on, and the design sets it
                   apart in the brand blue rather than leaving it as a third
                   paragraph. */}

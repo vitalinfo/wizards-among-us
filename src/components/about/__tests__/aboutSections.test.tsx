@@ -130,6 +130,7 @@ describe("the line breaks the designer typed", () => {
     s.replace(/<br><\/br>/g, "").replace(/<\/?(em|faint|b)>/g, "");
 
   it.each([
+    ["about.intro.story", t.intro.story],
     ["about.quote.note", t.quote.note],
     ["about.closing.note", t.closing.note],
   ])("leaves %s readable with the breaks off", (_key, message) => {
