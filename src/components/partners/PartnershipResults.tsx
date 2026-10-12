@@ -60,7 +60,7 @@ export function PartnershipResults() {
               telegramLabel={tFooter("telegram")}
               size={56}
             />
-            <BrandMark width={84} height={93} className="h-[93px] w-auto" />
+            <BrandMark className="h-[93px] w-auto" />
           </div>
         </div>
       </div>

@@ -29,11 +29,16 @@ export function PageHero({
   // the design draws instead of running the width of the column — «Як це
   // працює / для батьків», not «Як це працює для / батьків».
   titleClassName?: string;
-  lead: string;
+  // One sentence on «Батькам» and «Волонтерам»; «Про нас» opens with three
+  // short paragraphs in the founder's own voice, so this is a node.
+  lead: ReactNode;
   // Where the sentence breaks. «Батькам» caps it at the design's 502 and takes
   // two lines; «Волонтерам» is a shorter sentence the design keeps on one.
   leadClassName?: string;
-  cta: ReactNode;
+  // Optional: «Про нас» has no action in its hero — it has the founder's
+  // social links, and the design puts those BELOW the portrait on a phone,
+  // which is the `below` slot.
+  cta?: ReactNode;
   // The card under the action: the «Важливо знати» note on one page, the
   // «1000+» figure on the other.
   below?: ReactNode;
@@ -71,14 +76,14 @@ export function PageHero({
             >
               {title}
             </h1>
-            <p
+            <div
               className={cn(
-                "text-muted-foreground text-base leading-5 tracking-[-0.03em]",
+                "text-muted-foreground flex flex-col text-base leading-5 tracking-[-0.03em]",
                 leadClassName ?? "lg:max-w-[min(26.15vw,502px)]",
               )}
             >
-              {lead}
-            </p>
+              {typeof lead === "string" ? <p>{lead}</p> : lead}
+            </div>
           </div>
           {cta}
         </div>

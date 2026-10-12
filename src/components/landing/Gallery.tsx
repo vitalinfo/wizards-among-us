@@ -29,7 +29,14 @@ function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-export function Gallery() {
+// `title` overrides the heading only. «Про нас» closes with the same photos
+// under a line of its own — «Все почалося з бажання бути поруч. А сьогодні
+// поруч — тисячі людей.» — and the same label and subtitle underneath, so the
+// override is one prop rather than a second copy of the section.
+//
+// The heading drops to 74/70 when it is overridden: the landing's six words
+// fit two lines at 80, and this one is a sentence and a half.
+export function Gallery({ title }: { title?: string } = {}) {
   const t = useTranslations("landing.gallery");
   const row = useRef<HTMLUListElement>(null);
   const frame = useRef(0);
@@ -105,11 +112,23 @@ export function Gallery() {
 
   return (
     <section className={cn(SITE_CONTAINER, "py-15 lg:py-25")}>
-      <div className="mx-auto flex max-w-[691px] flex-col items-center gap-4.5 text-center lg:gap-11">
+      <div
+        className={cn(
+          "mx-auto flex flex-col items-center gap-4.5 text-center lg:gap-11",
+          title ? "max-w-[1000px]" : "max-w-[691px]",
+        )}
+      >
         <div className="flex flex-col items-center gap-4.5 lg:gap-5">
           <SectionLabel>{t("label")}</SectionLabel>
-          <h2 className="font-display text-[48px] leading-9 font-bold tracking-[-0.06em] lg:text-[80px] lg:leading-[70px]">
-            {t("title")}
+          <h2
+            className={cn(
+              "font-display text-[48px] leading-9 font-bold tracking-[-0.06em]",
+              title
+                ? "lg:text-[min(3.854vw,74px)] lg:leading-[min(3.646vw,70px)]"
+                : "lg:text-[80px] lg:leading-[70px]",
+            )}
+          >
+            {title ?? t("title")}
           </h2>
         </div>
         <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em] lg:text-lg">
