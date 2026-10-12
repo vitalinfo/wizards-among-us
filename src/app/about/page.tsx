@@ -88,6 +88,16 @@ export default async function AboutPage() {
     <span className="text-primary">{chunks}</span>
   );
 
+  // The designer breaks these paragraphs at sentence boundaries, leaving a
+  // third of the line empty — so the breaks are typed, not a consequence of a
+  // width, and no max-width reproduces them. They are also only right at the
+  // width they were drawn at: on a phone the same text reflows, and a break
+  // after «вчинки.» there would leave a 40%-empty line. Hence a <br> that is
+  // display:none until lg.
+  //
+  // next-intl tags must be paired, which is why the messages read `<br></br>`.
+  const br = () => <br className="hidden lg:inline" />;
+
   return (
     <>
       <SiteHeader />
@@ -166,21 +176,25 @@ export default async function AboutPage() {
           label={t("chat.label")}
           title={t("chat.title")}
         >
-          <p className="text-muted-foreground text-xl leading-7 font-semibold tracking-[-0.03em] lg:text-[26px] lg:leading-[30px]">
+          {/* Capped at 600, not the split's full 848 column: the designer
+              sets this section's prose in a narrow measure beside the picture
+              — the lead takes four balanced lines there and two long ones at
+              the column's full width. */}
+          <p className="text-muted-foreground text-xl leading-7 font-semibold tracking-[-0.03em] lg:max-w-[600px] lg:text-[26px] lg:leading-[30px]">
             {t.rich("chat.lead", {
               faint: (chunks) => (
                 <span className="text-muted-faint">{chunks}</span>
               ),
             })}
           </p>
-          <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em] lg:text-lg">
+          <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em] lg:max-w-[600px] lg:text-lg">
             {t.rich("chat.friends", {
               em: (chunks) => (
                 <span className="text-primary font-bold">{chunks}</span>
               ),
             })}
           </p>
-          <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em] lg:text-lg">
+          <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em] lg:max-w-[600px] lg:text-lg">
             {t("chat.closing")}
           </p>
         </InitiativeSplit>
@@ -203,6 +217,7 @@ export default async function AboutPage() {
           note={
             <p>
               {t.rich("quote.note", {
+                br,
                 em: (chunks) => (
                   <span className="text-primary font-bold">{chunks}</span>
                 ),
@@ -223,7 +238,6 @@ export default async function AboutPage() {
         >
           <p className="text-muted-foreground text-xl leading-7 font-semibold tracking-[-0.03em] lg:text-[26px] lg:leading-[30px]">
             {t.rich("community.lead", {
-              b: (chunks) => <b className="text-foreground">{chunks}</b>,
               faint: (chunks) => (
                 <span className="text-muted-faint">{chunks}</span>
               ),
@@ -256,7 +270,7 @@ export default async function AboutPage() {
             told how to help, so it points at the volunteer explainer rather
             than dropping them into a sign-in. */}
         <InitiativeQuote
-          note={<p>{t("closing.note")}</p>}
+          note={<p>{t.rich("closing.note", { br })}</p>}
           cta={
             <div className={cn(ctaShell, "mt-10 lg:mx-auto lg:mt-15")}>
               <CtaLink href="/volunteer" className="w-full whitespace-nowrap">
