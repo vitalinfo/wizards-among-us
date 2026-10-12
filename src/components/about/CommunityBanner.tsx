@@ -53,9 +53,17 @@ export function CommunityBanner({
       />
 
       <div className={cn(SITE_CONTAINER, "py-12 lg:py-15")}>
-        {/* The design's column is 636 wide centred on 73.8% of its 1920 frame
-            — the middle of the clear half, not the middle of the band. */}
-        <div className="mx-auto flex max-w-[636px] flex-col items-center gap-4.5 text-center lg:mr-[4.94%] lg:ml-auto lg:gap-8">
+        {/* The column sits in the middle of the clear half, not the middle of
+            the band, so the margin — not the width — fixes its right edge at
+            the design's 1735.
+
+            660, measured from where the lead BREAKS rather than from its ink.
+            The design's first line is 636 wide and the next word would carry
+            it to 674, so the column is somewhere in 637…673 — the ink alone
+            only gives the lower bound. Below that range our text drops a word
+            onto a third line; above it, the word comes back up and the line
+            breaks a word later than drawn. */}
+        <div className="mx-auto flex max-w-[660px] flex-col items-center gap-4.5 text-center lg:mr-[4.94%] lg:ml-auto lg:gap-8">
           <SectionLabel>{label}</SectionLabel>
           <h2 className="font-display text-[48px] leading-9 font-bold tracking-[-0.06em] lg:text-[min(4.17vw,80px)] lg:leading-[min(3.65vw,70px)]">
             {title}

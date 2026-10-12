@@ -43,8 +43,13 @@ export function InitiativeQuote({
           {children}
         </p>
 
+        {/* Capped, and NOT at the band's own width: the display line above
+            runs to 1568 because it is four words in a 74px face, and the same
+            column turned a 190-character sentence into two lines across the
+            whole page. 660 holds the longest line the design draws here with
+            room to spare. */}
         {note ? (
-          <div className="text-muted-foreground mt-4.5 flex flex-col gap-2 text-base leading-[22px] tracking-[-0.03em] lg:mt-8 lg:text-lg">
+          <div className="text-muted-foreground mt-4.5 flex flex-col gap-2 text-base leading-[22px] tracking-[-0.03em] lg:mt-8 lg:max-w-[min(34.4vw,660px)] lg:text-lg">
             {note}
           </div>
         ) : null}

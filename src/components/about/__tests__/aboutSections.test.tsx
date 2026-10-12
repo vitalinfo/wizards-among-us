@@ -116,3 +116,28 @@ describe("CommunityBanner", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 });
+
+// The designer breaks these paragraphs at sentence boundaries and the breaks
+// only apply from lg, so each <br> is display:none on a phone. The space has
+// to live in the copy, BEFORE the break — a trailing space collapses at a
+// line end, but without one the clauses run together as «вчинки.А разом» in
+// the text a screen reader reads and a reader copies, at every width.
+//
+// jsdom cannot tell us where a line falls, so this asserts the thing that
+// survives the break being switched off: the sentence still reads as one.
+describe("the line breaks the designer typed", () => {
+  const strip = (s: string) =>
+    s.replace(/<br><\/br>/g, "").replace(/<\/?(em|faint|b)>/g, "");
+
+  it.each([
+    ["about.intro.story", t.intro.story],
+    ["about.quote.note", t.quote.note],
+    ["about.closing.note", t.closing.note],
+  ])("leaves %s readable with the breaks off", (_key, message) => {
+    const text = strip(message);
+    expect(text).not.toMatch(/\S<br>/);
+    // No clause boundary without a space after it.
+    expect(text).not.toMatch(/[.,:;!?]\p{Lu}/u);
+    expect(text).not.toMatch(/\s\s/);
+  });
+});
