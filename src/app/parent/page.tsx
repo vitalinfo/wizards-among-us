@@ -80,7 +80,6 @@ export default async function ParentPage() {
   const applyHref = isUser(actor) ? APPLY : loginPathFor(APPLY);
 
   const t = await getTranslations("parent.info");
-  const tParent = await getTranslations("parent");
   const tInit = await getTranslations("initiatives");
   const tNav = await getTranslations("common.nav");
 
@@ -182,7 +181,6 @@ export default async function ParentPage() {
         >
           <p className="text-muted-foreground text-xl leading-7 font-semibold tracking-[-0.03em] lg:text-[26px] lg:leading-[30px]">
             {t.rich("noInitiative.lead", {
-              b: (chunks) => <b className="text-foreground">{chunks}</b>,
               faint: (chunks) => (
                 <span className="text-muted-faint">{chunks}</span>
               ),
@@ -207,21 +205,12 @@ export default async function ParentPage() {
           tone="cream-soft"
         />
 
-        {/* NOT in the design, and kept anyway: this is the sentence a family
-            consents on the basis of, and the three-tier exposure model in
-            CLAUDE.md says the copy and the behaviour move together. Dropping
-            it would leave the promise stated only inside the application form
-            the parent reaches after deciding. */}
-        <section className={cn(SITE_CONTAINER, "pb-15 lg:pb-25")}>
-          <div className="bg-cream-soft mx-auto max-w-[691px] rounded-3xl px-5 py-6 lg:px-8 lg:py-8">
-            <h2 className="text-lg leading-[30px] font-semibold tracking-[-0.03em] lg:text-2xl">
-              {tParent("privacyCard.title")}
-            </h2>
-            <p className="text-muted-foreground mt-4.5 text-base leading-[22px] tracking-[-0.03em] lg:text-lg">
-              {tParent("privacyCard.body")}
-            </p>
-          </div>
-        </section>
+        {/* «Що бачить чарівник» (parent.privacyCard) was here and is not in
+            the design — removed on Vital's call. The tier-1 promise it stated
+            is still made publicly by the FAQ row «Чи побачать волонтери
+            адресу моєї дитини?», which CLAUDE.md names as its public
+            statement, so the invariant is not left unstated. The key is kept
+            for the same reason: it is text a parent consents on. */}
 
         <InitiativeQuote
           cta={
