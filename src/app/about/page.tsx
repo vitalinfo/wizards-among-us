@@ -221,6 +221,7 @@ export default async function AboutPage() {
         {/* No action: this band closes the chapter rather than asking for
             anything. The page's one ask is at the foot. */}
         <InitiativeQuote
+          titleClassName="lg:text-[min(4.17vw,80px)] lg:leading-[min(3.65vw,70px)]"
           note={
             <p>
               {t.rich("quote.note", {
@@ -277,6 +278,7 @@ export default async function AboutPage() {
             told how to help, so it points at the volunteer explainer rather
             than dropping them into a sign-in. */}
         <InitiativeQuote
+          titleClassName="lg:text-[min(4.17vw,80px)] lg:leading-[min(3.65vw,70px)]"
           note={<p>{t.rich("closing.note", { br })}</p>}
           cta={
             <div className={cn(ctaShell, "mt-10 lg:mx-auto lg:mt-15")}>

@@ -45,7 +45,6 @@ export default async function VolunteerPage() {
   const state = volunteerCtaState(actor);
 
   const t = await getTranslations("volunteer.info");
-  const tVol = await getTranslations("volunteer");
   const tInit = await getTranslations("initiatives");
   const tNav = await getTranslations("common.nav");
 
@@ -158,21 +157,15 @@ export default async function VolunteerPage() {
           accentTone="primary"
         />
 
-        {/* NOT in the design, and kept anyway: these are the rules a volunteer
-            agrees to before seeing a child's letter and the photo of a child
-            holding it, and this page is where they were stated. The exposure
-            tiers in CLAUDE.md are a promise made to the parent; a volunteer
-            who never reads them cannot keep it. */}
-        <section className={cn(SITE_CONTAINER, "py-15 lg:py-25")}>
-          <div className="bg-cream-soft mx-auto max-w-[691px] rounded-3xl px-5 py-6 lg:px-8 lg:py-8">
-            <h2 className="text-lg leading-[30px] font-semibold tracking-[-0.03em] lg:text-2xl">
-              {tVol("rulesCard.title")}
-            </h2>
-            <p className="text-muted-foreground mt-4.5 text-base leading-[22px] tracking-[-0.03em] lg:text-lg">
-              {tVol("rulesCard.body")}
-            </p>
-          </div>
-        </section>
+        {/* «Правила спільноти» (volunteer.rulesCard) was here and is not in
+            the design — removed on Vital's call. «Дані родини бачите лише ви —
+            не пересилайте їх нікому» still greets a volunteer on /volunteer/
+            claims, where the letter photos actually are, so the core rule is
+            stated at the point of exposure. What is now stated NOWHERE: do not
+            publish the photos to social media, do not ask for more photos, do
+            not propose a meeting without the parents' consent, and every view
+            is logged. The key is kept so that copy has somewhere to come back
+            from — /volunteer/claims is the better home for it. */}
 
         <InitiativeQuote
           cta={

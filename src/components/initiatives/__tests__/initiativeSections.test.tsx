@@ -207,6 +207,23 @@ describe("InitiativeQuote", () => {
     ).toHaveAttribute("href", "/volunteer");
   });
 
+  // The display line titles the band it sits in. As a <p> it was invisible to
+  // anyone navigating by heading, who went from the section above straight to
+  // whatever followed.
+  it("gives the display line a heading level", () => {
+    wrap(
+      <InitiativeQuote intakeOpen>
+        {messages.about.quote.title}
+      </InitiativeQuote>,
+    );
+    expect(
+      screen.getByRole("heading", {
+        level: 2,
+        name: messages.about.quote.title,
+      }),
+    ).toBeInTheDocument();
+  });
+
   // «Про нас» closes a chapter with this band rather than asking for
   // anything, so a band with neither a campaign nor an action renders no
   // action at all — not a pair of disabled buttons, which is what

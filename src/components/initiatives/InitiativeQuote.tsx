@@ -20,6 +20,11 @@ import { InitiativeCtas } from "./InitiativeCtas";
 type QuoteProps = {
   children: ReactNode;
   note?: ReactNode;
+  // The size of the display line. The design draws it at 74/70 everywhere —
+  // smaller than the 80 it gives a section heading — and «Про нас» takes the
+  // section-heading size instead (Vital), because on that page these two
+  // lines ARE the section rather than a sign-off under one.
+  titleClassName?: string;
   className?: string;
 } & (
   | { intakeOpen: boolean; cta?: never }
@@ -30,6 +35,7 @@ type QuoteProps = {
 export function InitiativeQuote({
   children,
   note,
+  titleClassName,
   intakeOpen,
   cta,
   className,
@@ -39,9 +45,19 @@ export function InitiativeQuote({
       <div className="mx-auto flex flex-col items-center text-center lg:max-w-[min(81.67vw,1568px)]">
         <BrandMark className="h-[62px] w-auto lg:h-[93px]" />
 
-        <p className="font-display mt-10 text-[28px] leading-8 font-bold tracking-[-0.06em] lg:mt-15 lg:text-[min(3.854vw,74px)] lg:leading-[min(3.646vw,70px)]">
+        {/* A heading, not a paragraph. This line titles the band it sits in
+            — it is the band's whole argument — and as a <p> it was invisible
+            to anyone navigating by heading, who went from the section above
+            straight to the gallery below. */}
+        <h2
+          className={cn(
+            "font-display mt-10 text-[28px] leading-8 font-bold tracking-[-0.06em] lg:mt-15",
+            titleClassName ??
+              "lg:text-[min(3.854vw,74px)] lg:leading-[min(3.646vw,70px)]",
+          )}
+        >
           {children}
-        </p>
+        </h2>
 
         {/* Capped, and NOT at the band's own width: the display line above
             runs to 1568 because it is four words in a 74px face, and the same
