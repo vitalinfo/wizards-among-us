@@ -17,7 +17,7 @@ export function PartnersClosing() {
       <div className="mx-auto flex flex-col items-center text-center lg:max-w-[min(81.67vw,1568px)]">
         <BrandMark className="h-[62px] w-auto lg:h-[93px]" />
 
-        <p className="font-display mt-10 text-[28px] leading-7 font-bold tracking-[-0.06em] lg:mt-15 lg:text-[min(3.854vw,74px)] lg:leading-[min(3.646vw,70px)]">
+        <p className="font-display mt-10 text-[37px] leading-[34px] font-bold tracking-[-0.06em] lg:mt-15 lg:text-[min(3.854vw,74px)] lg:leading-[min(3.646vw,70px)]">
           {t.rich("closing", {
             em: (chunks) => <span className="text-primary">{chunks}</span>,
           })}

@@ -48,10 +48,16 @@ export function InitiativeQuote({
         {/* A heading, not a paragraph. This line titles the band it sits in
             — it is the band's whole argument — and as a <p> it was invisible
             to anyone navigating by heading, who went from the section above
-            straight to the gallery below. */}
+            straight to the gallery below.
+
+            37/34 on a phone, which is the landing manifesto's pair for the
+            same 74/70 display line — it was 28/32 here, and 28 is the size
+            BELOW this one in the design's scale. `--muted-faint` is
+            large-text-only, and 37px bold clears that at every width, as it
+            does on the manifesto. */}
         <h2
           className={cn(
-            "font-display mt-10 text-[28px] leading-8 font-bold tracking-[-0.06em] lg:mt-15",
+            "font-display mt-10 text-[37px] leading-[34px] font-bold tracking-[-0.06em] lg:mt-15",
             titleClassName ??
               "lg:text-[min(3.854vw,74px)] lg:leading-[min(3.646vw,70px)]",
           )}
