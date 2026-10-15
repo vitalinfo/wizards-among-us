@@ -63,9 +63,19 @@ export function InitiativeQuote({
             runs to 1568 because it is four words in a 74px face, and the same
             column turned a 190-character sentence into two lines across the
             whole page. 660 holds the longest line the design draws here with
-            room to spare. */}
+            room to spare.
+
+            A FIXED 660 from lg, not a fraction of the frame like almost
+            everything else here, because this type does not scale with the
+            frame — it is 18px at every width. Fractional, the measure fell to
+            440 at 1280 while the words stayed the same size, and both of «Про
+            нас»'s notes are written with typed breaks: the clauses then wrapped
+            again inside themselves, stranding «родині:» and «конкретну
+            потребу.» on lines of their own (4 lines instead of 3, and 6 instead
+            of 4) on any 13" screen. 660 fits inside the container at 1024, so
+            nothing has to give to hold it. */}
         {note ? (
-          <div className="text-muted-foreground mt-4.5 flex flex-col gap-2 text-base leading-[22px] tracking-[-0.03em] lg:mt-8 lg:max-w-[min(34.4vw,660px)] lg:text-lg">
+          <div className="text-muted-foreground mt-4.5 flex flex-col gap-2 text-base leading-[22px] tracking-[-0.03em] lg:mt-8 lg:max-w-[660px] lg:text-lg">
             {note}
           </div>
         ) : null}
