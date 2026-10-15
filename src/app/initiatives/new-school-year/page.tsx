@@ -107,6 +107,7 @@ export default async function SchoolPage() {
           imageAlt={t("why.imageAlt")}
           imageWidth={1668}
           imageHeight={1320}
+          mark
           label={t("why.label")}
           title={t("why.title")}
         >
