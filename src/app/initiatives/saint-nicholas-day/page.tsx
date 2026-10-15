@@ -125,7 +125,20 @@ export default async function MykolaiPage() {
 
         {/* Picture on the right, and a cut-out rather than a rectangle — it
             has no background of its own, so it floats on the cream blob the
-            way the hero's family does. */}
+            way the hero's family does.
+
+            The prose is set in a narrow measure here, which it has to be: the
+            blob is deliberately wider than the picture it carries (116% of the
+            column, starting 8% to its left), so at the column's full 848 the
+            text ran to 948 while the cream started at 904 — 44px UNDER the
+            last words. The design leaves air between the two.
+
+            700 is the widest measure that opens that air without costing the
+            lead a line: the ink then stops at 797 with 107px to the cream, and
+            the paragraph keeps the three lines it has today, where 660 and
+            below take four. As a fraction, because the blob's own overhang is
+            a percentage — the gap holds at every width instead of closing
+            again at 1024. */}
         <InitiativeSplit
           image="/initiative-mykolai-letter.webp"
           imageAlt={t("behind.imageAlt")}
@@ -133,11 +146,20 @@ export default async function MykolaiPage() {
           imageHeight={1200}
           side="end"
           blob
+          proseClassName="lg:max-w-[min(36.46vw,700px)]"
           label={t("behind.label")}
           title={t("behind.title")}
         >
+          {/* The middle sentence greyed back, the way every other lead on the
+              site carries its faint span — «Чому ми це робимо» a line above it
+              does the same. It was the one lead with no markup at all, which
+              is what made it read as a flat block beside the others. */}
           <p className="text-muted-foreground text-xl leading-7 font-semibold tracking-[-0.03em] lg:text-[26px] lg:leading-[30px]">
-            {t("behind.lead")}
+            {t.rich("behind.lead", {
+              faint: (chunks) => (
+                <span className="text-muted-faint">{chunks}</span>
+              ),
+            })}
           </p>
           {(["p2", "p3", "p4"] as const).map((key) => (
             <p

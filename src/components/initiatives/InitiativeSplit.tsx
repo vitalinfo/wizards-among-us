@@ -31,6 +31,11 @@ export function InitiativeSplit({
   // container's right edge and level with the picture's foot. It is a flourish
   // in a gap, so it is a prop rather than the default: the sections whose two
   // columns are the same height have no such corner.
+  // The measure the PARAGRAPHS are set in, when the design gives them less
+  // than the column. «Чарівний Миколай»'s «Це не просто про подарунок» needs
+  // it: the blob behind its cut-out is wider than the picture and reaches back
+  // into the column, so prose at the full width runs under the cream.
+  proseClassName,
   mark = false,
   // The last thing in the prose column, pinned to its FOOT rather than left to
   // follow the paragraphs: /initiatives/family closes with the «не є
@@ -52,6 +57,7 @@ export function InitiativeSplit({
   side?: "start" | "end";
   blob?: boolean;
   imageClassName?: string;
+  proseClassName?: string;
   mark?: boolean;
   footer?: ReactNode;
   label: string;
@@ -104,6 +110,7 @@ export function InitiativeSplit({
             className={cn(
               "flex w-full flex-col gap-4.5",
               pinned && "lg:flex-1",
+              proseClassName,
             )}
           >
             {children}
