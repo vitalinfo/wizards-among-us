@@ -27,12 +27,24 @@ const PROSE =
 // «Політика конфіденційності», from Figma 88:2 for the layout and from the
 // project's own policy document for every word of the text.
 //
-// The copy is VERBATIM from that document — 2041 words, checked against it
-// word for word rather than read over — with one thing moved: the document
-// puts «Дата останнього оновлення» directly under its title and the design
-// puts it under the two opening paragraphs, so it sits where the design puts
-// it. Nothing else was added, dropped or reworded, including a misspelling in
-// the data controller's own name, which is not mine to correct silently.
+// The copy is that document's, checked against it word for word rather than
+// read over, and it departs from it in exactly two ways.
+//
+// LAYOUT: the document puts «Дата останнього оновлення» directly under its
+// title; the design puts it under the two opening paragraphs, and that is
+// where it sits.
+//
+// SUBSTANCE: §4.3, §4.4 and §6 as written described a different system from
+// the one that exists. They had the letter photo and the shop link on the
+// pre-claim browse card and left the family's CURRENT town off it — so a
+// parent would have read that the town they live in now reaches only the
+// volunteer who chose their child, when any signed-in user browsing sees it.
+// Vital's call was that the code is right, so those three sections were
+// corrected to match `toBrowseCard`; policyTiers.test.ts now fails if the two
+// come apart again.
+//
+// Nothing else was added, dropped or reworded, including a misspelling in the
+// data controller's own name, which is not mine to correct silently.
 //
 // The body of each section is one message holding its own block structure. A
 // key per paragraph would have been ~120 keys for a document that is edited as
