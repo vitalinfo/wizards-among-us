@@ -22,6 +22,14 @@ export function FounderQuote() {
           express that as an object-position, and <picture> downloads exactly
           one of the two files.
 
+          The phone file hands over at sm, NOT at lg. It is a crop drawn for a
+          360 frame, and full-bleed it grows with the viewport: at 768 it stood
+          1374px tall and at 1023 1830px — two screens of a magnified head,
+          where the design asks for 920 at 360. 640 is the width above which
+          nothing is a phone any more (a phone held sideways is already past
+          it), so from there up the landscape original takes over and the
+          layout below lg becomes the quote with the drawing beneath it.
+
           The phone file is baked rather than rotated in CSS: it is the same
           source turned and cropped to the window the design uses (fitted to
           their render — cover at 0.6, 69% of the horizontal overflow off the
@@ -32,7 +40,7 @@ export function FounderQuote() {
           in the flow, so the same tail became a screen of blank page between
           the two.
 
-          From lg the landscape original scales by WIDTH and is pinned to the
+          From sm the landscape original scales by WIDTH and is pinned to the
           BOTTOM — never object-cover. Cover scales by whichever axis needs
           more, and this section is taller than the picture's 2:1 at anything
           under ~1700px, so cover zoomed the girl until she was half the page
@@ -47,17 +55,28 @@ export function FounderQuote() {
           uncapped picture reaches past the container's right edge and back
           under the words. */}
       <picture>
-        <source media="(min-width: 1024px)" srcSet="/quote-scene.webp" />
+        <source media="(min-width: 640px)" srcSet="/quote-scene.webp" />
         <img
           src="/quote-scene-mobile.webp"
           alt={t("sceneAlt")}
           width={601}
           height={1075}
-          className="aspect-[601/1075] w-full object-cover lg:absolute lg:bottom-0 lg:left-1/2 lg:-z-10 lg:aspect-auto lg:h-auto lg:w-full lg:max-w-[1920px] lg:-translate-x-1/2 lg:object-fill"
+          className="aspect-[601/1075] w-full object-cover sm:absolute sm:bottom-0 sm:left-1/2 sm:-z-10 sm:aspect-auto sm:h-auto sm:w-full sm:max-w-[1920px] sm:-translate-x-1/2 sm:object-fill"
         />
       </picture>
 
-      <div className={cn(SITE_CONTAINER, "pb-11 lg:py-[min(5.26vw,101px)]")}>
+      {/* Below lg the quote has the band to itself and the drawing lies under
+          it, so it has to end above the picture: pinned to the bottom at its
+          own 2:1, the picture is exactly 50vw tall, and 44px is the gap the
+          design leaves between the two on a phone. From lg the quote moves
+          into the right third, clear of the drawing, and the band goes back
+          to its own padding. */}
+      <div
+        className={cn(
+          SITE_CONTAINER,
+          "pb-11 sm:pt-11 sm:pb-[calc(50vw+44px)] lg:pt-[min(5.26vw,101px)] lg:pb-[min(5.26vw,101px)]",
+        )}
+      >
         {/* The quote's WIDTH and TYPE are both proportional, for the same
           reason the hero's are: the drawing beside them scales with the
           viewport, and a fixed 522px column pinned to the right closed the

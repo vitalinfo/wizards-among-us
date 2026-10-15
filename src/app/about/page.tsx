@@ -244,14 +244,27 @@ export default async function AboutPage() {
           statsLabel={t("community.region")}
           stats={bannerStats}
         >
-          <p className="text-muted-foreground text-xl leading-7 font-semibold tracking-[-0.03em] lg:text-[26px] lg:leading-[30px]">
+          {/* 26/30 and 18/28 as FRACTIONS of the 1920 frame from lg, like the
+              title and the stat figures above them, because this band's column
+              is a fraction too — it has to be, or the copy lands on the
+              children (see `CommunityBanner`). Fixed, the measure shrank while
+              the type didn't and the design's two lines became three by 1512;
+              scaled, the ratio of measure to type never changes, so the lead
+              breaks where it is drawn to break at every width.
+
+              Floored at 16/14, below which this stops being copy a stressed
+              parent can read on a 1024 laptop. That floor is reached at
+              ~1180, and from there down to 1024 the lead does take a third
+              line — the one width where a 660 measure beside a half-width
+              illustration was never going to hold two. */}
+          <p className="text-muted-foreground text-xl leading-7 font-semibold tracking-[-0.03em] lg:text-[clamp(16px,1.354vw,26px)] lg:leading-[clamp(18.5px,1.5625vw,30px)]">
             {t.rich("community.lead", {
               faint: (chunks) => (
                 <span className="text-muted-faint">{chunks}</span>
               ),
             })}
           </p>
-          <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em] lg:text-lg">
+          <p className="text-muted-foreground text-base leading-[22px] tracking-[-0.03em] lg:text-[clamp(14px,0.9375vw,18px)] lg:leading-[clamp(21.8px,1.4583vw,28px)]">
             {t("community.note")}
           </p>
         </CommunityBanner>
@@ -291,7 +304,7 @@ export default async function AboutPage() {
           {t.rich("closing.title", { em })}
         </InitiativeQuote>
 
-        <Gallery title={t("gallery.title")} />
+        <Gallery title={t.rich("gallery.title", { br })} />
       </main>
 
       <SiteFooter />

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 
 import { ArrowRightIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
@@ -36,7 +36,11 @@ function easeInOutCubic(t: number): number {
 //
 // The heading drops to 74/70 when it is overridden: the landing's six words
 // fit two lines at 80, and this one is a sentence and a half.
-export function Gallery({ title }: { title?: string } = {}) {
+//
+// ReactNode, not string: the design gives each of those two sentences a line,
+// which is a typed break — at 1000 the text of its own accord breaks after «А
+// сьогодні» and leaves three words below. The caller passes `t.rich`.
+export function Gallery({ title }: { title?: ReactNode } = {}) {
   const t = useTranslations("landing.gallery");
   const row = useRef<HTMLUListElement>(null);
   const frame = useRef(0);
