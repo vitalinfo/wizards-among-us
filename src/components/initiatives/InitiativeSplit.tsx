@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { Blob } from "@/components/landing/Blob";
 import { SectionLabel } from "@/components/landing/SectionLabel";
+import { BrandMark } from "@/components/site/BrandMark";
 import { SITE_CONTAINER } from "@/components/site/layout";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,14 @@ export function InitiativeSplit({
   // it the whole one. «Про нас» draws its chat composition at 761 of 848 and
   // left-aligned: the air around the ring of faces is part of the drawing.
   imageClassName,
+  // The heart in the bottom-right corner. Two of these sections carry it —
+  // /volunteer's «Для нас важливо…» and /parent's «Якщо немає відкритої
+  // ініціативи» — where the prose is shorter than the picture beside it and
+  // the design fills the corner it leaves with the mark, flush with the
+  // container's right edge and level with the picture's foot. It is a flourish
+  // in a gap, so it is a prop rather than the default: the sections whose two
+  // columns are the same height have no such corner.
+  mark = false,
   label,
   title,
   children,
@@ -36,6 +45,7 @@ export function InitiativeSplit({
   side?: "start" | "end";
   blob?: boolean;
   imageClassName?: string;
+  mark?: boolean;
   label: string;
   title: ReactNode;
   children: ReactNode;
@@ -57,7 +67,18 @@ export function InitiativeSplit({
             the picture in both of these sections, and that is also the order a
             screen reader should get them in — the illustration carries none of
             the argument. From lg the picture takes whichever side it is given. */}
-        <div className="flex flex-col items-start gap-8 lg:gap-11">
+        {/* Stretched to the row when it carries the mark, so the prose starts
+            at the picture's top edge — which is where the design starts it in
+            both of these sections — and the mark can sit at the FOOT of the
+            column, level with the picture's own, instead of a gap below the
+            last line. Where the prose is the taller column (narrow lg) the
+            stretch is a no-op and the mark simply follows the text. */}
+        <div
+          className={cn(
+            "flex flex-col items-start gap-8 lg:gap-11",
+            mark && "lg:self-stretch",
+          )}
+        >
           <div className="flex flex-col items-start gap-4.5 lg:gap-5">
             <SectionLabel>{label}</SectionLabel>
             <h2 className="font-display text-[48px] leading-9 font-bold tracking-[-0.06em] lg:text-[min(4.17vw,80px)] lg:leading-[min(3.65vw,70px)]">
@@ -65,6 +86,22 @@ export function InitiativeSplit({
             </h2>
           </div>
           <div className="flex flex-col gap-4.5">{children}</div>
+
+          {/* LAST IN THE COLUMN, right-aligned — not absolutely placed in the
+              corner of the grid. Pinned to the corner it reproduces the design
+              at 1920 exactly and then sits ON the copy everywhere else: the
+              prose column grows as it narrows, and it covered the last line of
+              «Якщо немає відкритої ініціативи» at 1024, 1280 and 1440, coming
+              clear only past 1600 — which is most of the laptops this is read
+              on. In the flow it can't collide at any width, it keeps the right
+              edge the design aligns it to, and at 1920 the column it closes is
+              the same height as the picture, which is where the design has it.
+
+              From lg only: the corner exists because the two columns are
+              different heights, and below lg they are stacked. */}
+          {mark ? (
+            <BrandMark className="hidden h-[93px] w-auto self-end lg:mt-auto lg:block" />
+          ) : null}
         </div>
 
         <div
