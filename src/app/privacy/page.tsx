@@ -43,8 +43,11 @@ const PROSE =
 // corrected to match `toBrowseCard`; policyTiers.test.ts now fails if the two
 // come apart again.
 //
-// Nothing else was added, dropped or reworded, including a misspelling in the
-// data controller's own name, which is not mine to correct silently.
+// SPELLING: the document writes the data controller's name «Панчук Олена
+// Валеріівна», missing the ї, in both §1.4 and §15. Corrected on Vital's
+// instruction — a name was not something to change on my own reading of it.
+//
+// Nothing else was added, dropped or reworded.
 //
 // The body of each section is one message holding its own block structure. A
 // key per paragraph would have been ~120 keys for a document that is edited as
