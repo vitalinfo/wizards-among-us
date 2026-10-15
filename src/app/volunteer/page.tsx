@@ -108,6 +108,7 @@ export default async function VolunteerPage() {
           imageAlt={t("approach.imageAlt")}
           imageWidth={1720}
           imageHeight={2010}
+          mark
           label={t("approach.label")}
           title={t.rich("approach.title", {
             em: (chunks) => <span className="text-primary">{chunks}</span>,

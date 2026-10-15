@@ -176,6 +176,7 @@ export default async function ParentPage() {
           imageAlt={t("noInitiative.imageAlt")}
           imageWidth={1720}
           imageHeight={1377}
+          mark
           label={t("noInitiative.label")}
           title={t("noInitiative.title")}
         >
