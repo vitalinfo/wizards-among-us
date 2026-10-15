@@ -10,8 +10,9 @@ export const SITE = {
   telegramUrl: "https://t.me/+XlZ9JMfByQZhMTU6",
   instagramUrl: "https://www.instagram.com/wizards.among.us/",
   email: "charivnyky.org@gmail.com",
-  // The design links the consent line and the footer's policy line. The page
-  // itself does not exist yet — this is the one place to repoint them once it
-  // does (or once there is an external document to link).
+  // The consent line on /login and the footer's policy line both point here,
+  // and as of the policy page they land somewhere: /privacy carries the
+  // project's own policy document. Still the one place to repoint them if it
+  // ever moves to an external URL.
   privacyUrl: "/privacy",
 } as const;
