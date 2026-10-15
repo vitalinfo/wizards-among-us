@@ -22,6 +22,7 @@ export function InitiativeHero({
   title,
   lead,
   titleClassName,
+  titleWidthClassName = "lg:max-w-[min(26.15vw,502px)]",
   chips,
   align = "center",
   art,
@@ -32,7 +33,17 @@ export function InitiativeHero({
   // The display line-height differs per page: «Чарівний Миколай» is drawn at
   // 120/80 and «Шкільний Чарівник» at 120/90, because the second is two long
   // words and needs the room.
+  //
+  // Anything in here that the h1 below ALSO sets lands on the element twice —
+  // `cn` joins, it does not merge — and which one wins is then the order the
+  // two arbitrary utilities happen to take in the stylesheet, not the order
+  // they are passed in. That is why the width cap is its own prop: passed
+  // through here it was simply ignored on /initiatives/family.
   titleClassName?: string;
+  // The measure the name breaks in, per page, because it is measured from
+  // where each one BREAKS. The default is the design's 502, which is what
+  // «Чарівний Миколай» and «Шкільний Чарівник» are drawn in.
+  titleWidthClassName?: string;
   // Tilted figure cards. School flanks the title with two; family sets one
   // beside its illustration. In the flow on a narrow screen either way.
   chips?: ReactNode;
@@ -58,13 +69,13 @@ export function InitiativeHero({
         )}
       >
         <InitiativeStatusPill status={status} />
-        {/* Capped at the design's 502 — the cap is what makes the name break
-            into two lines at the width it was drawn at instead of running
-            across the whole block. In vw from lg for the usual reason: a
-            fixed 120px takes a third line on a laptop. */}
+        {/* The cap is what makes the name break into the lines it is drawn in
+            instead of running across the whole block. In vw from lg for the
+            usual reason: a fixed 120px takes a third line on a laptop. */}
         <h1
           className={cn(
-            "font-display text-[48px] leading-9 font-bold tracking-[-0.06em] lg:max-w-[min(26.15vw,502px)] lg:text-[min(6.25vw,120px)] lg:leading-[min(4.167vw,80px)]",
+            "font-display text-[48px] leading-9 font-bold tracking-[-0.06em] lg:text-[min(6.25vw,120px)] lg:leading-[min(4.167vw,80px)]",
+            titleWidthClassName,
             titleClassName,
           )}
         >
