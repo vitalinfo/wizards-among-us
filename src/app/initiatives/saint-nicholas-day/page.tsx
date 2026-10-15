@@ -92,6 +92,7 @@ export default async function MykolaiPage() {
           imageAlt={t("why.imageAlt")}
           imageWidth={1118}
           imageHeight={864}
+          mark
           label={t("why.label")}
           title={t("why.title")}
         >
