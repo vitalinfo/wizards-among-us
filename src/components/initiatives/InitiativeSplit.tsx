@@ -32,6 +32,13 @@ export function InitiativeSplit({
   // in a gap, so it is a prop rather than the default: the sections whose two
   // columns are the same height have no such corner.
   mark = false,
+  // The last thing in the prose column, pinned to its FOOT rather than left to
+  // follow the paragraphs: /initiatives/family closes with the «не є
+  // постійною» caveat on the blue canvas, and the design aligns the bottom of
+  // that card with the bottom of the picture beside it. Trailing the prose it
+  // sat 177px higher, which reads as the column simply having run out rather
+  // than as the pair of them closing together.
+  footer,
   label,
   title,
   children,
@@ -46,11 +53,16 @@ export function InitiativeSplit({
   blob?: boolean;
   imageClassName?: string;
   mark?: boolean;
+  footer?: ReactNode;
   label: string;
   title: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
+  // Whether anything is pinned to the foot of the prose column — which is what
+  // the column has to be stretched to the row for.
+  const pinned = mark || Boolean(footer);
+
   return (
     // overflow-hidden for the reason the landing hero has it: the blob behind a
     // cut-out is deliberately wider than the picture, and nothing decorative
@@ -76,7 +88,7 @@ export function InitiativeSplit({
         <div
           className={cn(
             "flex flex-col items-start gap-8 lg:gap-11",
-            mark && "lg:self-stretch",
+            pinned && "lg:self-stretch",
           )}
         >
           <div className="flex flex-col items-start gap-4.5 lg:gap-5">
@@ -85,9 +97,18 @@ export function InitiativeSplit({
               {title}
             </h2>
           </div>
-          <div className="flex flex-col gap-4.5">{children}</div>
+          {/* Grows into the stretched column so that what is pinned below —
+              the footer, or the mark when there is none — has free space to be
+              pushed down through. */}
+          <div
+            className={cn(
+              "flex w-full flex-col gap-4.5",
+              pinned && "lg:flex-1",
+            )}
+          >
+            {children}
 
-          {/* LAST IN THE COLUMN, right-aligned — not absolutely placed in the
+            {/* LAST IN THE COLUMN, right-aligned — not absolutely placed in the
               corner of the grid. Pinned to the corner it reproduces the design
               at 1920 exactly and then sits ON the copy everywhere else: the
               prose column grows as it narrows, and it covered the last line of
@@ -98,10 +119,22 @@ export function InitiativeSplit({
               the same height as the picture, which is where the design has it.
 
               From lg only: the corner exists because the two columns are
-              different heights, and below lg they are stacked. */}
-          {mark ? (
-            <BrandMark className="hidden h-[93px] w-auto self-end lg:mt-auto lg:block" />
-          ) : null}
+              different heights, and below lg they are stacked.
+
+              It takes the foot of the column only when nothing else does —
+              with a footer the mark trails the paragraphs, which is where
+              /initiatives/family draws it, just above its caveat card. */}
+            {mark ? (
+              <BrandMark
+                className={cn(
+                  "hidden h-[93px] w-auto self-end lg:block",
+                  !footer && "lg:mt-auto",
+                )}
+              />
+            ) : null}
+
+            {footer ? <div className="lg:mt-auto">{footer}</div> : null}
+          </div>
         </div>
 
         <div
