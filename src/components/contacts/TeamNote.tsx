@@ -28,7 +28,7 @@ export function TeamNote({ className }: { className?: string }) {
           what makes the block three balanced lines instead of a ragged four.
           Two sentences, so two <p> — a <br> inside one would read as a single
           run-on sentence to a screen reader. */}
-      <div className="font-display mt-10 text-[28px] leading-7 font-bold tracking-[-0.06em] lg:mt-15 lg:text-[min(3.854vw,74px)] lg:leading-[min(3.646vw,70px)]">
+      <div className="font-display mt-10 text-[37px] leading-[34px] font-bold tracking-[-0.06em] lg:mt-15 lg:text-[min(3.854vw,74px)] lg:leading-[min(3.646vw,70px)]">
         <p>
           {t.rich("note", {
             em: (chunks) => <span className="text-primary">{chunks}</span>,
