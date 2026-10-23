@@ -177,19 +177,19 @@ function CabinetRow({
         aria-hidden="true"
         className={cn(
           disc,
-          cabinet.available
-            ? "bg-primary text-primary-foreground"
-            : // The design's grey for a cabinet you do not hold. A literal
-              // rather than a token: it appears exactly here, and the greys we
-              // do have are either lighter (--divider) or blue (--primary-soft).
-              "bg-[#dddddd]",
+          // Blue marks the cabinet you are IN, not every cabinet you hold —
+          // someone with both roles would otherwise see two blue discs and no
+          // difference between them. A literal grey rather than a token: it
+          // appears exactly here, and the greys we do have are either lighter
+          // (--divider) or blue (--primary-soft).
+          current ? "bg-primary text-primary-foreground" : "bg-[#dddddd]",
         )}
       >
         {cabinet.emoji}
       </span>
       {/* No ✅. The tinted row says «you are here» and aria-current says it to
           a screen reader; the cabinet you do NOT hold is distinguished by not
-          being a link at all, plus its grey disc and muted label, so nothing
+          being a link at all, plus its muted label, so nothing
           here rests on colour alone. Dropped on Vital's call, agreed with the
           designers. */}
       <span>{label}</span>
