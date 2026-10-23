@@ -11,7 +11,7 @@ Operating guide for Claude Code in this repo. Keep it loaded; follow it every se
 ## Working method
 
 - Build **one phase at a time** (plan §3, Phases 0→8). Never scaffold everything at once.
-- For each phase: restate the scope and list what you need from a human → **wait for go-ahead** → implement in **one focused branch/PR** → **show DB migrations/SQL before applying** → add tests + a short docs note → **stop for review** before the next phase.
+- For each phase: restate the scope and list what you need from a human → **wait for go-ahead** → implement in **one focused branch/PR** → **show DB migrations/SQL and never apply one without review** ([`rules/migrations.md`](rules/migrations.md)) → add tests + a short docs note → **stop for review** before the next phase.
 - **Ask, don't assume** on product decisions. Prefer boring, well-documented approaches.
 
 ## Commands
@@ -39,7 +39,7 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Fr
 - **`schema.ts` hygiene:** table names are **plural** (`users`, `audit_logs`); table definitions are ordered **alphabetically** by name (helpers first) for navigation. Express uniqueness with **unique indexes** (`uniqueIndex(...)`, partial via `.where()` when needed), not `UNIQUE` constraints — uniform, and buildable `CONCURRENTLY` in prod.
 - **Settings** is a **key-value** table (`key` text PK, `value` jsonb); keys in `SETTING_KEYS`. New switch = new row, no migration.
 - **Authorization in the server layer** via `getSessionActor()` / `requireAdmin()`. No client-side-only checks.
-- Migrations are code-defined (Drizzle) and shown before running.
+- Migrations are code-defined (Drizzle), **shown in full and never applied without review**, and carry schema only — never a content or data change. See [`rules/migrations.md`](rules/migrations.md).
 - All UI copy in `uk` locale files. No hardcoded user-facing strings. **One exception: the landing FAQ.** Its questions and answers are rows in `faqs`, admin-managed at `/admin/faqs` — they are *content* that follows policy, not chrome that follows releases. Only the section's label/title/subtitle stay in `landing.faq`. There is deliberately **no fallback copy**: a second copy of these answers in the message file would drift from what an admin edits, so an empty table or an unreachable DB renders no section at all (`listActiveFaqs` → `[]` → `Faq` returns null). Losing the section on an outage is the accepted cost of never printing a stale promise.
 - One PR per phase; keep diffs reviewable.
 
@@ -51,16 +51,6 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Fr
   1. **Browse card** (any signed-in volunteer, pre-claim): child *first* name, age, `family_story`, `home_region` + `home_town`, `current_region` + `current_town`, gift description + price. Nothing else. Enforced by `toBrowseCard`.
      Widened from "first name, age, oblast, gift" by **explicit decisions** (Vital, Phase 6): a volunteer chooses *which* child to help, and the family's story and journey are what inform that choice. I argued against `current_town` twice — with a first name, an age and a story it can identify one displaced family in a small town, and there is no volunteer approval gate (§11) — and was overruled; recorded here so it reads as a decision, not a slip.
      **The parent-facing copy was rewritten in the same change** (`parent.privacyCard.body`, the `currentTown` and `familyStory` hints), because it previously promised families that the town and the story were post-claim only. Copy and behaviour must stay in sync — a parent consents on the basis of that text. If abuse ever appears, `current_town` and `family_story` are the two to pull back first.
-
-     **`child_gender` is the exception to the paragraph below** (Vital,
-     2026-10-23). It was added to tier 1 for the browse card's child icon, and
-     the privacy policy (§2.2, §4.3) and the FAQ row were deliberately left
-     unchanged — so those three public lists are now shorter than
-     `toBrowseCard`. The argument for it: a first name already discloses gender
-     in Ukrainian, so the card tells a reader nothing new. The argument against,
-     which lost: §4.3 is a list, and a parent reading a short list does not
-     learn what the long one would have told them. `policyTiers.test.ts` carries
-     the exemption by name, so the guard still fails for the next field.
 
      ⚠️ **This tier is also stated publicly in the FAQ** — «Чи побачать волонтери адресу моєї дитини?» spells out what a volunteer sees before and after claiming. Since that answer lives in the `faqs` table it can now be edited by an admin **without a code change or a review**, which is exactly how copy and behaviour come apart. Narrowing or widening tier 1 means editing that row too; conversely, treat an edit to it as a change to a promise, not to a paragraph. The FAQ mutations are audit-logged (`faq.created` / `faq.updated` / `faq.deleted`) so the trail can answer who changed the privacy answer and when.
   2. **Claiming volunteer only:** `current_town`, `delivery_information`, `parent_name`, the parent's resolved contact (`users.username` / `users.phone`), `type_fields` (carries the shop link), and the **`letter_photo` + `child_with_letter_photo`** uploads. Revealed only while that volunteer holds the active claim.
