@@ -3,6 +3,7 @@ export { CheckIcon } from "./CheckIcon";
 export { ChevronRightIcon } from "./ChevronRightIcon";
 export { ClockIcon } from "./ClockIcon";
 export { CloseIcon } from "./CloseIcon";
+export { EyeIcon } from "./EyeIcon";
 export { FiltersIcon } from "./FiltersIcon";
 export { MenuIcon } from "./MenuIcon";
 export { InstagramIcon } from "./InstagramIcon";

@@ -12,7 +12,13 @@ import {
 
 import { getDb } from "@/db";
 import type { UkraineRegion } from "@/db/enums";
-import { applicationFiles, applications, claims, users } from "@/db/schema";
+import {
+  applicationFiles,
+  applications,
+  campaigns,
+  claims,
+  users,
+} from "@/db/schema";
 import { toBrowseCard, type BrowseCard } from "@/features/applications/mappers";
 
 // Volunteer-facing data access. Authorization lives in the actions/pages
@@ -31,6 +37,8 @@ export type BrowseFilters = {
 // dropped at the data layer, so a card physically cannot leak an address to the
 // client (child-data invariant, tier 1).
 export type BrowseRow = BrowseCard;
+
+type Application = typeof applications.$inferSelect;
 
 // `approved` and nothing else: a child who already has a charivnyk is not in
 // this list (Vital, 2026-10-23).
@@ -254,27 +262,119 @@ export async function releaseClaim(applicationId: string): Promise<boolean> {
   });
 }
 
-// What a volunteer sees for the children they hold: the full sensitive set,
-// because they are the claiming volunteer (tier 2). Scoped to their own claims.
-export async function listMyClaims(volunteerId: string, campaignId: string) {
-  return getDb()
+// «Мої підопічні» (Figma 130:2506). Which children this volunteer holds, as a
+// LIST — the row carries the child's name, age, the campaign and the state, and
+// nothing else.
+//
+// Deliberately NOT the sensitive set. The previous version of this query handed
+// every row the whole application plus the family's contact, because the old
+// page printed all of it on every card; the redesign puts that behind «Дії», so
+// the list no longer needs it and no longer asks for it. The detail page is the
+// one place tier-2 data is read, and it reads one child at a time.
+export type ClaimTab = "all" | "active" | "completed";
+
+export type MyClaimRow = {
+  applicationId: string;
+  childName: string | null;
+  childAge: number | null;
+  campaignTitle: string;
+  // `claimed` while the gift is on its way, `fulfilled` once the family has
+  // confirmed it arrived. Nothing else can be here: a claim only exists on an
+  // application that was approved, and releasing one puts it back to approved
+  // while clearing the claim.
+  status: Application["status"];
+  claimedAt: Date;
+};
+
+// `claimed` is «Допомога триває», `fulfilled` is «Допомогу завершено» — the two
+// tabs, and the two states the design draws.
+const TAB_STATUSES: Record<ClaimTab, readonly Application["status"][]> = {
+  all: ["claimed", "fulfilled"],
+  active: ["claimed"],
+  completed: ["fulfilled"],
+};
+
+function myClaimConditions(
+  volunteerId: string,
+  campaignId: string,
+  tab: ClaimTab,
+) {
+  return and(
+    eq(claims.volunteerId, volunteerId),
+    isNull(claims.releasedAt),
+    eq(applications.campaignId, campaignId),
+    inArray(applications.status, [...TAB_STATUSES[tab]]),
+  );
+}
+
+export async function countMyClaims(
+  volunteerId: string,
+  campaignId: string,
+  tab: ClaimTab,
+): Promise<number> {
+  const [row] = await getDb()
+    .select({ total: count() })
+    .from(claims)
+    .innerJoin(applications, eq(applications.id, claims.applicationId))
+    .where(myClaimConditions(volunteerId, campaignId, tab));
+  return row?.total ?? 0;
+}
+
+export async function listMyClaims(
+  volunteerId: string,
+  campaignId: string,
+  page: { tab: ClaimTab; limit: number; offset: number },
+): Promise<MyClaimRow[]> {
+  return (
+    getDb()
+      .select({
+        applicationId: applications.id,
+        childName: applications.childName,
+        childAge: applications.childAge,
+        campaignTitle: campaigns.title,
+        status: applications.status,
+        claimedAt: claims.claimedAt,
+      })
+      .from(claims)
+      .innerJoin(applications, eq(applications.id, claims.applicationId))
+      .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
+      .where(myClaimConditions(volunteerId, campaignId, page.tab))
+      // Oldest claim first, with the application id as a tiebreaker: without a
+      // total order a row can swap between pages and one would never be shown.
+      .orderBy(asc(claims.claimedAt), asc(applications.id))
+      .limit(page.limit)
+      .offset(page.offset)
+  );
+}
+
+// One child this volunteer holds, with the sensitive set — current town,
+// delivery information, the parent's name and the family's contact (tier 2).
+//
+// Scoped to THEIR OWN ACTIVE CLAIM in the where clause, not checked afterwards:
+// a volunteer asking for an application they do not hold gets nothing back, so
+// there is no object for a later check to be forgotten about.
+export async function getMyClaim(volunteerId: string, applicationId: string) {
+  const [row] = await getDb()
     .select({
       application: applications,
+      campaignTitle: campaigns.title,
       claimedAt: claims.claimedAt,
       parentUsername: users.username,
       parentPhone: users.phone,
     })
     .from(claims)
     .innerJoin(applications, eq(applications.id, claims.applicationId))
+    .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
     .innerJoin(users, eq(users.id, applications.parentId))
     .where(
       and(
+        eq(claims.applicationId, applicationId),
         eq(claims.volunteerId, volunteerId),
         isNull(claims.releasedAt),
-        eq(applications.campaignId, campaignId),
       ),
     )
-    .orderBy(asc(claims.claimedAt));
+    .limit(1);
+  return row ?? null;
 }
 
 // Who currently holds this application, for the admin detail page.

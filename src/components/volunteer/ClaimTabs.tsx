@@ -1,0 +1,42 @@
+import { getTranslations } from "next-intl/server";
+import Link from "next/link";
+
+import { CLAIM_TABS, claimsHref } from "@/features/claims/claimTabs";
+import type { ClaimTab } from "@/features/claims/queries";
+import { cn } from "@/lib/utils";
+
+// «Всі | Активні | Завершені» (Figma 130:2506).
+//
+// LINKS, not buttons: each tab is a url, so it survives a reload, can be shared
+// and needs no client JavaScript — the same reason the pager and the browse
+// filters are links. `aria-current` is what says which one you are on; the
+// filled pill is the redundant visual cue.
+export async function ClaimTabs({ current }: { current: ClaimTab }) {
+  const t = await getTranslations("volunteer.claims.tabs");
+
+  return (
+    <nav aria-label={t("label")}>
+      <ul className="border-divider bg-surface flex w-fit items-center gap-2 rounded-full border p-1">
+        {CLAIM_TABS.map((tab) => {
+          const active = tab === current;
+          return (
+            <li key={tab}>
+              <Link
+                href={claimsHref({ tab })}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "focus-visible:outline-ring inline-flex h-9 items-center rounded-full px-4 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-primary",
+                )}
+              >
+                {t(tab)}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
