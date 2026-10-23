@@ -57,6 +57,16 @@
      here is a red button. */
   --danger: #d93025;
 
+  /* The two states a claimed child can be in, on «Мої підопічні». The design
+     fills the pills #e4f0ff and #e9ffe4 and sets the labels in a light blue and
+     a light green — 1.85:1 and 1.74:1, which is not a borderline call. The
+     FILLS are the design's; the labels are --primary (6.69:1) and this green
+     (4.92:1), the lightest that clears AA on that fill. --status-open, the
+     green we already had, reads 4.28:1 there — fine on white, not on this. */
+  --status-done: #4f7560;
+  --status-done-tint: #e9ffe4;
+  --status-progress-tint: #e4f0ff;
+
   --border: #c5c7c7; /* 1.5px card borders */
   --divider: #e6e7e7; /* 1px section dividers */
 
@@ -115,6 +125,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-hover: var(--accent-hover);
   --color-danger: var(--danger);
+  --color-status-done: var(--status-done);
+  --color-status-done-tint: var(--status-done-tint);
+  --color-status-progress-tint: var(--status-progress-tint);
   --color-border: var(--border);
   --color-divider: var(--divider);
   --color-primary: var(--primary);

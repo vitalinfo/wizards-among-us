@@ -14,9 +14,14 @@ import messages from "../../messages/uk.json";
 //
 // This replaces ONLY the request-scoped plumbing. The translator and formatter
 // are next-intl's real ones, built from the real messages/uk.json and the real
-// formats — so a spec still fails when a key is missing or copy changes, which
-// is the whole point of asserting against `messages.*`. Nothing here asserts
-// mocked behaviour.
+// formats — so a spec fails when copy changes, which is the whole point of
+// asserting against `messages.*`. Nothing here asserts mocked behaviour.
+//
+// `onError` THROWS. By default next-intl logs a missing key and renders the key
+// path as the text, so a component asking for a key that does not exist renders
+// «volunteer.children.card.price» and a spec that only asserts other strings
+// passes — which is exactly how one shipped. A missing message is a bug in the
+// component or the message file; it fails here now.
 //
 // Use it as:
 //   vi.mock("next-intl/server", async () =>
@@ -44,6 +49,9 @@ export function serverIntl() {
         // is only known at runtime. The real getTranslations has the same
         // signature at runtime — a wrong namespace still throws.
         namespace: namespaceOf(input) as never,
+        onError: (error) => {
+          throw error;
+        },
       }),
     getFormatter: async () => createFormatter({ locale, timeZone, formats }),
     getLocale: async () => locale,
