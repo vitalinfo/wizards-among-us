@@ -42,15 +42,38 @@ A data statement that does survive review:
 
 ### Editing a migration that has already been applied
 
-Drizzle records the **sha256 of the raw file** in `drizzle.__drizzle_migrations`.
-Rewriting an applied file therefore orphans its journal row: the next
-`pnpm db:migrate` sees an unknown hash and re-runs the DDL, which fails on
-`column already exists`.
+**What the migrator actually compares is the TIMESTAMP, not the hash.** Read it
+before reasoning about it — `pg-core/dialect.js`, `migrate()`:
 
-So: a file that has reached any database is immutable in practice — correct it with
-a NEW migration. If it has only reached a dev database and rewriting it is still
-the cleaner history, say exactly what the reconcile is (restore the data the old
-file changed, re-point the journal hash) and leave it to the developer to run.
+```js
+const dbMigrations = await session.all(sql`select id, hash, created_at from … order by created_at desc limit 1`);
+const lastDbMigration = dbMigrations[0];
+for await (const migration of migrations) {
+  if (!lastDbMigration || Number(lastDbMigration.created_at) < migration.folderMillis) { …apply… }
+}
+```
+
+One row is read — the newest — and a file runs only when its folder timestamp is
+GREATER. The sha256 is written to the table and never read again. Two consequences,
+and the second is the dangerous one:
+
+- **Rewriting an applied file does not re-run it.** The timestamp is unchanged, so
+  the migrator skips it, and the stale hash in the journal is cosmetic. (This
+  paragraph used to claim the opposite — that an edited file re-runs and fails on
+  `column already exists`. It does not, and a reconcile "fixing" the hash changes
+  nothing. Corrected after a prediction made from the stored hash rather than from
+  the source.)
+- **A migration with an OLDER timestamp than one already applied is skipped
+  silently, forever.** Generate on a branch, let someone else's newer migration land
+  first, merge, and yours never runs — no error, exit 0, a column simply missing in
+  production. If two branches both generated migrations, check the timestamps against
+  `drizzle.__drizzle_migrations` before trusting a green deploy.
+
+Rewriting an applied file still leaves the DATA it changed applied — the schema is
+skipped, but the UPDATE it ran already happened. So: a file that has reached any
+database is immutable in practice — correct it with a NEW migration. If it has only
+reached a dev database and rewriting it is still the cleaner history, say exactly
+what has to be undone by hand and leave it to the developer to run.
 
 ### Conventions
 
