@@ -63,9 +63,9 @@ export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 //
 // It carries no more than the first name already does: Ukrainian given names
 // are gendered almost without exception, and the card shows one. That is the
-// reason it can be tier 1 at all — see the child-data invariant in CLAUDE.md,
-// which also records why the privacy policy and the FAQ were left unchanged
-// for this one field.
+// reason it can be tier 1 at all — see the child-data invariant in CLAUDE.md.
+// It is the one tier-1 field the public documents do not enumerate; the note on
+// `childGender` in features/applications/mappers.ts says why.
 export const CHILD_GENDERS = ["boy", "girl"] as const;
 export type ChildGender = (typeof CHILD_GENDERS)[number];
 

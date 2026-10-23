@@ -33,8 +33,11 @@ export type BrowseCard = {
   // It is the one tier-1 field the public statements do NOT enumerate: policy
   // §2.2 / §4.3 and the «Чи побачать волонтери адресу моєї дитини?» FAQ answer
   // were deliberately left as they are (Vital, 2026-10-23), so those lists are
-  // now shorter than this projection. policyTiers.test.ts carries the
-  // exemption explicitly; every OTHER field still has to appear in §4.3.
+  // now shorter than this projection. I argued the other way — §4.3 is a list,
+  // and a parent reading a short one does not learn what the long one would
+  // have told them — and was overruled; recorded here so it reads as a
+  // decision, not a slip. policyTiers.test.ts carries the exemption by name,
+  // so every OTHER field still has to appear in §4.3 before it can ship.
   childGender: Application["childGender"];
   // Where the family came FROM — both parts. A child's origin is not where
   // they can be found, so it carries far less risk than the destination.
