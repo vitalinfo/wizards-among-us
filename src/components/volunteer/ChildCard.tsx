@@ -20,14 +20,19 @@ export async function ChildCard({
   claimHref,
 }: {
   row: BrowseRow;
-  // null when this volunteer can't claim it (already taken).
-  claimHref: string | null;
+  claimHref: string;
 }) {
   const t = await getTranslations("volunteer.children");
   const tCard = await getTranslations("volunteer.children.card");
-  const tGender = await getTranslations("genders");
+  const tRegions = await getTranslations("regions");
 
   const name = row.childFirstName ?? t("noName");
+  // Either part can be missing on an older application, so this is not a
+  // template — it is whichever parts exist, joined.
+  const homePlace =
+    [row.homeTown, row.homeRegion ? tRegions(row.homeRegion) : null]
+      .filter(Boolean)
+      .join(", ") || null;
 
   return (
     <li className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-[18px]">
@@ -48,14 +53,12 @@ export async function ChildCard({
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          {/* The name alone. There is no icon here: the 118:420 card draws
+              «Олена» and nothing beside it, and the gender the column was added
+              for is not drawn on this card at all. It stays in the projection
+              for the screen that does draw it; inventing a place for it here
+              was mine, not the design's. */}
           <h3 className="font-display text-[44px] leading-[44px] font-bold tracking-[-0.03em]">
-            {/* The child's icon rides with the name, as it does everywhere the
-                child is named. */}
-            {row.childGender ? (
-              <span role="img" aria-label={tGender(row.childGender)}>
-                {row.childGender === "boy" ? "👦" : "👧"}{" "}
-              </span>
-            ) : null}
             {name}
           </h3>
           {row.childAge !== null ? (
@@ -65,17 +68,11 @@ export async function ChildCard({
           ) : null}
         </div>
 
-        {/* Status by text, not colour alone — the design draws no badge, but a
-            volunteer must still be able to tell a child who already has a
-            charivnyk from one who is waiting, and the button alone cannot say
-            it to a screen reader. */}
-        {row.claimed ? (
-          <p className="text-muted-foreground text-sm tracking-[-0.06em]">
-            {t("claimed")}
-          </p>
-        ) : null}
-
-        <Field label={tCard("homeTown")} value={row.homeTown} />
+        {/* Oblast with the town (Vital): «Маріуполь, Донецька область». The
+            label asks for a city, and the oblast is what the filter above is
+            set to — a volunteer looking for families from their own region
+            should see the region they matched on. */}
+        <Field label={tCard("homeTown")} value={homePlace} />
         <Field label={tCard("story")} value={row.familyStory} stacked />
         <Field label={tCard("gift")} value={row.giftDescription} />
 
@@ -101,14 +98,12 @@ export async function ChildCard({
           </Field>
         ) : null}
 
-        {claimHref ? (
-          <Link
-            href={claimHref}
-            className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring mt-2 inline-flex h-[47px] w-fit items-center justify-center rounded-full px-10 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:h-[51px]"
-          >
-            {t("claimCta")}
-          </Link>
-        ) : null}
+        <Link
+          href={claimHref}
+          className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring mt-2 inline-flex h-[47px] w-fit items-center justify-center rounded-full px-10 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:h-[51px]"
+        >
+          {t("claimCta")}
+        </Link>
       </div>
     </li>
   );

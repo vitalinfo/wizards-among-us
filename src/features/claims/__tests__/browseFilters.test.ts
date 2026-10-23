@@ -19,7 +19,6 @@ describe("parseBrowseQuery", () => {
   it("defaults to everything, page 1", () => {
     expect(empty).toEqual({
       region: null,
-      availability: "all",
       age: null,
       page: 1,
     });
@@ -29,13 +28,11 @@ describe("parseBrowseQuery", () => {
     expect(
       parseBrowseQuery({
         region: "lviv",
-        availability: "available",
         age: "5-8",
         page: "3",
       }),
     ).toEqual({
       region: "lviv",
-      availability: "available",
       age: "5-8",
       page: 3,
     });
@@ -46,13 +43,11 @@ describe("parseBrowseQuery", () => {
   it("ignores anything it doesn't recognise", () => {
     const q = parseBrowseQuery({
       region: "atlantis",
-      availability: "maybe",
       age: "7-9",
       page: "0",
     });
     expect(q).toEqual({
       region: null,
-      availability: "all",
       age: null,
       page: 1,
     });
@@ -99,7 +94,6 @@ describe("browseHref", () => {
   it("round-trips a full query", () => {
     const q = parseBrowseQuery({
       region: "kyiv",
-      availability: "claimed",
       age: "9-12",
       page: "2",
     });

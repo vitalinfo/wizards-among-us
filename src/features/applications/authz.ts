@@ -188,8 +188,9 @@ export function canViewApplicationFile(
   claim: Pick<Claim, "volunteerId" | "releasedAt"> | null | undefined,
   kind: FileKind,
   ctx: {
-    // The application is approved or claimed AND its campaign is the active
-    // one — i.e. it is a card a volunteer could be looking at right now.
+    // The application is APPROVED and its campaign is the active one — i.e. it
+    // is a card a volunteer could be looking at right now. Claimed children are
+    // not on any card, so they are not browsable either.
     browsable: boolean;
   } = { browsable: false },
 ): boolean {

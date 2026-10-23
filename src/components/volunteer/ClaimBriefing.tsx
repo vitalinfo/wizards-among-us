@@ -55,6 +55,11 @@ export async function ClaimBriefing({
         <h1 className="font-display text-center text-[40px] leading-10 font-bold tracking-[-0.03em] lg:text-[64px] lg:leading-[64px]">
           {t.rich("title", {
             em: (chunks) => <span className="text-primary">{chunks}</span>,
+            // A TYPED break: «Чарівником» is on its own line in the design and
+            // no measure reproduces that — the line above it is shorter than
+            // the one below would be. Paired tags, because next-intl requires
+            // them.
+            br: () => <br />,
           })}
         </h1>
         <p className="mt-4 text-center text-base tracking-[-0.03em] lg:text-lg">

@@ -241,9 +241,12 @@ export async function getApplicationForFileAccess(
     return null;
   }
   const application = row.application;
+  // `approved` only, exactly like the browse list: once a child is claimed they
+  // are on nobody's card, so no volunteer has a reason to read their letter
+  // through this route. The one who HOLDS them still can — that comes from the
+  // active claim, not from this flag.
   const browsable =
-    row.campaignStatus === "active" &&
-    (application.status === "approved" || application.status === "claimed");
+    row.campaignStatus === "active" && application.status === "approved";
   const [claim] = await db
     .select({ volunteerId: claims.volunteerId, releasedAt: claims.releasedAt })
     .from(claims)

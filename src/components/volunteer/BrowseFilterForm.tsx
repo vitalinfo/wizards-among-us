@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
-import { CloseIcon, FiltersIcon } from "@/components/icons";
+import { ChevronRightIcon, CloseIcon, FiltersIcon } from "@/components/icons";
 import { AGE_BANDS, type BrowseQuery } from "@/features/claims/browseFilters";
 import { displacedFromRegionOptions } from "@/lib/regionOptions";
 import { cn } from "@/lib/utils";
@@ -33,11 +33,12 @@ export async function BrowseFilterForm({
   const regions = displacedFromRegionOptions(tRegions);
   const action = `/account/volunteer/children#${anchor}`;
 
-  // The native arrow, not appearance-none: the design draws a chevron on the
-  // right of each picker, and the platform's own is the one that matches what
-  // the operating system does when the list opens.
+  // appearance-none plus our own chevron. The platform's arrow sits in a
+  // different place, at a different size, on every OS — on macOS it lands well
+  // inside the field and reads as a stray mark next to the label — and the
+  // design draws one small chevron 16px from the right edge.
   const select =
-    "border-border bg-surface text-foreground focus-visible:outline-ring h-12 w-full rounded-lg border px-4 text-sm tracking-[-0.06em] focus-visible:outline-2 focus-visible:outline-offset-2";
+    "border-border bg-surface text-foreground focus-visible:outline-ring h-12 w-full appearance-none rounded-lg border pr-11 pl-4 text-sm tracking-[-0.06em] focus-visible:outline-2 focus-visible:outline-offset-2";
   const apply =
     "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex h-12 items-center justify-center rounded-lg px-8 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
 
@@ -46,7 +47,7 @@ export async function BrowseFilterForm({
   // because two copies of the same input name in one form would submit both.
   const fields = (
     <>
-      <div className="w-full lg:w-[386px]">
+      <div className="relative w-full lg:w-[386px]">
         <label htmlFor="region" className="sr-only">
           {t("region")}
         </label>
@@ -63,9 +64,10 @@ export async function BrowseFilterForm({
             </option>
           ))}
         </select>
+        <Chevron />
       </div>
 
-      <div className="w-full lg:w-[172px]">
+      <div className="relative w-full lg:w-[172px]">
         <label htmlFor="age" className="sr-only">
           {t("age")}
         </label>
@@ -82,6 +84,7 @@ export async function BrowseFilterForm({
             </option>
           ))}
         </select>
+        <Chevron />
       </div>
     </>
   );
@@ -138,5 +141,17 @@ export async function BrowseFilterForm({
         </div>
       </details>
     </>
+  );
+}
+
+// The picker's own chevron, 16px from the right edge as drawn. pointer-events
+// off, so clicking it still opens the select underneath; aria-hidden, because
+// the select already announces itself as a combobox.
+function Chevron() {
+  return (
+    <ChevronRightIcon
+      aria-hidden="true"
+      className="text-muted-foreground pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 rotate-90"
+    />
   );
 }

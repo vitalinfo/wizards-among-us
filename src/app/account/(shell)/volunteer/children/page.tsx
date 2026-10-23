@@ -30,7 +30,6 @@ export default async function BrowseChildrenPage({
 }: {
   searchParams: Promise<{
     region?: string;
-    availability?: string;
     age?: string;
     page?: string;
   }>;
@@ -67,7 +66,6 @@ export default async function BrowseChildrenPage({
     region: query.region ?? undefined,
     minAge: band?.min,
     maxAge: band?.max,
-    availability: query.availability === "all" ? undefined : query.availability,
   };
 
   const total = await countBrowsable(filters);
@@ -114,7 +112,7 @@ export default async function BrowseChildrenPage({
               <ChildCard
                 key={row.id}
                 row={row}
-                claimHref={row.claimed ? null : claimHref(query, page, row.id)}
+                claimHref={claimHref(query, page, row.id)}
               />
             ))}
           </ul>

@@ -25,7 +25,6 @@ const card = messages.volunteer.children.card;
 // fixture goes through the same gate the application does.
 function row({
   letterPhotoId = "file-1",
-  claimed = false,
   ...overrides
 }: Record<string, unknown> = {}) {
   const card = toBrowseCard(
@@ -46,12 +45,12 @@ function row({
     } as Parameters<typeof toBrowseCard>[0],
     letterPhotoId as string | null,
   );
-  return { ...card, claimed: claimed as boolean };
+  return card;
 }
 
 async function renderCard(
   overrides: Record<string, unknown> = {},
-  claimHref: string | null = "/account/volunteer/children/a1/claim",
+  claimHref = "/account/volunteer/children/a1/claim",
 ) {
   const ui = await ChildCard({ row: row(overrides), claimHref });
   return render(
@@ -73,22 +72,15 @@ describe("ChildCard", () => {
     expect(screen.queryByText(/Коваль/)).not.toBeInTheDocument();
   });
 
-  // The gender is drawn as an icon and appears nowhere else on the card, so
-  // without an accessible name a screen reader loses it entirely — the same
-  // rule that keeps the claimed/available state as text.
-  it("names the child's icon rather than leaving a bare pictograph", async () => {
+  // The card draws «Олена» and nothing beside it. An icon here was mine, not
+  // the design's — `childGender` stays in the projection for the screen that
+  // does draw one, but this card must not invent a place for it.
+  it("draws the name alone, with no gender icon", async () => {
     await renderCard();
 
-    expect(screen.getByRole("img", { name: genders.girl })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("img", { name: genders.boy }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("draws the boy icon for a boy", async () => {
-    await renderCard({ childGender: "boy" });
-
-    expect(screen.getByRole("img", { name: genders.boy })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: genders.girl })).toBeNull();
+    expect(screen.queryByText("👧")).toBeNull();
+    expect(screen.queryByText("👦")).toBeNull();
   });
 
   // Applications submitted before the column existed have no gender. The card
@@ -164,12 +156,18 @@ describe("ChildCard letter photo and shop links", () => {
     expect(container.textContent).toContain("Донецьк");
   });
 
-  it("says in words when a child already has a charivnyk", async () => {
-    await renderCard({ claimed: true }, null);
+  // Every child in this list is one nobody holds (`approved` only), so the
+  // card has no taken state and no conditional button — the list is what you
+  // can still take.
+  it("always offers the claim action", async () => {
+    await renderCard();
 
-    expect(screen.getByText(t.claimed)).toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: t.claimCta }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: t.claimCta })).toBeInTheDocument();
+  });
+
+  it("shows the oblast with the town the family left", async () => {
+    await renderCard();
+
+    expect(screen.getByText("Донецьк, Донецька область")).toBeInTheDocument();
   });
 });

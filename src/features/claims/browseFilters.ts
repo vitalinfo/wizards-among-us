@@ -10,8 +10,6 @@ export const BROWSE_PAGE_SIZE = 24;
 // The results list, so filter/pager navigation returns to it.
 export const BROWSE_ANCHOR = "children";
 
-export type Availability = "all" | "available" | "claimed";
-
 // Age is picked as a BAND, not two free-text numbers: a volunteer thinks "a
 // child in primary school", not "between 5 and 8", and two inputs invite an
 // empty result set from a range nobody meant.
@@ -37,7 +35,6 @@ export type BrowseQuery = {
   // The region the family LEFT (applications.home_region), not where they are
   // now — volunteers look for families from a place they have a tie to.
   region: UkraineRegion | null;
-  availability: Availability;
   age: AgeBandKey | null;
   page: number;
 };
@@ -58,17 +55,12 @@ function parseAgeBand(value: string | undefined): AgeBandKey | null {
 
 export function parseBrowseQuery(params: {
   region?: string;
-  availability?: string;
   age?: string;
   page?: string;
 }): BrowseQuery {
   const page = Number(params.page);
   return {
     region: parseRegion(params.region),
-    availability:
-      params.availability === "available" || params.availability === "claimed"
-        ? params.availability
-        : "all",
     age: parseAgeBand(params.age),
     page: Number.isInteger(page) && page >= 1 ? page : 1,
   };
@@ -80,9 +72,6 @@ function browseParams(query: BrowseQuery, page: number): URLSearchParams {
   const params = new URLSearchParams();
   if (query.region) {
     params.set("region", query.region);
-  }
-  if (query.availability !== "all") {
-    params.set("availability", query.availability);
   }
   if (query.age !== null) {
     params.set("age", query.age);
