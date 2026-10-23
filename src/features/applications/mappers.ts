@@ -25,6 +25,17 @@ export type BrowseCard = {
   id: Application["id"];
   childFirstName: string | null;
   childAge: Application["childAge"];
+  // On the card because it draws the child's icon (Vital). It discloses no
+  // more than the first name beside it already does — Ukrainian given names
+  // are gendered almost without exception — which is the reason this one could
+  // join tier 1 without the argument `current_town` needed.
+  //
+  // It is the one tier-1 field the public statements do NOT enumerate: policy
+  // §2.2 / §4.3 and the «Чи побачать волонтери адресу моєї дитини?» FAQ answer
+  // were deliberately left as they are (Vital, 2026-10-23), so those lists are
+  // now shorter than this projection. policyTiers.test.ts carries the
+  // exemption explicitly; every OTHER field still has to appear in §4.3.
+  childGender: Application["childGender"];
   // Where the family came FROM — both parts. A child's origin is not where
   // they can be found, so it carries far less risk than the destination.
   homeRegion: Application["homeRegion"];
@@ -49,6 +60,7 @@ export function toBrowseCard(application: Application): BrowseCard {
     id: application.id,
     childFirstName: firstName(application.childName),
     childAge: application.childAge,
+    childGender: application.childGender,
     homeRegion: application.homeRegion,
     homeTown: application.homeTown,
     currentRegion: application.currentRegion,

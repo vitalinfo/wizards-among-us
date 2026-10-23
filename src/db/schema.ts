@@ -19,6 +19,7 @@ import {
   APPLICATION_STATUSES,
   CAMPAIGN_STATUSES,
   CAMPAIGN_TYPES,
+  CHILD_GENDERS,
   FAQ_STATUSES,
   FILE_KINDS,
   IDENTITY_PROVIDERS,
@@ -107,6 +108,8 @@ export const applications = pgTable(
     parentName: text("parent_name"), // [sensitive] claiming volunteer only
     childName: text("child_name"),
     childAge: integer("child_age"),
+    // On the browse card (tier 1), where it draws the child's icon.
+    childGender: text("child_gender", { enum: CHILD_GENDERS }),
     homeTown: text("home_town"),
     homeRegion: text("home_region", { enum: UKRAINE_REGIONS }),
     currentTown: text("current_town"), // [sensitive] revealed only to the claiming volunteer
@@ -141,6 +144,10 @@ export const applications = pgTable(
   },
   (t) => [
     check("applications_status_valid", oneOf("status", APPLICATION_STATUSES)),
+    check(
+      "applications_child_gender_valid",
+      oneOfNullable("child_gender", CHILD_GENDERS),
+    ),
     check(
       "applications_home_region_valid",
       oneOfNullable("home_region", UKRAINE_REGIONS),

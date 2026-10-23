@@ -71,6 +71,13 @@
       "when": 1788957276359,
       "tag": "0009_workable_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792767119126,
+      "tag": "0010_powerful_elektra",
+      "breakpoints": true
     }
   ]
 }

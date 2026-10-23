@@ -157,6 +157,7 @@ export async function updateApplicationByAdmin(
     parentName?: string;
     childName?: string;
     childAge?: number;
+    childGender?: Application["childGender"];
     homeTown?: string;
     homeRegion?: Application["homeRegion"];
     currentTown?: string;
@@ -176,6 +177,7 @@ export async function updateApplicationByAdmin(
       parentName: values.parentName ?? null,
       childName: values.childName ?? null,
       childAge: values.childAge ?? null,
+      childGender: values.childGender ?? null,
       homeTown: values.homeTown ?? null,
       homeRegion: values.homeRegion ?? null,
       currentTown: values.currentTown ?? null,

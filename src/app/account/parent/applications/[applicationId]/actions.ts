@@ -250,6 +250,7 @@ export async function submitApplicationAction(
     parentName: fresh.parentName,
     childName: fresh.childName,
     childAge: fresh.childAge,
+    childGender: fresh.childGender,
     homeTown: fresh.homeTown,
     homeRegion: fresh.homeRegion,
     currentTown: fresh.currentTown,

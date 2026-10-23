@@ -86,6 +86,7 @@ export async function updateApplicationAction(
     requireComplete: application.status !== "draft",
     campaignType,
     giftPriceCap,
+    hasChildGender: application.childGender !== null,
     currentGiftPrice: application.giftPrice,
   }).safeParse(Object.fromEntries(formData));
 

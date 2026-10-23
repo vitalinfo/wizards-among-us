@@ -31,6 +31,7 @@ const SAINT_NICHOLAS_STEPS: readonly FormStep[] = [
     fields: [
       "childName",
       "childAge",
+      "childGender",
       "homeTown",
       "homeRegion",
       "currentTown",

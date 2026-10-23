@@ -12,6 +12,7 @@ import type { applications } from "@/db/schema";
 import { initialAdminEditState } from "@/features/applications/adminEditState";
 import {
   childAgeOptions,
+  childGenderOptions,
   displacedYearOptions,
 } from "@/lib/applicationFieldOptions";
 import { regionOptions } from "@/lib/regionOptions";
@@ -35,6 +36,7 @@ export function AdminApplicationForm({
   const tForm = useTranslations("parent.form");
   const tErrors = useTranslations("admin.applications.editErrors");
   const tRegions = useTranslations("regions");
+  const tGender = useTranslations("genders");
 
   const [state, formAction, pending] = useActionState(
     updateApplicationAction.bind(null, application.id),
@@ -44,6 +46,7 @@ export function AdminApplicationForm({
   // Sorted by Ukrainian label — the enum's slug order is Latin.
   const regions = regionOptions(tRegions);
   const ages = childAgeOptions();
+  const genders = childGenderOptions(tGender);
   const years = displacedYearOptions();
 
   // A message for a field, if the last submit rejected it.
@@ -86,6 +89,15 @@ export function AdminApplicationForm({
           options={ages}
           defaultValue={application.childAge ?? ""}
           error={err("childAge")}
+        />
+        <SelectField
+          id="childGender"
+          name="childGender"
+          label={t("fields.childGender")}
+          placeholder={tForm("genderPlaceholder")}
+          options={genders}
+          defaultValue={application.childGender ?? ""}
+          error={err("childGender")}
         />
         <TextField
           id="homeTown"

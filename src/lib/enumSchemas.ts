@@ -4,6 +4,7 @@ import {
   APPLICATION_STATUSES,
   CAMPAIGN_STATUSES,
   CAMPAIGN_TYPES,
+  CHILD_GENDERS,
   CONTACT_METHODS,
   CREATABLE_CAMPAIGN_TYPES,
   DISPLACED_FROM_REGIONS,
@@ -25,6 +26,7 @@ export const campaignTypeSchema = z.enum(CAMPAIGN_TYPES);
 export const creatableCampaignTypeSchema = z.enum(CREATABLE_CAMPAIGN_TYPES);
 export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
 export const applicationStatusSchema = z.enum(APPLICATION_STATUSES);
+export const childGenderSchema = z.enum(CHILD_GENDERS);
 export const faqStatusSchema = z.enum(FAQ_STATUSES);
 export const fileKindSchema = z.enum(FILE_KINDS);
 export const regionSchema = z.enum(UKRAINE_REGIONS);

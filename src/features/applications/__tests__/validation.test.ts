@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   childAgeOptions,
+  childGenderOptions,
   displacedYearOptions,
 } from "@/lib/applicationFieldOptions";
 
@@ -18,6 +19,7 @@ const validSubmit = {
   parentName: "Ivan",
   childName: "Olha",
   childAge: 8,
+  childGender: "girl",
   homeTown: "Bakhmut",
   homeRegion: "donetsk",
   currentTown: "Lviv",
@@ -70,6 +72,45 @@ describe("applicationSubmitSchema", () => {
       applicationSubmitSchema.safeParse({ ...validSubmit, childAge: 17 })
         .success,
     ).toBe(true);
+  });
+
+  // Required at submit, and only the two values the picker offers. The browse
+  // card draws an icon from it, so "unanswered" is not a state the card has.
+  it("requires the child's gender, from the two values the picker offers", () => {
+    const withoutGender: Record<string, unknown> = { ...validSubmit };
+    delete withoutGender.childGender;
+    expect(applicationSubmitSchema.safeParse(withoutGender).success).toBe(
+      false,
+    );
+    expect(
+      applicationSubmitSchema.safeParse({
+        ...validSubmit,
+        childGender: "other",
+      }).success,
+    ).toBe(false);
+    expect(
+      applicationSubmitSchema.safeParse({ ...validSubmit, childGender: "" })
+        .success,
+    ).toBe(false);
+    for (const { value } of childGenderOptions((key) => key)) {
+      expect(
+        applicationSubmitSchema.safeParse({
+          ...validSubmit,
+          childGender: value,
+        }).success,
+        `gender ${value}`,
+      ).toBe(true);
+    }
+  });
+
+  // A draft may not have answered yet, but a wrong answer is still refused —
+  // the same rule the age follows.
+  it("leaves the gender unsaved when a draft step sends it empty", () => {
+    const parsed = applicationDraftFormSchema.parse({ childGender: "" });
+    expect(parsed.childGender).toBeUndefined();
+    expect(
+      applicationDraftFormSchema.safeParse({ childGender: "other" }).success,
+    ).toBe(false);
   });
 
   it("rejects a displaced year outside 2014–current year", () => {
