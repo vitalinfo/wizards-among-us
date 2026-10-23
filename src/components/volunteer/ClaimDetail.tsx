@@ -176,7 +176,7 @@ export async function ClaimDetail({
                 value={
                   application.giftPrice === null
                     ? null
-                    : tCard("price", { price: Number(application.giftPrice) })
+                    : t("price", { price: Number(application.giftPrice) })
                 }
               />
             </Section>

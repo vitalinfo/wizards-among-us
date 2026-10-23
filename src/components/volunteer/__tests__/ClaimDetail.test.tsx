@@ -73,6 +73,12 @@ describe("ClaimDetail", () => {
     expect(
       screen.getByRole("heading", { name: "Настенко Олена Іванівна" }),
     ).toBeInTheDocument();
+    // The VALUE, not just the label. Asserting labels only is how a missing
+    // `price` key rendered «volunteer.children.card.price» on the page and this
+    // spec still passed.
+    expect(
+      screen.getByText(t.price.replace("{price}", "540")),
+    ).toBeInTheDocument();
   });
 
   it("labels every line, so a value is never a bare string", async () => {
