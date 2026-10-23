@@ -39,6 +39,16 @@ const [, preClaim = "", postClaimStage = ""] = access.split(
   /<p>До вибору дитини чарівники можуть бачити в анкеті:<\/p>|<p>На цьому етапі чарівники не бачать:<\/p>/,
 );
 
+// Fields the card carries that §4.3 deliberately does NOT enumerate.
+//
+// `childGender` is here by Vital's call (2026-10-23): the gender goes on the
+// card, for the child icon, and the document stays as it is. I argued the other
+// way — §4.3 is a LIST, so one shorter than the card means a parent reading it
+// does not learn the gender is visible — and was overruled. Recorded as a
+// decision so it does not read as an oversight, and kept out of DESCRIBED so
+// the guard below still fails for the NEXT field somebody adds.
+const UNDOCUMENTED = new Set(["childGender"]);
+
 // Which sentence in §4.3 accounts for each field the card carries. `id` and
 // `status` are not personal data — one is a row id, the other is whether the
 // child is still waiting — so the document does not describe them.
@@ -47,7 +57,6 @@ const DESCRIBED: Record<string, string | null> = {
   status: null,
   childFirstName: "ім’я дитини без прізвища",
   childAge: "вік дитини",
-  childGender: "стать дитини",
   homeRegion: "родина була змушена залишити через війну",
   homeTown: "родина була змушена залишити через війну",
   currentRegion: "у якому родина проживає зараз",
@@ -60,7 +69,9 @@ const DESCRIBED: Record<string, string | null> = {
 describe("the policy's pre-claim list and the browse card", () => {
   it("describes every field the browse card carries", () => {
     const undescribed = Object.keys(card).filter(
-      (key) => !(key in DESCRIBED) || DESCRIBED[key] === undefined,
+      (key) =>
+        !UNDOCUMENTED.has(key) &&
+        (!(key in DESCRIBED) || DESCRIBED[key] === undefined),
     );
     expect(undescribed, "fields the policy does not account for").toEqual([]);
 

@@ -28,10 +28,13 @@ export type BrowseCard = {
   // On the card because it draws the child's icon (Vital). It discloses no
   // more than the first name beside it already does — Ukrainian given names
   // are gendered almost without exception — which is the reason this one could
-  // join tier 1 without the argument `current_town` needed. Stated publicly in
-  // §2.2 and §4.3 of the policy and in the «Чи побачать волонтери адресу моєї
-  // дитини?» FAQ answer; policyTiers.test.ts holds the first of those to this
-  // projection.
+  // join tier 1 without the argument `current_town` needed.
+  //
+  // It is the one tier-1 field the public statements do NOT enumerate: policy
+  // §2.2 / §4.3 and the «Чи побачать волонтери адресу моєї дитини?» FAQ answer
+  // were deliberately left as they are (Vital, 2026-10-23), so those lists are
+  // now shorter than this projection. policyTiers.test.ts carries the
+  // exemption explicitly; every OTHER field still has to appear in §4.3.
   childGender: Application["childGender"];
   // Where the family came FROM — both parts. A child's origin is not where
   // they can be found, so it carries far less risk than the destination.
