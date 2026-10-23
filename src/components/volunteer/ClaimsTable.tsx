@@ -12,6 +12,12 @@ import { cn } from "@/lib/utils";
 // data is: four columns with headers, so a screen reader announces «Заявка,
 // Софійка» rather than four unlabelled cells.
 //
+// No «Зв'язатися» link. Both frames draw one beside the eye on rows whose help
+// is still in progress (130:2705, 130:3237) — Vital's call is that the eye is
+// enough, and it is also the safer half: a contact link on the LIST would put
+// the family's handle back into a page that deliberately carries none of it,
+// href included. The contact lives on the child's card, one click away.
+//
 // Below lg it is NOT a squeezed table — the design draws separate cards, with
 // the status on top, no avatar, and the details link at the foot. Two markups
 // rather than one responsive one: a four-column table at 328px is unreadable
