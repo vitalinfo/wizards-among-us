@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { SignOutButton } from "@/components/site/SignOutButton";
 import { recordAuditLog } from "@/features/audit/log";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
 import { ClaimCard } from "@/components/volunteer/ClaimCard";
@@ -72,7 +73,12 @@ export default async function MyClaimsPage() {
         >
           {tBack("backToChildren")}
         </Link>
-        <h1 className="mt-4 text-3xl font-semibold">{t("title")}</h1>
+        {/* See the note on /parent/applications — the header's one button
+            leads here, and signing out comes with it. */}
+        <div className="mt-4 flex items-start justify-between gap-4">
+          <h1 className="text-3xl font-semibold">{t("title")}</h1>
+          <SignOutButton />
+        </div>
 
         {rows.length === 0 ? (
           <p className="text-muted-foreground mt-4">{t("empty")}</p>

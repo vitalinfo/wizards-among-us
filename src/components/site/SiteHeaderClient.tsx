@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
-import { logout } from "@/app/auth/actions";
 import { CloseIcon, MenuIcon, UserIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
 import { SITE_NAV } from "@/components/site/nav";
@@ -12,49 +11,39 @@ import { SocialLinks } from "@/components/site/SocialLinks";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-const PILL =
-  "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
-
 const ROUND =
   "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex size-8 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:size-[60px]";
 
 export function SiteHeaderClient({
-  user,
-  isAdmin = false,
+  account,
 }: {
-  // The current Telegram user (for display), or null when signed out. Resolved
-  // server-side by SiteHeader (the server entry that wraps this island).
-  user: { username: string | null; firstName: string | null } | null;
-  // An admin holds a session but is NOT a user, so `user` is null for them.
-  // Showing them «Увійти» is a lie that leads somewhere confusing — they are
-  // signed in, just not to this side of the app — so point at their own panel.
-  isAdmin?: boolean;
+  // Where the round button goes, or null when nobody is signed in. Resolved
+  // server-side by SiteHeader; see features/users/account.ts for the three
+  // destinations and why BOTH roles resolve to the parent side.
+  account: { href: string; labelKey: "adminPanel" | "account" } | null;
 }) {
   const t = useTranslations("common");
 
-  const account = user ? (
-    <div className="flex items-center gap-3">
-      <span className="hidden text-base font-medium sm:inline">
-        {/* A Telegram @username is optional; fall back to the first name so the
-            signed-in state always names *someone*, and only then to a generic
-            label. */}
-        {user.username ? `@${user.username}` : (user.firstName ?? t("account"))}
-      </span>
-      <form action={logout}>
-        <button type="submit" className={PILL}>
-          {t("signOut")}
-        </button>
-      </form>
-    </div>
-  ) : isAdmin ? (
-    <Link href="/admin" className={PILL}>
-      {t("adminPanel")}
-    </Link>
-  ) : (
-    // ONE control, not a mobile copy and a desktop copy hidden from each other
-    // by media query: two links with the same accessible name are a duplicate
-    // in the a11y tree and a needless second tab stop.
-    <Link href="/login" aria-label={t("login")} className={ROUND}>
+  // The SAME round button in every state — the design draws one control and no
+  // name beside it, signed in or out. Only where it goes changes, and that is
+  // the button's accessible name: «Увійти», «Профіль» or «Панель
+  // адміністратора». Nothing identifies the person, which is also one less
+  // place for a @username to leak into a cached page.
+  //
+  // ONE control, not a mobile copy and a desktop copy hidden from each other by
+  // media query: two links with the same accessible name are a duplicate in the
+  // a11y tree and a needless second tab stop.
+  //
+  // Signing out used to live here, as the only control that did it anywhere.
+  // It now lives on the page this button leads to — which is where the design's
+  // account shell puts it too, top right — so removing it from the header does
+  // not strand anyone.
+  const accountButton = (
+    <Link
+      href={account?.href ?? "/login"}
+      aria-label={t(account?.labelKey ?? "login")}
+      className={ROUND}
+    >
       <UserIcon className="size-5 lg:size-6" />
     </Link>
   );
@@ -115,7 +104,7 @@ export function SiteHeaderClient({
             {t("nav.contacts")}
           </Link>
 
-          {account}
+          {accountButton}
 
           {/* The mobile menu is a <details>, so it opens with no JavaScript and
               the keyboard and screen-reader behaviour come from the element —

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { MyApplicationsList } from "@/components/parent/MyApplicationsList";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { SignOutButton } from "@/components/site/SignOutButton";
 import { Button } from "@/components/ui/Button";
 import { canStartApplication } from "@/features/applications/authz";
 import { listMyApplications } from "@/features/applications/queries";
@@ -49,7 +50,13 @@ export default async function MyApplicationsPage({
     <>
       <SiteHeader />
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8">
-        <h1 className="text-3xl font-semibold">{t("title")}</h1>
+        {/* Signing out lives here, not in the header: the header now carries
+            one round button that leads to this page, which is what the design
+            draws. */}
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-3xl font-semibold">{t("title")}</h1>
+          <SignOutButton />
+        </div>
 
         {/* A first submission starts the two-day clock; saving an edit does
             not restart it, so the two say different things. */}

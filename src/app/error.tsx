@@ -38,7 +38,7 @@ export default function Error({
           in — the account control just links to /login, which bounces a
           signed-in user straight back, so the cost is one redirect and never
           a lost session. */}
-      <SiteHeaderClient user={null} isAdmin={false} />
+      <SiteHeaderClient account={null} />
       <ErrorScreen code="500" title={t("title")} body={t("body")}>
         <CtaButton onClick={reset}>{t("retry")}</CtaButton>
         <CtaLink href="/" variant="outline">

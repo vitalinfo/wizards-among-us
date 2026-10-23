@@ -21,7 +21,7 @@ export function GlobalErrorContent({ reset }: { reset: () => void }) {
 
   return (
     <>
-      <SiteHeaderClient user={null} isAdmin={false} />
+      <SiteHeaderClient account={null} />
       <ErrorScreen code="500" title={t("title")} body={t("body")}>
         <CtaButton onClick={reset}>{t("retry")}</CtaButton>
         <CtaLink href="/" variant="outline">
