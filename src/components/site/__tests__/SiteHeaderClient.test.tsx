@@ -3,67 +3,108 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import messages from "../../../../messages/uk.json";
+import { SITE } from "@/lib/site";
 import { SiteHeaderClient } from "../SiteHeaderClient";
 
-function renderHeader(
-  user: { username: string | null; firstName: string | null } | null,
-  isAdmin = false,
-) {
+type Account = Parameters<typeof SiteHeaderClient>[0]["account"];
+
+function renderHeader(account: Account = null) {
   return render(
     <NextIntlClientProvider locale="uk" messages={messages}>
-      <SiteHeaderClient user={user} isAdmin={isAdmin} />
+      <SiteHeaderClient account={account} />
     </NextIntlClientProvider>,
   );
 }
 
-describe("SiteHeaderClient auth state", () => {
-  it("shows a sign-in link to /login when signed out", () => {
+// The design draws ONE round button in the header, signed in or out, with no
+// name beside it. Only where it goes changes — so the destination and the
+// accessible name are the whole of this component's auth behaviour, and the
+// name is the only thing a screen-reader user has to tell the states apart.
+describe("SiteHeaderClient account button", () => {
+  it("offers sign-in when nobody is signed in", () => {
     renderHeader(null);
 
-    const link = screen.getByRole("link", { name: messages.common.login });
-    expect(link).toHaveAttribute("href", "/login");
     expect(
-      screen.queryByRole("button", { name: messages.common.signOut }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("link", { name: messages.common.login }),
+    ).toHaveAttribute("href", "/login");
   });
 
-  it("shows the @username and a sign-out control when signed in", () => {
-    renderHeader({ username: "petro", firstName: "Петро" });
+  it("leads a signed-in person to their account", () => {
+    renderHeader({ href: "/parent/applications", labelKey: "account" });
 
-    expect(screen.getByText("@petro")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: messages.common.signOut }),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: messages.common.account }),
+    ).toHaveAttribute("href", "/parent/applications");
     expect(
       screen.queryByRole("link", { name: messages.common.login }),
     ).not.toBeInTheDocument();
   });
 
-  // A Telegram @username is optional, so this is a real signed-in user, not an
-  // edge case — the header must still name them.
-  it("falls back to the first name when the user has no username", () => {
-    renderHeader({ username: null, firstName: "Оксана" });
+  // An admin holds a session but is not a `user`. Offering them «Увійти» sent
+  // them to a page they were already past — and, with the parent pages' guard,
+  // into an infinite redirect loop.
+  it("leads an admin to their own panel", () => {
+    renderHeader({ href: "/admin", labelKey: "adminPanel" });
 
-    expect(screen.getByText("Оксана")).toBeInTheDocument();
-    expect(screen.queryByText(messages.common.account)).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: messages.common.signOut }),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: messages.common.adminPanel }),
+    ).toHaveAttribute("href", "/admin");
+    expect(
+      screen.queryByRole("link", { name: messages.common.login }),
+    ).not.toBeInTheDocument();
   });
 
-  it("falls back to the account label only when neither is known", () => {
-    renderHeader({ username: null, firstName: null });
+  // The button carries no visible text in any state, so a missing or stale
+  // aria-label leaves a screen-reader user with an unnamed link in the header.
+  it("names the button in every state and never shows a label", () => {
+    for (const [account, name] of [
+      [null, messages.common.login],
+      [
+        { href: "/parent/applications", labelKey: "account" } as const,
+        messages.common.account,
+      ],
+      [
+        { href: "/admin", labelKey: "adminPanel" } as const,
+        messages.common.adminPanel,
+      ],
+    ] as const) {
+      const { unmount } = renderHeader(account);
+      expect(screen.getByRole("link", { name })).toBeInTheDocument();
+      expect(screen.queryByText(name)).not.toBeInTheDocument();
+      unmount();
+    }
+  });
 
-    expect(screen.getByText(messages.common.account)).toBeInTheDocument();
+  // It was the only control that signed anyone out anywhere; it now lives on
+  // the page the button leads to. A regression here would put a dead or
+  // duplicated control back in the header.
+  it("no longer signs anyone out", () => {
+    renderHeader({ href: "/parent/applications", labelKey: "account" });
+
     expect(
-      screen.getByRole("button", { name: messages.common.signOut }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: messages.common.signOut }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Nothing about the person reaches the browser any more: the server hands
+  // this island a destination and nothing else, and the props enforce it. This
+  // guards the rendering rather than the type — the header used to print
+  // «@username», and the only «@» left in it should be the project's own
+  // address in the mobile menu.
+  it("prints no handle belonging to anyone", () => {
+    const { container } = renderHeader({
+      href: "/volunteer/claims",
+      labelKey: "account",
+    });
+
+    const ats = [...container.querySelectorAll("*")]
+      .filter((el) => el.children.length === 0)
+      .map((el) => el.textContent ?? "")
+      .filter((text) => text.includes("@"));
+    expect(ats).toEqual([SITE.email]);
   });
 });
 
-// An admin holds a session but is not a `user`, so `user` is null for them.
-// Showing «Увійти» sent them to a page they were already past — and, with the
-// parent pages' guard, into an infinite redirect loop.
 // «Контакти» used to be an anchor to the footer. It is a page now, and the
 // header is the only route to it — it is deliberately not in SITE_NAV.
 describe("SiteHeaderClient contacts link", () => {
@@ -77,29 +118,5 @@ describe("SiteHeaderClient contacts link", () => {
     for (const link of links) {
       expect(link).toHaveAttribute("href", "/contacts");
     }
-  });
-});
-
-describe("SiteHeaderClient for an admin", () => {
-  it("links to the admin panel instead of offering sign-in", () => {
-    renderHeader(null, true);
-
-    expect(
-      screen.getByRole("link", { name: messages.common.adminPanel }),
-    ).toHaveAttribute("href", "/admin");
-    expect(
-      screen.queryByRole("link", { name: messages.common.login }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("still offers sign-in to an anonymous visitor", () => {
-    renderHeader(null, false);
-
-    expect(
-      screen.getByRole("link", { name: messages.common.login }),
-    ).toHaveAttribute("href", "/login");
-    expect(
-      screen.queryByRole("link", { name: messages.common.adminPanel }),
-    ).not.toBeInTheDocument();
   });
 });

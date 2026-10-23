@@ -76,12 +76,17 @@ describe("accessibility smoke checks", () => {
   });
 
   it("the header has no violations, signed in and out", async () => {
-    const out = renderWithIntl(<SiteHeaderClient user={null} />);
+    const out = renderWithIntl(<SiteHeaderClient account={null} />);
     expect(await axe(out.container)).toHaveNoViolations();
     out.unmount();
 
+    // The signed-in header is the same round button with a different name and
+    // destination, and the name is all a screen-reader user gets — so it is
+    // worth sweeping both states rather than assuming one covers the other.
     const inn = renderWithIntl(
-      <SiteHeaderClient user={{ username: "petro", firstName: "Петро" }} />,
+      <SiteHeaderClient
+        account={{ href: "/parent/applications", labelKey: "account" }}
+      />,
     );
     expect(await axe(inn.container)).toHaveNoViolations();
   });
