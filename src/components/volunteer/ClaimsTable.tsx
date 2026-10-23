@@ -92,25 +92,29 @@ export async function ClaimsTable({ rows }: { rows: readonly MyClaimRow[] }) {
         {rows.map((row) => (
           <li
             key={row.applicationId}
-            // items-start, or the status pill stretches to the card's width:
-            // an inline-flex child of a flex column still gets stretched by the
-            // default align-items.
-            className="border-divider bg-surface flex flex-col items-start gap-3 rounded-2xl border p-5"
+            className="border-divider bg-surface flex items-center justify-between gap-4 rounded-2xl border p-5"
           >
-            <ClaimStatusBadge state={state(row)} />
-            <p className="text-lg font-semibold">{name(row)}</p>
-            {row.childAge !== null ? (
-              <p className="text-muted-foreground text-sm">
-                {tCard("age", { age: row.childAge })}
+            {/* items-start inside the column, or the status pill stretches to
+                its width: an inline-flex child of a flex column is stretched by
+                the default align-items. */}
+            <div className="flex min-w-0 flex-col items-start gap-3">
+              <ClaimStatusBadge state={state(row)} />
+              <p className="text-lg font-semibold">{name(row)}</p>
+              {row.childAge !== null ? (
+                <p className="text-muted-foreground text-sm">
+                  {tCard("age", { age: row.childAge })}
+                </p>
+              ) : null}
+              <p className="text-sm">
+                <span className="text-muted-foreground">
+                  {t("columns.initiative")}:{" "}
+                </span>
+                {row.campaignTitle}
               </p>
-            ) : null}
-            <p className="text-sm">
-              <span className="text-muted-foreground">
-                {t("columns.initiative")}:{" "}
-              </span>
-              {row.campaignTitle}
-            </p>
-            <div className="flex items-center gap-3">{details(row)}</div>
+            </div>
+            {/* On the right of the card and centred against the whole of it
+                (Vital), rather than sitting under the text. */}
+            {details(row)}
           </li>
         ))}
       </ul>
