@@ -71,14 +71,14 @@ export function MyApplicationsList({
                   arrived — the loop stays open until the parent says so. */}
               {application.status === "claimed" ? (
                 <Link
-                  href={`/parent/applications/${application.id}/confirm`}
+                  href={`/account/parent/applications/${application.id}/confirm`}
                   className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring rounded-md px-3 py-1.5 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
                 >
                   {t("confirmCta")}
                 </Link>
               ) : null}
               <Link
-                href={`/parent/applications/${application.id}`}
+                href={`/account/parent/applications/${application.id}`}
                 className="text-primary focus-visible:outline-ring text-sm font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 {t(cta)}

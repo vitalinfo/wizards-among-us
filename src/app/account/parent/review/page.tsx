@@ -21,7 +21,7 @@ export default async function LeaveReviewPage({
 }) {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect(signedOutRedirect(actor, "/parent/review"));
+    redirect(signedOutRedirect(actor, "/account/parent/review"));
   }
 
   const { application: applicationId } = await searchParams;
@@ -52,7 +52,7 @@ export default async function LeaveReviewPage({
               {t(`errors.${blocked}`)}
             </p>
             <Link
-              href="/parent/applications"
+              href="/account/parent/applications"
               className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
             >
               {tBack("backToApplications")}

@@ -28,7 +28,7 @@ export default async function MyApplicationsPage({
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     // Carry the destination so signing in returns here, not to the home page.
-    redirect(signedOutRedirect(actor, "/parent/applications"));
+    redirect(signedOutRedirect(actor, "/account/parent/applications"));
   }
 
   const query = await searchParams;

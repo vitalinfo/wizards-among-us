@@ -23,7 +23,7 @@ function hero(extra?: Partial<Parameters<typeof PageHero>[0]>) {
     <PageHero
       title="Як це працює для батьків"
       lead={t.lead}
-      cta={<Link href="/parent/applications">{t.heroCta}</Link>}
+      cta={<Link href="/account/parent/applications">{t.heroCta}</Link>}
       {...extra}
     />,
   );
@@ -45,7 +45,7 @@ describe("PageHero", () => {
     hero();
     expect(screen.getByRole("link", { name: t.heroCta })).toHaveAttribute(
       "href",
-      "/parent/applications",
+      "/account/parent/applications",
     );
   });
 

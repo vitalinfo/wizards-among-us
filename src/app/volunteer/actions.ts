@@ -37,7 +37,8 @@ export async function becomeVolunteerAction(formData: FormData): Promise<void> {
   });
   revalidatePath("/volunteer");
   redirect(
-    safeReturnPath(String(formData.get("next") ?? "")) || "/volunteer/children",
+    safeReturnPath(String(formData.get("next") ?? "")) ||
+      "/account/volunteer/children",
   );
 }
 
@@ -50,7 +51,7 @@ export async function saveVolunteerPhoneAction(
 ): Promise<VolunteerActionState> {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect("/login?next=%2Fvolunteer%2Fcontact");
+    redirect("/login?next=%2Faccount%2Fvolunteer%2Fcontact");
   }
 
   const parsed = userPhoneSchema.safeParse(formData.get("phone"));
@@ -58,7 +59,7 @@ export async function saveVolunteerPhoneAction(
     return { status: "invalid" };
   }
   await setUserPhone(actor.id, parsed.data);
-  revalidatePath("/volunteer/children");
+  revalidatePath("/account/volunteer/children");
   redirect(safeReturnPath(String(formData.get("next") ?? "")));
 }
 
@@ -85,7 +86,7 @@ export async function claimAction(
 
   const context = await getApplicationForFileAccess(applicationId);
   if (!context) {
-    redirect("/volunteer/children");
+    redirect("/account/volunteer/children");
   }
 
   const contact = await getUserContact(actor.id);
@@ -98,7 +99,7 @@ export async function claimAction(
   if (blocked === "no_contact") {
     // Send them to add one rather than refusing — the whole point is that the
     // family must be able to reach them.
-    redirect(`/volunteer/contact?next=${encodeURIComponent(returnTo)}`);
+    redirect(`/account/volunteer/contact?next=${encodeURIComponent(returnTo)}`);
   }
   if (blocked) {
     redirect(safeReturnPath(returnTo));
@@ -112,9 +113,11 @@ export async function claimAction(
     targetId: applicationId,
   });
 
-  revalidatePath("/volunteer/children");
-  revalidatePath("/volunteer/claims");
+  revalidatePath("/account/volunteer/children");
+  revalidatePath("/account/volunteer/claims");
   redirect(
-    outcome === "claimed" ? "/volunteer/claims" : safeReturnPath(returnTo),
+    outcome === "claimed"
+      ? "/account/volunteer/claims"
+      : safeReturnPath(returnTo),
   );
 }

@@ -156,6 +156,6 @@ export async function setIntakeAction(
   revalidatePath("/admin/campaigns");
   // The parent entry point renders "we are not accepting applications" from this.
   revalidatePath("/parent");
-  revalidatePath("/parent/applications");
+  revalidatePath("/account/parent/applications");
   redirect("/admin/campaigns");
 }

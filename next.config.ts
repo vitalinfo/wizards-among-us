@@ -24,8 +24,36 @@ const allowedDevOrigins = (process.env.DEV_ORIGINS ?? "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+// Every signed-in page moved under /account. The old paths are kept alive
+// because they are not only bookmarks: a Telegram sign-in that was already in
+// flight carries `?next=%2Fparent%2Fapplications`, and `safeReturnPath` will
+// happily return it — so without these, finishing a login started before the
+// deploy lands on a 404 instead of the anketa the parent came to file.
+//
+// 308, not 307: the move is permanent and these are GETs, so a cached redirect
+// is correct. `/parent` and `/volunteer` THEMSELVES are untouched — they are
+// the public explainers and must not redirect anywhere.
+const ACCOUNT_MOVES = [
+  "/parent/applications",
+  "/parent/my-volunteer",
+  "/parent/review",
+  "/volunteer/children",
+  "/volunteer/claims",
+  "/volunteer/contact",
+];
+
 const nextConfig: NextConfig = {
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
+  async redirects() {
+    return ACCOUNT_MOVES.flatMap((from) => [
+      { source: from, destination: `/account${from}`, permanent: true },
+      {
+        source: `${from}/:path*`,
+        destination: `/account${from}/:path*`,
+        permanent: true,
+      },
+    ]);
+  },
   // Keep the app portable: standard Next.js output that runs on any Node host.
   // Nothing host-specific is baked into app code — swapping hosts is a deploy
   // concern (Procfile + docs), not a code change.

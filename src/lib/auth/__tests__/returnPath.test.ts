@@ -7,9 +7,11 @@ import { loginPathFor, safeReturnPath, signedOutRedirect } from "../returnPath";
 // just proven they trust the page they're on.
 describe("safeReturnPath", () => {
   it("keeps a same-origin path", () => {
-    expect(safeReturnPath("/parent/applications")).toBe("/parent/applications");
-    expect(safeReturnPath("/parent/applications/abc?x=1")).toBe(
-      "/parent/applications/abc?x=1",
+    expect(safeReturnPath("/account/parent/applications")).toBe(
+      "/account/parent/applications",
+    );
+    expect(safeReturnPath("/account/parent/applications/abc?x=1")).toBe(
+      "/account/parent/applications/abc?x=1",
     );
   });
 
@@ -47,8 +49,8 @@ describe("safeReturnPath", () => {
 
 describe("loginPathFor", () => {
   it("encodes the destination", () => {
-    expect(loginPathFor("/parent/applications")).toBe(
-      "/login?next=%2Fparent%2Fapplications",
+    expect(loginPathFor("/account/parent/applications")).toBe(
+      "/login?next=%2Faccount%2Fparent%2Fapplications",
     );
   });
 
@@ -63,17 +65,20 @@ describe("loginPathFor", () => {
 // actor?") bounced them straight back — an infinite redirect loop that shipped.
 describe("signedOutRedirect", () => {
   it("sends a signed-out visitor to sign in, keeping their destination", () => {
-    expect(signedOutRedirect(null, "/parent/applications")).toBe(
-      "/login?next=%2Fparent%2Fapplications",
+    expect(signedOutRedirect(null, "/account/parent/applications")).toBe(
+      "/login?next=%2Faccount%2Fparent%2Fapplications",
     );
-    expect(signedOutRedirect(undefined, "/parent/applications")).toBe(
-      "/login?next=%2Fparent%2Fapplications",
+    expect(signedOutRedirect(undefined, "/account/parent/applications")).toBe(
+      "/login?next=%2Faccount%2Fparent%2Fapplications",
     );
   });
 
   // The loop-breaker: never send an admin to a sign-in page they are past.
   it("sends an admin to their own panel, never back to /login", () => {
-    const target = signedOutRedirect({ kind: "admin" }, "/parent/applications");
+    const target = signedOutRedirect(
+      { kind: "admin" },
+      "/account/parent/applications",
+    );
     expect(target).toBe("/admin");
     expect(target).not.toContain("/login");
   });

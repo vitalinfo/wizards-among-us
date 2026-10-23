@@ -12,7 +12,7 @@ import {
 import {
   saveApplicationDraft,
   submitApplicationAction,
-} from "@/app/parent/applications/[applicationId]/actions";
+} from "@/app/account/parent/applications/[applicationId]/actions";
 import { Button } from "@/components/ui/Button";
 import type { ContactMethod } from "@/db/enums";
 import {

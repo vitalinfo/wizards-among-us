@@ -72,7 +72,7 @@ describe("VolunteerCta", () => {
     );
     expect(container.querySelector('input[name="next"]')).toHaveAttribute(
       "value",
-      "/volunteer/children",
+      "/account/volunteer/children",
     );
   });
 
@@ -80,7 +80,7 @@ describe("VolunteerCta", () => {
     wrap(<VolunteerCta state="volunteer" />);
     expect(screen.getByRole("link", { name: BECOME })).toHaveAttribute(
       "href",
-      "/volunteer/children",
+      "/account/volunteer/children",
     );
   });
 

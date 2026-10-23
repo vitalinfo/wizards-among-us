@@ -15,7 +15,7 @@ const saveResult = vi.hoisted(() => ({
   current: { status: "saved", errors: {} } as SaveDraftState,
 }));
 
-vi.mock("@/app/parent/applications/[applicationId]/actions", () => ({
+vi.mock("@/app/account/parent/applications/[applicationId]/actions", () => ({
   saveApplicationDraft: vi.fn(async () => saveResult.current),
   submitApplicationAction: vi.fn(async () => ({
     status: "idle",

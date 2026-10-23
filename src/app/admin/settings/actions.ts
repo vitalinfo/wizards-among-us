@@ -23,7 +23,7 @@ export async function setKillSwitchAction(enabled: boolean): Promise<void> {
   revalidatePath("/admin/campaigns");
   // The parent entry point renders an "closed for now" state from this.
   revalidatePath("/parent");
-  revalidatePath("/parent/applications");
+  revalidatePath("/account/parent/applications");
   // Clears ?confirm= from the url — the form posts to the current one, so
   // without this the prompt renders again over an action that already ran. Also
   // makes it POST → redirect → GET, so a reload can't re-fire the switch.

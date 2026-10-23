@@ -25,7 +25,7 @@ import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
 
-import { claimAction } from "../actions";
+import { claimAction } from "@/app/volunteer/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export default async function BrowseChildrenPage({
 }) {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect(signedOutRedirect(actor, "/volunteer/children"));
+    redirect(signedOutRedirect(actor, "/account/volunteer/children"));
   }
   // The role is self-serve, so someone without it is sent to opt in rather than
   // shown a dead end.
@@ -114,7 +114,7 @@ export default async function BrowseChildrenPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-3xl font-semibold">{t("title")}</h1>
           <Link
-            href="/volunteer/claims"
+            href="/account/volunteer/claims"
             className="border-border hover:bg-surface-muted focus-visible:outline-ring shrink-0 rounded-md border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             {t("myClaimsCta")}

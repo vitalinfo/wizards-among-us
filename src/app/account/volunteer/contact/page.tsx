@@ -21,10 +21,10 @@ export default async function VolunteerContactPage({
 }) {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect(signedOutRedirect(actor, "/volunteer/contact"));
+    redirect(signedOutRedirect(actor, "/account/volunteer/contact"));
   }
   const { next } = await searchParams;
-  const returnTo = safeReturnPath(next) || "/volunteer/children";
+  const returnTo = safeReturnPath(next) || "/account/volunteer/children";
   const t = await getTranslations("volunteer.contact");
   const tBack = await getTranslations("volunteer");
 
@@ -33,7 +33,7 @@ export default async function VolunteerContactPage({
       <SiteHeader />
       <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:px-8">
         <Link
-          href="/volunteer/children"
+          href="/account/volunteer/children"
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
           {tBack("backToChildren")}

@@ -30,11 +30,11 @@ describe("SiteHeaderClient account button", () => {
   });
 
   it("leads a signed-in person to their account", () => {
-    renderHeader({ href: "/parent/applications", labelKey: "account" });
+    renderHeader({ href: "/account/parent/applications", labelKey: "account" });
 
     expect(
       screen.getByRole("link", { name: messages.common.account }),
-    ).toHaveAttribute("href", "/parent/applications");
+    ).toHaveAttribute("href", "/account/parent/applications");
     expect(
       screen.queryByRole("link", { name: messages.common.login }),
     ).not.toBeInTheDocument();
@@ -60,7 +60,7 @@ describe("SiteHeaderClient account button", () => {
     for (const [account, name] of [
       [null, messages.common.login],
       [
-        { href: "/parent/applications", labelKey: "account" } as const,
+        { href: "/account/parent/applications", labelKey: "account" } as const,
         messages.common.account,
       ],
       [
@@ -79,7 +79,7 @@ describe("SiteHeaderClient account button", () => {
   // the page the button leads to. A regression here would put a dead or
   // duplicated control back in the header.
   it("no longer signs anyone out", () => {
-    renderHeader({ href: "/parent/applications", labelKey: "account" });
+    renderHeader({ href: "/account/parent/applications", labelKey: "account" });
 
     expect(
       screen.queryByRole("button", { name: messages.common.signOut }),
@@ -93,7 +93,7 @@ describe("SiteHeaderClient account button", () => {
   // address in the mobile menu.
   it("prints no handle belonging to anyone", () => {
     const { container } = renderHeader({
-      href: "/volunteer/claims",
+      href: "/account/volunteer/claims",
       labelKey: "account",
     });
 

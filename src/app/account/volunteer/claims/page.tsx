@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 export default async function MyClaimsPage() {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect(signedOutRedirect(actor, "/volunteer/claims"));
+    redirect(signedOutRedirect(actor, "/account/volunteer/claims"));
   }
 
   const t = await getTranslations("volunteer.claims");
@@ -68,7 +68,7 @@ export default async function MyClaimsPage() {
       <SiteHeader />
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8">
         <Link
-          href="/volunteer/children"
+          href="/account/volunteer/children"
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
           {tBack("backToChildren")}

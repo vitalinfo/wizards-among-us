@@ -24,7 +24,10 @@ export default async function ConfirmReceiptPage({
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     redirect(
-      signedOutRedirect(actor, `/parent/applications/${applicationId}/confirm`),
+      signedOutRedirect(
+        actor,
+        `/account/parent/applications/${applicationId}/confirm`,
+      ),
     );
   }
 
@@ -45,7 +48,7 @@ export default async function ConfirmReceiptPage({
       <SiteHeader />
       <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:px-8">
         <Link
-          href="/parent/applications"
+          href="/account/parent/applications"
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
           {tBack("backToApplications")}
@@ -59,7 +62,7 @@ export default async function ConfirmReceiptPage({
               {t("alreadyDone.body")}
             </p>
             <Link
-              href={`/parent/review?application=${applicationId}`}
+              href={`/account/parent/review?application=${applicationId}`}
               className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
             >
               {t("alreadyDone.reviewCta")}

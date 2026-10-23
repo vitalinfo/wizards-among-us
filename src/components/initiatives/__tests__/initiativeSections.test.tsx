@@ -243,7 +243,7 @@ describe("InitiativeQuote", () => {
     wrap(
       <InitiativeQuote
         cta={
-          <Link href="/parent/applications">
+          <Link href="/account/parent/applications">
             {messages.parent.info.applyCta}
           </Link>
         }
@@ -253,7 +253,7 @@ describe("InitiativeQuote", () => {
     );
     expect(
       screen.getByRole("link", { name: messages.parent.info.applyCta }),
-    ).toHaveAttribute("href", "/parent/applications");
+    ).toHaveAttribute("href", "/account/parent/applications");
     expect(
       screen.queryByRole("link", { name: messages.initiatives.volunteer }),
     ).not.toBeInTheDocument();

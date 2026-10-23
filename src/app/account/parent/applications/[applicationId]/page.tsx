@@ -32,7 +32,9 @@ export default async function ApplicationPage({
   const { applicationId } = await params;
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect(signedOutRedirect(actor, `/parent/applications/${applicationId}`));
+    redirect(
+      signedOutRedirect(actor, `/account/parent/applications/${applicationId}`),
+    );
   }
 
   // Scoped to this parent. A wrong id 404s rather than revealing that someone
@@ -94,7 +96,7 @@ export default async function ApplicationPage({
         {/* A persistent way back. There used to be one only inside the
             post-submit banner, so anyone arriving another way was stranded. */}
         <Link
-          href="/parent/applications"
+          href="/account/parent/applications"
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
           {tBack("backToApplications")}
@@ -159,7 +161,7 @@ export default async function ApplicationPage({
                     {application.rejectionNote ?? tRejected("noNote")}
                   </p>
                   <Link
-                    href="/parent/applications"
+                    href="/account/parent/applications"
                     className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
                   >
                     {tRejected("cta")}

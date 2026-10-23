@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
 export default async function MyVolunteerPage() {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect(signedOutRedirect(actor, "/parent/my-volunteer"));
+    redirect(signedOutRedirect(actor, "/account/parent/my-volunteer"));
   }
 
   const t = await getTranslations("parent.myVolunteer");
@@ -45,7 +45,7 @@ export default async function MyVolunteerPage() {
       <SiteHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-10 sm:px-8">
         <Link
-          href="/parent/applications"
+          href="/account/parent/applications"
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
           {tBack("backToApplications")}
@@ -109,7 +109,7 @@ export default async function MyVolunteerPage() {
                   </p>
                   {row.status === "claimed" ? (
                     <Link
-                      href={`/parent/applications/${row.applicationId}/confirm`}
+                      href={`/account/parent/applications/${row.applicationId}/confirm`}
                       className="text-primary mt-1 w-fit text-sm font-semibold underline underline-offset-4"
                     >
                       {t("confirmCta")}

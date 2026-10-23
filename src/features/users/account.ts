@@ -37,7 +37,7 @@ export function accountDestination(
     return null;
   }
   if (hasRole(actor, "volunteer") && !hasRole(actor, "parent")) {
-    return { href: "/volunteer/claims", labelKey: "account" };
+    return { href: "/account/volunteer/claims", labelKey: "account" };
   }
-  return { href: "/parent/applications", labelKey: "account" };
+  return { href: "/account/parent/applications", labelKey: "account" };
 }

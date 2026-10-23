@@ -63,10 +63,10 @@ describe("MyApplicationsList", () => {
       screen.getByRole("link", {
         name: messages.parent.applications.continueCta,
       }),
-    ).toHaveAttribute("href", "/parent/applications/a1");
+    ).toHaveAttribute("href", "/account/parent/applications/a1");
     expect(
       screen.getByRole("link", { name: messages.parent.applications.viewCta }),
-    ).toHaveAttribute("href", "/parent/applications/a2");
+    ).toHaveAttribute("href", "/account/parent/applications/a2");
   });
 
   // Regression: the component asked for a named format that didn't exist, and

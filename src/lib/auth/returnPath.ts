@@ -57,7 +57,7 @@ export function loginPathFor(returnTo: string): string {
 // so a page guarded with `isUser` bounces them to /login, and /login (which
 // only asked "is there an actor?") bounced them straight back. That is an
 // infinite redirect loop, and we shipped it: an admin opening
-// /parent/applications spun forever.
+// /account/parent/applications spun forever.
 //
 // Admins have their own surface, so send them there instead of to a sign-in
 // page they are already past.

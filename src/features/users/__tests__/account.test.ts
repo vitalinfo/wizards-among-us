@@ -37,31 +37,33 @@ describe("accountDestination", () => {
 
   it("sends a volunteer to their wards", () => {
     expect(accountDestination(user(["volunteer"]))).toEqual({
-      href: "/volunteer/claims",
+      href: "/account/volunteer/claims",
       labelKey: "account",
     });
   });
 
   it("sends a parent to their applications", () => {
     expect(accountDestination(user(["parent"]))?.href).toBe(
-      "/parent/applications",
+      "/account/parent/applications",
     );
   });
 
   // A brand-new Telegram account has no role until it opts in, and the thing
   // it most likely came to do is file an application (Vital).
   it("sends someone with no role to the parent side", () => {
-    expect(accountDestination(user([]))?.href).toBe("/parent/applications");
+    expect(accountDestination(user([]))?.href).toBe(
+      "/account/parent/applications",
+    );
   });
 
   // The one judgement call: the volunteer cabinet only when that is the ONLY
   // thing you are, so no-role and both-roles get the same answer.
   it("sends someone who is both to the parent side", () => {
     expect(accountDestination(user(["parent", "volunteer"]))?.href).toBe(
-      "/parent/applications",
+      "/account/parent/applications",
     );
     expect(accountDestination(user(["volunteer", "parent"]))?.href).toBe(
-      "/parent/applications",
+      "/account/parent/applications",
     );
   });
 
