@@ -2,9 +2,6 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { MyApplicationsList } from "@/components/parent/MyApplicationsList";
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
-import { SignOutButton } from "@/components/site/SignOutButton";
 import { Button } from "@/components/ui/Button";
 import { canStartApplication } from "@/features/applications/authz";
 import { listMyApplications } from "@/features/applications/queries";
@@ -28,7 +25,7 @@ export default async function MyApplicationsPage({
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     // Carry the destination so signing in returns here, not to the home page.
-    redirect(signedOutRedirect(actor, "/parent/applications"));
+    redirect(signedOutRedirect(actor, "/account/parent/applications"));
   }
 
   const query = await searchParams;
@@ -48,15 +45,8 @@ export default async function MyApplicationsPage({
 
   return (
     <>
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8">
-        {/* Signing out lives here, not in the header: the header now carries
-            one round button that leads to this page, which is what the design
-            draws. */}
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-3xl font-semibold">{t("title")}</h1>
-          <SignOutButton />
-        </div>
+      <div className="mx-auto w-full max-w-3xl py-10">
+        <h1 className="text-3xl font-semibold">{t("title")}</h1>
 
         {/* A first submission starts the two-day clock; saving an edit does
             not restart it, so the two say different things. */}
@@ -90,8 +80,7 @@ export default async function MyApplicationsPage({
         <div className="mt-8">
           <MyApplicationsList applications={applications} />
         </div>
-      </main>
-      <SiteFooter />
+      </div>
     </>
   );
 }

@@ -6,8 +6,6 @@ import { ApplicationSummary } from "@/components/parent/ApplicationSummary";
 import { ApplicationForm } from "@/components/parent/applicationForm/ApplicationForm";
 import { stepsForCampaignType } from "@/components/parent/applicationForm/steps";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { canEditApplication } from "@/features/applications/authz";
 import {
   getMyApplication,
@@ -32,7 +30,9 @@ export default async function ApplicationPage({
   const { applicationId } = await params;
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect(signedOutRedirect(actor, `/parent/applications/${applicationId}`));
+    redirect(
+      signedOutRedirect(actor, `/account/parent/applications/${applicationId}`),
+    );
   }
 
   // Scoped to this parent. A wrong id 404s rather than revealing that someone
@@ -89,12 +89,11 @@ export default async function ApplicationPage({
 
   return (
     <>
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-10 sm:px-8">
+      <div className="mx-auto w-full max-w-2xl py-10">
         {/* A persistent way back. There used to be one only inside the
             post-submit banner, so anyone arriving another way was stranded. */}
         <Link
-          href="/parent/applications"
+          href="/account/parent/applications"
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
           {tBack("backToApplications")}
@@ -159,7 +158,7 @@ export default async function ApplicationPage({
                     {application.rejectionNote ?? tRejected("noNote")}
                   </p>
                   <Link
-                    href="/parent/applications"
+                    href="/account/parent/applications"
                     className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
                   >
                     {tRejected("cta")}
@@ -177,8 +176,7 @@ export default async function ApplicationPage({
             </div>
           )}
         </div>
-      </main>
-      <SiteFooter />
+      </div>
     </>
   );
 }

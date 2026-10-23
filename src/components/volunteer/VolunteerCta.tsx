@@ -50,7 +50,7 @@ export function VolunteerCta({
   if (state === "candidate") {
     return (
       <form action={becomeVolunteerAction} className={cn(ctaShell, className)}>
-        <input type="hidden" name="next" value="/volunteer/children" />
+        <input type="hidden" name="next" value="/account/volunteer/children" />
         <button type="submit" className={pill}>
           {t("volunteer")}
         </button>
@@ -63,7 +63,7 @@ export function VolunteerCta({
       <Link
         href={
           state === "volunteer"
-            ? "/volunteer/children"
+            ? "/account/volunteer/children"
             : loginPathFor("/volunteer")
         }
         className={pill}

@@ -2,8 +2,6 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { ConfirmReceiptForm } from "@/components/parent/ConfirmReceiptForm";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { getMyApplication } from "@/features/applications/queries";
@@ -24,7 +22,10 @@ export default async function ConfirmReceiptPage({
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     redirect(
-      signedOutRedirect(actor, `/parent/applications/${applicationId}/confirm`),
+      signedOutRedirect(
+        actor,
+        `/account/parent/applications/${applicationId}/confirm`,
+      ),
     );
   }
 
@@ -42,10 +43,9 @@ export default async function ConfirmReceiptPage({
 
   return (
     <>
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:px-8">
+      <div className="mx-auto w-full max-w-lg py-10">
         <Link
-          href="/parent/applications"
+          href="/account/parent/applications"
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
           {tBack("backToApplications")}
@@ -59,7 +59,7 @@ export default async function ConfirmReceiptPage({
               {t("alreadyDone.body")}
             </p>
             <Link
-              href={`/parent/review?application=${applicationId}`}
+              href={`/account/parent/review?application=${applicationId}`}
               className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
             >
               {t("alreadyDone.reviewCta")}
@@ -90,8 +90,7 @@ export default async function ConfirmReceiptPage({
             </div>
           </>
         )}
-      </main>
-      <SiteFooter />
+      </div>
     </>
   );
 }

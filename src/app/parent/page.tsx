@@ -34,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 // Where every action on this page goes once the visitor is a signed-in parent.
-const APPLY = "/parent/applications";
+const APPLY = "/account/parent/applications";
 
 const STEPS = [
   { key: "story", emoji: "✍️" },
@@ -47,7 +47,7 @@ const STEPS = [
 // «Батькам», from Figma 66:953 — the public explainer a family lands on before
 // applying. Public but noindex, like every page except «/» (§10).
 //
-// Every action goes to /parent/applications rather than straight at the form:
+// Every action goes to /account/parent/applications rather than straight at the form:
 // a parent who has already applied sees their anketas there instead of being
 // pushed into a second one.
 //
@@ -58,7 +58,7 @@ const STEPS = [
 // always worked this way — it has to, because its middle state is a form and
 // not a link at all — and the two reading differently was the inconsistency.
 //
-// loginPathFor, NOT the signedOutRedirect that /parent/applications guards
+// loginPathFor, NOT the signedOutRedirect that /account/parent/applications guards
 // itself with. The two answer different questions. The guard asks "you cannot
 // be here, where do you belong?" and sends an admin to /admin — right for a
 // page an admin has no business on. This is a call to action on a public page,
@@ -68,7 +68,7 @@ const STEPS = [
 // session, and offers the panel as a link. It no longer bounces them back, so
 // there is no loop to re-create.
 //
-// ⚠️ /parent/my-volunteer is now linked from NOWHERE. This page was its only
+// ⚠️ /account/parent/my-volunteer is now linked from NOWHERE. This page was its only
 // entry point; Vital is placing it elsewhere, and until he does, a parent can
 // only reach «Мій чарівник» by typing the URL.
 export default async function ParentPage() {

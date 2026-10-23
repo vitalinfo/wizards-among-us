@@ -58,5 +58,5 @@ export async function submitReviewAction(
 
   // Unpublished until an admin says otherwise, so nothing changes publicly yet.
   revalidatePath("/admin/reviews");
-  redirect("/parent/applications?reviewed=1");
+  redirect("/account/parent/applications?reviewed=1");
 }

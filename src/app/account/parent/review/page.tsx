@@ -3,8 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ReviewForm } from "@/components/parent/ReviewForm";
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { getMyApplication } from "@/features/applications/queries";
 import { getReviewBlockReason } from "@/features/reviews/authz";
 import { hasReviewed } from "@/features/reviews/queries";
@@ -21,7 +19,7 @@ export default async function LeaveReviewPage({
 }) {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect(signedOutRedirect(actor, "/parent/review"));
+    redirect(signedOutRedirect(actor, "/account/parent/review"));
   }
 
   const { application: applicationId } = await searchParams;
@@ -42,8 +40,7 @@ export default async function LeaveReviewPage({
 
   return (
     <>
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:px-8">
+      <div className="mx-auto w-full max-w-lg py-10">
         <h1 className="text-3xl font-semibold">{t("title")}</h1>
 
         {blocked ? (
@@ -52,7 +49,7 @@ export default async function LeaveReviewPage({
               {t(`errors.${blocked}`)}
             </p>
             <Link
-              href="/parent/applications"
+              href="/account/parent/applications"
               className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
             >
               {tBack("backToApplications")}
@@ -68,8 +65,7 @@ export default async function LeaveReviewPage({
             </div>
           </>
         )}
-      </main>
-      <SiteFooter />
+      </div>
     </>
   );
 }

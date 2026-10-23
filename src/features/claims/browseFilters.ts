@@ -97,7 +97,7 @@ function browseUrl(params: URLSearchParams): string {
   const qs = params.toString();
   // The fragment goes LAST. It keeps paging and filtering anchored to the
   // results instead of scrolling back to the page heading.
-  return `/volunteer/children${qs ? `?${qs}` : ""}#${BROWSE_ANCHOR}`;
+  return `/account/volunteer/children${qs ? `?${qs}` : ""}#${BROWSE_ANCHOR}`;
 }
 
 // Rebuild the url for a query, optionally overriding parts of it. Any change to
@@ -116,7 +116,7 @@ export function browseHref(
 // the volunteer is looking at.
 //
 // This exists because appending "?claim=..." to browseHref's output produced
-// `/volunteer/children#children?claim=<id>` — the query landed INSIDE the
+// `/account/volunteer/children#children?claim=<id>` — the query landed INSIDE the
 // fragment, so the server never saw it and the modal silently never opened.
 // Building the params first and adding the fragment last is the only ordering
 // that works, so no caller should be assembling this by hand.

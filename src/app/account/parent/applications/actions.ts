@@ -33,7 +33,7 @@ export async function startApplication(): Promise<void> {
   ]);
 
   if (!campaign || !canStartApplication(actor, { campaign, settings })) {
-    redirect("/parent/applications");
+    redirect("/account/parent/applications");
   }
 
   const id = await createDraft(actor.id, campaign.id);
@@ -44,7 +44,7 @@ export async function startApplication(): Promise<void> {
     targetId: id,
   });
 
-  redirect(`/parent/applications/${id}`);
+  redirect(`/account/parent/applications/${id}`);
 }
 
 // The parent closes the loop: the gift arrived. Re-checked here even though the
@@ -59,7 +59,7 @@ export async function confirmReceiptAction(
 
   const application = await getMyApplication(applicationId, actor.id);
   if (!application) {
-    redirect("/parent/applications");
+    redirect("/account/parent/applications");
   }
 
   const files = await listApplicationFiles(applicationId);
@@ -68,7 +68,7 @@ export async function confirmReceiptAction(
   });
   if (blocked) {
     redirect(
-      `/parent/applications/${applicationId}/confirm?blocked=${blocked}`,
+      `/account/parent/applications/${applicationId}/confirm?blocked=${blocked}`,
     );
   }
 
@@ -81,10 +81,10 @@ export async function confirmReceiptAction(
     targetId: applicationId,
   });
 
-  revalidatePath("/parent/applications");
-  revalidatePath(`/parent/applications/${applicationId}`);
-  revalidatePath("/volunteer/claims");
+  revalidatePath("/account/parent/applications");
+  revalidatePath(`/account/parent/applications/${applicationId}`);
+  revalidatePath("/account/volunteer/claims");
   // Straight to the review: it is the natural next thing to say, and reviews
   // are only offered once a wish is fulfilled (Vital, Phase 7).
-  redirect(`/parent/review?application=${applicationId}`);
+  redirect(`/account/parent/review?application=${applicationId}`);
 }

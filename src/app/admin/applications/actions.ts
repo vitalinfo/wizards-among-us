@@ -131,7 +131,7 @@ export async function updateApplicationAction(
 
   revalidatePath("/admin/applications");
   revalidatePath(`/admin/applications/${applicationId}`);
-  revalidatePath(`/parent/applications/${applicationId}`);
+  revalidatePath(`/account/parent/applications/${applicationId}`);
   redirect(`/admin/applications/${applicationId}`);
 }
 
@@ -173,7 +173,7 @@ export async function assignVolunteerAction(
   });
 
   revalidatePath(`/admin/applications/${applicationId}`);
-  revalidatePath("/volunteer/children");
+  revalidatePath("/account/volunteer/children");
   redirect(`/admin/applications/${applicationId}`);
 }
 
@@ -191,6 +191,6 @@ export async function releaseClaimAction(applicationId: string): Promise<void> {
   });
 
   revalidatePath(`/admin/applications/${applicationId}`);
-  revalidatePath("/volunteer/children");
+  revalidatePath("/account/volunteer/children");
   redirect(`/admin/applications/${applicationId}`);
 }

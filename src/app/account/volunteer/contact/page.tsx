@@ -2,8 +2,6 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { VolunteerPhoneForm } from "@/components/volunteer/VolunteerPhoneForm";
 import { isUser } from "@/lib/actor";
 import { safeReturnPath, signedOutRedirect } from "@/lib/auth/returnPath";
@@ -21,19 +19,18 @@ export default async function VolunteerContactPage({
 }) {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
-    redirect(signedOutRedirect(actor, "/volunteer/contact"));
+    redirect(signedOutRedirect(actor, "/account/volunteer/contact"));
   }
   const { next } = await searchParams;
-  const returnTo = safeReturnPath(next) || "/volunteer/children";
+  const returnTo = safeReturnPath(next) || "/account/volunteer/children";
   const t = await getTranslations("volunteer.contact");
   const tBack = await getTranslations("volunteer");
 
   return (
     <>
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:px-8">
+      <div className="mx-auto w-full max-w-lg py-10">
         <Link
-          href="/volunteer/children"
+          href="/account/volunteer/children"
           className="text-primary text-sm font-semibold underline underline-offset-4"
         >
           {tBack("backToChildren")}
@@ -43,8 +40,7 @@ export default async function VolunteerContactPage({
         <div className="mt-6">
           <VolunteerPhoneForm next={returnTo} />
         </div>
-      </main>
-      <SiteFooter />
+      </div>
     </>
   );
 }

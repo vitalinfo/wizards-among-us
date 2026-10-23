@@ -81,7 +81,9 @@ describe("parseBrowseQuery", () => {
 
 describe("browseHref", () => {
   it("omits defaults so the plain url stays clean", () => {
-    expect(browseHref(empty)).toBe(`/volunteer/children#${BROWSE_ANCHOR}`);
+    expect(browseHref(empty)).toBe(
+      `/account/volunteer/children#${BROWSE_ANCHOR}`,
+    );
   });
 
   // Filtering and paging must return to the results, not to the page heading —

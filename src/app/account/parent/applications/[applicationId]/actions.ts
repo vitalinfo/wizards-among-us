@@ -87,7 +87,7 @@ export async function saveApplicationDraft(
   // Save first, ALWAYS — a missing photo must never cost the parent the answers
   // they just typed into this step.
   await persistStep(id, actor.id, application, parsed.data);
-  revalidatePath(`/parent/applications/${id}`);
+  revalidatePath(`/account/parent/applications/${id}`);
 
   // Then refuse to advance if this step's uploads are not there. Caught here
   // rather than at submit, so the parent fixes it on the step that asks for it
@@ -306,7 +306,7 @@ export async function submitApplicationAction(
     targetType: "application",
     targetId: id,
   });
-  revalidatePath("/parent/applications");
+  revalidatePath("/account/parent/applications");
   // To the LIST, not back into the form. Returning to the application left the
   // parent looking at the last step of a form they had just finished, which
   // reads as "nothing happened"; the list is where they can see the new status
@@ -316,6 +316,6 @@ export async function submitApplicationAction(
   // edit it announces a submission that happened days ago and restates a
   // promise whose clock did not restart, so the two cases say different things.
   redirect(
-    `/parent/applications?${wasAlreadySubmitted ? "saved=1" : "submitted=1"}`,
+    `/account/parent/applications?${wasAlreadySubmitted ? "saved=1" : "submitted=1"}`,
   );
 }

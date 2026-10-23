@@ -29,7 +29,7 @@ export async function BrowseFilterForm({
   return (
     <form
       method="get"
-      action={`/volunteer/children#${anchor}`}
+      action={`/account/volunteer/children#${anchor}`}
       className="border-border bg-surface-muted flex flex-wrap items-end gap-3 rounded-lg border p-4"
     >
       <div className="flex flex-col gap-1">
@@ -93,7 +93,7 @@ export async function BrowseFilterForm({
         {t("apply")}
       </button>
       <Link
-        href={`/volunteer/children#${anchor}`}
+        href={`/account/volunteer/children#${anchor}`}
         className="text-primary text-sm font-semibold underline underline-offset-4"
       >
         {t("reset")}

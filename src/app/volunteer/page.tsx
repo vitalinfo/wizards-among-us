@@ -166,7 +166,7 @@ export default async function VolunteerPage() {
             publish the photos to social media, do not ask for more photos, do
             not propose a meeting without the parents' consent, and every view
             is logged. The key is kept so that copy has somewhere to come back
-            from — /volunteer/claims is the better home for it. */}
+            from — /account/volunteer/claims is the better home for it. */}
 
         <InitiativeQuote
           cta={
