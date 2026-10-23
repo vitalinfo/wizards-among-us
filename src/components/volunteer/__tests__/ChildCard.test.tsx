@@ -171,3 +171,23 @@ describe("ChildCard letter photo and shop links", () => {
     expect(screen.getByText("Донецьк, Донецька область")).toBeInTheDocument();
   });
 });
+
+// Ukrainian has three plural forms for a year, and a card prints the age of a
+// real child — «1 років» was on screen the first time an application with a
+// one-year-old was approved.
+describe("ChildCard age", () => {
+  it("declines the year for the number in front of it", async () => {
+    for (const [age, expected] of [
+      [1, "1 рік"],
+      [2, "2 роки"],
+      [4, "4 роки"],
+      [5, "5 років"],
+      [11, "11 років"],
+      [17, "17 років"],
+    ] as const) {
+      const { unmount } = await renderCard({ childAge: age });
+      expect(screen.getByText(expected)).toBeInTheDocument();
+      unmount();
+    }
+  });
+});
