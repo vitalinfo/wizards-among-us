@@ -41,7 +41,7 @@ export default async function VolunteerCabinetPage() {
 
   return (
     // The star field spans the whole cabinet area, not the text block: the
-    // design places its six clusters between y=191 and y=920 of a 1080 frame,
+    // design places its six stars between y=191 and y=920 of a 1080 frame,
     // which is most of the height below the header and well past the button.
     // So the wrapper takes that area and the section keeps its own rhythm.
     <div className="relative isolate h-full overflow-hidden">
