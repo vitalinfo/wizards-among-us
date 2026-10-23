@@ -13,6 +13,7 @@ describe("toBrowseCard redaction (guardrail)", () => {
       parentName: "Ivan Petrenko",
       childName: "Olha Petrenko",
       childAge: 8,
+      childGender: "girl",
       homeTown: "Bakhmut",
       homeRegion: "donetsk",
       currentTown: "Lviv",
@@ -39,6 +40,9 @@ describe("toBrowseCard redaction (guardrail)", () => {
       id: "app1",
       childFirstName: "Olha", // first name only, not the full name
       childAge: 8,
+      // Tier 1 by decision (Vital): it draws the child's icon, and the first
+      // name beside it already discloses it.
+      childGender: "girl",
       currentRegion: "lviv",
       homeRegion: "donetsk",
       homeTown: "Bakhmut",

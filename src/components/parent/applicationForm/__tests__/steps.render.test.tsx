@@ -19,6 +19,7 @@ const child = messages.parent.form.steps.child;
 const family = messages.parent.form.steps.family;
 const gift = messages.parent.form.steps.gift;
 const regions = messages.regions;
+const genders = messages.genders;
 
 function wrap(ui: React.ReactNode) {
   return render(
@@ -60,15 +61,41 @@ describe("ChildStep", () => {
     ).toBeNull();
   });
 
+  // Gender is a two-option picker, and it is REQUIRED: it draws the child's
+  // icon on the browse card, and the card has no iconless state.
+  it("asks for the child's gender as a required two-option picker", async () => {
+    const user = userEvent.setup();
+    wrap(<ChildStep values={{}} errors={{}} />);
+
+    const gender = screen.getByLabelText(new RegExp(child.childGender.label));
+    expect(gender.tagName).toBe("SELECT");
+    expect(gender).toBeRequired();
+
+    for (const label of [genders.boy, genders.girl]) {
+      expect(
+        within(gender).getByRole("option", { name: label }),
+      ).toBeInTheDocument();
+    }
+
+    await user.selectOptions(gender, genders.girl);
+    expect(gender).toHaveValue("girl");
+  });
+
   // Values come back from the DB as numbers; a <select> matches on strings.
   it("preselects the values already saved on a draft", () => {
     wrap(
-      <ChildStep values={{ childAge: 3, displacedYear: 2022 }} errors={{}} />,
+      <ChildStep
+        values={{ childAge: 3, childGender: "boy", displacedYear: 2022 }}
+        errors={{}}
+      />,
     );
 
     expect(screen.getByLabelText(new RegExp(child.childAge.label))).toHaveValue(
       "3",
     );
+    expect(
+      screen.getByLabelText(new RegExp(child.childGender.label)),
+    ).toHaveValue("boy");
     expect(
       screen.getByLabelText(new RegExp(child.displacedYear.label)),
     ).toHaveValue("2022");

@@ -1,5 +1,7 @@
-// Option lists for the two application fields that are a bounded range rather
-// than free text: the child's age and the year the family left home.
+import { CHILD_GENDERS } from "@/db/enums";
+
+// Option lists for the application fields that are a fixed set rather than free
+// text: the child's age, the child's gender, and the year the family left home.
 //
 // The bounds live here, next to the options, because the <select> and the zod
 // schema have to agree. If they drift, the form offers a value the server then
@@ -23,6 +25,15 @@ export function currentYear(): number {
 
 export function childAgeOptions(): { value: string; label: string }[] {
   return range(CHILD_AGE_MIN, CHILD_AGE_MAX);
+}
+
+// In the enum's own order, not sorted by label: two options, and «Хлопчик»
+// before «Дівчинка» is the order both the form and the admin screen show. The
+// labels come from the caller's translator, as the region options do.
+export function childGenderOptions(
+  t: (key: string) => string,
+): { value: string; label: string }[] {
+  return CHILD_GENDERS.map((gender) => ({ value: gender, label: t(gender) }));
 }
 
 // `until` is a parameter so a test can pin the range instead of depending on

@@ -20,6 +20,7 @@ export async function ChildCard({
   const t = await getTranslations("volunteer.children");
   const tRegions = await getTranslations("regions");
   const tAge = await getTranslations("parent.applications");
+  const tGender = await getTranslations("genders");
 
   const place = (
     region: BrowseRow["currentRegion"],
@@ -40,6 +41,15 @@ export async function ChildCard({
     <li className="border-border bg-surface flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
+          {/* The child's icon. An emoji with an accessible NAME, not a bare
+              pictograph: the gender is nowhere else on the card, so a screen
+              reader would otherwise lose it entirely — the same reason the
+              status below is text and not a colour. */}
+          {row.childGender ? (
+            <span role="img" aria-label={tGender(row.childGender)}>
+              {row.childGender === "boy" ? "👦" : "👧"}
+            </span>
+          ) : null}
           <h3 className="font-semibold">{row.childFirstName ?? t("noName")}</h3>
           {row.childAge !== null ? (
             <span className="text-muted-foreground text-sm">

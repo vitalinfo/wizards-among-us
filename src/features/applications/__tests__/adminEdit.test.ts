@@ -8,6 +8,7 @@ const row = {
   id: "a",
   childName: "Софійка",
   childAge: 7,
+  childGender: "girl",
   homeTown: "Бахмут",
   homeRegion: "donetsk",
   currentTown: "Львів",
@@ -27,6 +28,7 @@ const complete = {
   parentName: "Олена",
   childName: "Софійка",
   childAge: "7",
+  childGender: "girl",
   homeTown: "Бахмут",
   homeRegion: "donetsk",
   currentTown: "Львів",
@@ -44,12 +46,14 @@ const forSubmitted = adminApplicationEditSchema({
   requireComplete: true,
   campaignType: "saint_nicholas_day",
   giftPriceCap: "700.00",
+  hasChildGender: true,
   currentGiftPrice: null,
 });
 const forDraft = adminApplicationEditSchema({
   requireComplete: false,
   campaignType: "saint_nicholas_day",
   giftPriceCap: null,
+  hasChildGender: true,
   currentGiftPrice: null,
 });
 
@@ -59,6 +63,7 @@ describe("adminApplicationEditSchema", () => {
       requireComplete: true,
       campaignType: "saint_nicholas_day",
       giftPriceCap: null,
+      hasChildGender: true,
       currentGiftPrice: null,
     }).safeParse(complete);
     expect(result.success).toBe(true);
@@ -73,6 +78,7 @@ describe("adminApplicationEditSchema", () => {
       requireComplete: true,
       campaignType: "saint_nicholas_day",
       giftPriceCap: null,
+      hasChildGender: true,
       currentGiftPrice: null,
     });
     expect(schema.safeParse({ ...complete, homeRegion: "volyn" }).success).toBe(
@@ -88,6 +94,7 @@ describe("adminApplicationEditSchema", () => {
       requireComplete: true,
       campaignType: "saint_nicholas_day",
       giftPriceCap: "700.00",
+      hasChildGender: true,
       currentGiftPrice: "1200.00",
     });
     // Same price as stored, different address — allowed.
@@ -120,6 +127,42 @@ describe("adminApplicationEditSchema", () => {
         ),
       ).toBe(true);
     }
+  });
+
+  // The gender is in the required set for the same reason as the rest: a
+  // volunteer picked this child off a card that drew an icon from it.
+  it("refuses to blank the child's gender on a submitted application", () => {
+    const result = forSubmitted.safeParse({ ...complete, childGender: "" });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some(
+          (i) => i.path[0] === "childGender" && i.message === "required",
+        ),
+      ).toBe(true);
+    }
+  });
+
+  // An application submitted before the column existed has no gender, and the
+  // admin screen must stay usable for it: the alternative is that fixing a
+  // delivery address on last year's application requires answering a question
+  // the parent was never asked.
+  it("does not demand a gender from an application that never had one", () => {
+    const legacy = adminApplicationEditSchema({
+      requireComplete: true,
+      campaignType: "saint_nicholas_day",
+      giftPriceCap: null,
+      hasChildGender: false,
+      currentGiftPrice: null,
+    });
+    const withoutGender: Record<string, unknown> = { ...complete };
+    delete withoutGender.childGender;
+
+    expect(legacy.safeParse(withoutGender).success).toBe(true);
+    // …but a value it does carry still has to be a real one.
+    expect(
+      legacy.safeParse({ ...withoutGender, childGender: "other" }).success,
+    ).toBe(false);
   });
 
   // A draft legitimately has holes — that's what a draft is.

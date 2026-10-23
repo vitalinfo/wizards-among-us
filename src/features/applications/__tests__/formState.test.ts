@@ -23,6 +23,7 @@ const validSubmit = {
   parentName: "Ivan",
   childName: "Olha",
   childAge: 8,
+  childGender: "girl",
   homeTown: "Bakhmut",
   homeRegion: "donetsk",
   currentTown: "Lviv",

@@ -8,7 +8,11 @@ import {
   currentYear,
   DISPLACED_YEAR_MIN,
 } from "@/lib/applicationFieldOptions";
-import { displacedFromRegionSchema, regionSchema } from "@/lib/enumSchemas";
+import {
+  childGenderSchema,
+  displacedFromRegionSchema,
+  regionSchema,
+} from "@/lib/enumSchemas";
 
 // Base fields required for every campaign (§7), modelled on the real
 // «Святий Миколай 2025» form (docs/reference/st-nicholas-2025-google-form.pdf).
@@ -20,6 +24,9 @@ const applicationFields = {
   parentName: z.string().trim().min(1),
   childName: z.string().trim().min(1),
   childAge: z.number().int().min(CHILD_AGE_MIN).max(CHILD_AGE_MAX),
+  // Required, like the age beside it: it draws the child's icon on the browse
+  // card, and a card with no icon is not a state the design has.
+  childGender: childGenderSchema,
   homeTown: z.string().trim().min(1),
   // Narrower than currentRegion on purpose — see displacedFromRegionSchema.
   homeRegion: displacedFromRegionSchema,
@@ -154,6 +161,7 @@ export const applicationDraftFormSchema = z.object({
   parentName: text(z.string().trim().min(1)),
   childName: text(z.string().trim().min(1)),
   childAge: numeric(z.number().int().min(CHILD_AGE_MIN).max(CHILD_AGE_MAX)),
+  childGender: text(childGenderSchema),
   homeTown: text(z.string().trim().min(1)),
   homeRegion: text(displacedFromRegionSchema),
   currentTown: text(z.string().trim().min(1)),
@@ -200,6 +208,7 @@ const ADMIN_REQUIRED_FIELDS = [
   "parentName",
   "childName",
   "childAge",
+  "childGender",
   "homeTown",
   "homeRegion",
   "currentTown",
@@ -227,6 +236,15 @@ export function adminApplicationEditSchema(context: {
   requireComplete: boolean;
   campaignType: CampaignType | null;
   giftPriceCap: string | null;
+  // Whether the stored application HAS a gender. Applications submitted before
+  // the column existed do not, and requiring one here would make every one of
+  // them unfixable until an admin answered a question the parent was never
+  // asked — an admin correcting a delivery address would be blocked by it.
+  // Same shape as the gift-price cap below and the widened home region above:
+  // a new rule constrains new data, not data recorded under the old one. An
+  // application that HAS a gender still cannot be stripped of it, because a
+  // volunteer chose that child off a card that drew an icon from it.
+  hasChildGender: boolean;
   // The price already stored. The cap is only enforced when the admin actually
   // CHANGES the price: caps change mid-campaign, and an application submitted
   // under an older, higher cap must not become unfixable — an admin correcting
@@ -273,6 +291,9 @@ export function adminApplicationEditSchema(context: {
       return;
     }
     for (const field of ADMIN_REQUIRED_FIELDS) {
+      if (field === "childGender" && !context.hasChildGender) {
+        continue;
+      }
       if (value[field] === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

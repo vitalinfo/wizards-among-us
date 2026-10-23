@@ -70,9 +70,10 @@ export default async function AdminApplicationPage({
   }
 
   const { application, campaignTitle, parent } = detail;
-  const [t, tRegions, format, files, parentNote] = await Promise.all([
+  const [t, tRegions, tGender, format, files, parentNote] = await Promise.all([
     getTranslations("admin.applications"),
     getTranslations("regions"),
+    getTranslations("genders"),
     getFormatter(),
     listApplicationFiles(applicationId),
     // Attached to the PERSON, not the application: a family that files three
@@ -120,6 +121,10 @@ export default async function AdminApplicationPage({
         [
           t("fields.childAge"),
           application.childAge === null ? null : String(application.childAge),
+        ],
+        [
+          t("fields.childGender"),
+          application.childGender ? tGender(application.childGender) : null,
         ],
         [t("fields.homeTown"), application.homeTown],
         [

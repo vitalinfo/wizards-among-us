@@ -6,6 +6,7 @@ import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
 import {
   childAgeOptions,
+  childGenderOptions,
   displacedYearOptions,
 } from "@/lib/applicationFieldOptions";
 import { displacedFromRegionOptions, regionOptions } from "@/lib/regionOptions";
@@ -18,11 +19,13 @@ export function ChildStep({ values, errors }: StepProps) {
   const t = useTranslations("parent.form");
   const tStep = useTranslations("parent.form.steps.child");
   const tRegion = useTranslations("regions");
+  const tGender = useTranslations("genders");
 
   const regions = regionOptions(tRegion);
   // Narrower: where a family LEFT is the occupied and front-line oblasts.
   const originRegions = displacedFromRegionOptions(tRegion);
   const ages = childAgeOptions();
+  const genders = childGenderOptions(tGender);
   const years = displacedYearOptions();
 
   return (
@@ -51,6 +54,19 @@ export function ChildStep({ values, errors }: StepProps) {
         options={ages}
         defaultValue={values.childAge ?? ""}
         error={errors.childAge}
+        required
+      />
+
+      {/* With the name and the age, because it reads as part of «хто це» —
+          and it is what draws the child's icon for a volunteer. */}
+      <SelectField
+        id="childGender"
+        name="childGender"
+        label={tStep("childGender.label")}
+        placeholder={t("genderPlaceholder")}
+        options={genders}
+        defaultValue={values.childGender ?? ""}
+        error={errors.childGender}
         required
       />
 

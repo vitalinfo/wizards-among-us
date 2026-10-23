@@ -30,12 +30,17 @@ export async function ApplicationSummary({
   const tRegions = await getTranslations("regions");
   const tFiles = await getTranslations("admin.applications.files");
   const tSummary = await getTranslations("parent.applications.summary");
+  const tGender = await getTranslations("genders");
 
   const fields: [string, string | null][] = [
     [t("childName"), application.childName],
     [
       t("childAge"),
       application.childAge === null ? null : String(application.childAge),
+    ],
+    [
+      t("childGender"),
+      application.childGender ? tGender(application.childGender) : null,
     ],
     [t("homeTown"), application.homeTown],
     [

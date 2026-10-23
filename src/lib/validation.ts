@@ -25,6 +25,7 @@ export {
   applicationStatusSchema,
   campaignStatusSchema,
   campaignTypeSchema,
+  childGenderSchema,
   faqStatusSchema,
   fileKindSchema,
   regionSchema,

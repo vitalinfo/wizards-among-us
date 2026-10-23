@@ -56,6 +56,18 @@ export const APPLICATION_STATUSES = [
 ] as const;
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
+// The child's gender. Two values, because the thing it drives is an ICON on the
+// browse card (Vital) — an icon needs something definite to draw, and a third
+// "unspecified" value would be a card with no icon on it. Required at submit,
+// like the age it sits beside.
+//
+// It carries no more than the first name already does: Ukrainian given names
+// are gendered almost without exception, and the card shows one. That is the
+// reason it can be tier 1 at all — see the child-data invariant in CLAUDE.md,
+// and §2.2 / §4.3 of the privacy policy, which state it publicly.
+export const CHILD_GENDERS = ["boy", "girl"] as const;
+export type ChildGender = (typeof CHILD_GENDERS)[number];
+
 // Uploads attached to an application. Kinds differ in WHO MAY SEE THEM, so the
 // kind is the authorization input — never widen a check to "any file".
 //   idp_certificate        — довідка ВПО (child's displacement certificate).
