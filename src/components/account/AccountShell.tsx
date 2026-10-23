@@ -45,11 +45,13 @@ export function AccountShell({
   return (
     <>
       <header className={cn(SITE_CONTAINER, "relative z-40")}>
-        {/* 24px down on a phone, flush from lg — the design puts the header
-            row at y=26 in both mobile frames. It has to match the panel's own
-            top padding below, or the logo jumps the moment the panel opens:
-            the panel covers the header and draws the logo again. */}
-        <div className="mt-6 flex h-14 items-center justify-between gap-4 lg:mt-0 lg:h-[107px]">
+        {/* 20px down on a phone, flush from lg. The design puts the header row
+            at y=26; the LOGO is what has to land there, and the row centres a
+            48px logo in 56px of height, so the margin is 4 short of the target
+            rather than equal to it. That is also what stops the logo jumping
+            when the menu opens: the panel covers the header and draws the logo
+            again, at its own pt-6, so 20 + 4 has to equal the panel's 24. */}
+        <div className="mt-5 flex h-14 items-center justify-between gap-4 lg:mt-0 lg:h-[107px]">
           {/* The kicker sits left of the logo on the desktop frame and is not
               drawn on a phone, where the row has no room for it beside the
               logo and the toggle. */}
