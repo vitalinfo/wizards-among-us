@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AccountShell, type Cabinet } from "@/components/account";
+import { StartApplicationButton } from "@/components/parent/StartApplicationButton";
+import { canStartApplication } from "@/features/applications/authz";
+import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
+import { getResolvedSettings } from "@/features/settings/queries";
 import { hasRole, isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
@@ -21,10 +25,21 @@ export default async function AccountShellLayout({
     redirect(signedOutRedirect(actor, "/account"));
   }
 
-  // Which cabinets this person holds. The design greys the one they do not and
-  // marks the one they do with a ✅, so the roles decide both. The parent
-  // cabinet has no landing page of its own yet, so it points at the anketas,
-  // which is what that cabinet currently contains.
+  // The same gate the anketas page puts on its own button, so the sidebar
+  // never offers an application the action would refuse.
+  const [campaign, settings] = await Promise.all([
+    getActiveCampaignForIntake(),
+    getResolvedSettings(),
+  ]);
+  const canStart = canStartApplication(actor, { campaign, settings });
+
+  // Which cabinets are open to this person; the design greys the other.
+  //
+  // The volunteer cabinet needs the role, which is opted into on «Волонтерам».
+  // The parent cabinet is open to everyone signed in: the parent ROLE is only
+  // granted on a first submit, so it cannot gate the place where that first
+  // application is started — and anyone may start one (canStartApplication),
+  // a volunteer with a child of their own included.
   const cabinets: Cabinet[] = [
     {
       key: "volunteer",
@@ -48,10 +63,29 @@ export default async function AccountShellLayout({
     },
     {
       key: "parent",
-      href: "/account/parent/applications",
+      href: "/account/parent",
       emoji: "👫",
-      available: hasRole(actor, "parent"),
-      links: [],
+      available: true,
+      links: [
+        {
+          key: "applications",
+          href: "/account/parent/applications",
+          labelKey: "parent.links.applications",
+          emoji: "📋",
+        },
+        {
+          key: "volunteer",
+          href: "/account/parent/my-volunteer",
+          labelKey: "parent.links.volunteer",
+          emoji: "🔮",
+        },
+      ],
+      action: canStart
+        ? {
+            sidebar: <StartApplicationButton variant="sidebar" />,
+            panel: <StartApplicationButton variant="panel" />,
+          }
+        : undefined,
     },
   ];
 

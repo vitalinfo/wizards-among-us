@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 
 import { UserIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
@@ -13,8 +14,8 @@ export type Cabinet = {
   key: CabinetKey;
   href: string;
   emoji: string;
-  // Whether this person holds the role. The design greys the cabinet they do
-  // not have and marks the one they do with a ✅, so this drives both.
+  // Whether this cabinet is open to this person. The design greys the one
+  // that is not.
   available: boolean;
   // The cabinet's own sub-navigation, shown under the divider. Only the
   // CURRENT cabinet's links appear; the design lists «Знайти історію» and
@@ -28,6 +29,12 @@ export type Cabinet = {
     labelKey: string;
     emoji: string;
   }[];
+  // The cabinet's one call to action, shown only while it is current — the
+  // parent cabinet's «Подати заявку». Rendered on the SERVER and handed in as
+  // nodes, because whether it may show at all is an intake decision this
+  // client component has no business making. Two, because the design draws
+  // it differently in the sidebar and in the phone menu.
+  action?: { sidebar: ReactNode; panel: ReactNode };
 };
 
 // The account sidebar: who you are, which cabinets you hold, and what you can
@@ -49,12 +56,16 @@ export type Cabinet = {
 export function AccountNav({
   cabinets,
   identity,
+  placement,
   className,
 }: {
   cabinets: readonly Cabinet[];
   // The signed-in person's handle, if Telegram gave us one. Shown under «Мій
   // профіль» in place of the generic «Telegram акаунт».
   identity: string | null;
+  // Which drawing of the cabinet's action to use: the desktop sidebar's or
+  // the phone menu's.
+  placement: "sidebar" | "panel";
   className?: string;
 }) {
   const t = useTranslations("account");
@@ -121,8 +132,10 @@ export function AccountNav({
         <>
           <hr className="border-divider my-6" />
           {/* 69px between the two rows in the design, which is the line box
-              plus this gap — not the 16 a default list rhythm would give. */}
-          <ul className="flex flex-col gap-12">
+              plus this gap — not the 16 a default list rhythm would give. 60
+              in the phone menu, which only ever renders below lg, as the
+              sidebar only ever renders from it. */}
+          <ul className="flex flex-col gap-9 lg:gap-12">
             {current.links.map((link) => {
               // The page you are ON, not just the cabinet: the design sets this
               // row in the primary blue, and aria-current says the same thing
@@ -146,6 +159,20 @@ export function AccountNav({
             })}
           </ul>
         </>
+      ) : null}
+
+      {/* At the foot of the sidebar, where the design pins it — the sidebar is
+          stretched to the viewport by the shell, so `mt-auto` is what puts it
+          there. In the phone menu it follows the links instead, with the
+          menu's own sign-out below it. */}
+      {current?.action ? (
+        placement === "sidebar" ? (
+          <div className="mt-auto flex justify-center pt-12">
+            {current.action.sidebar}
+          </div>
+        ) : (
+          <div className="mt-14 px-4">{current.action.panel}</div>
+        )
       ) : null}
     </nav>
   );

@@ -3,11 +3,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { logout } from "@/app/auth/actions";
-import { CloseIcon, MenuIcon, SignOutIcon } from "@/components/icons";
+import { CloseIcon, ExitIcon, MenuIcon, SignOutIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
 import { SiteLogo } from "@/components/site/SiteLogo";
 import { cn } from "@/lib/utils";
 
+import { AccountMenu } from "./AccountMenu";
 import { AccountNav, type Cabinet } from "./AccountNav";
 
 const ROUND =
@@ -19,9 +20,8 @@ const ROUND =
 // marketed to.
 //
 // That round button is sign-out on desktop and the menu toggle on a phone,
-// where the sidebar collapses into a panel. Which means sign-out has nowhere
-// to live on a phone in the design as drawn, so it goes at the FOOT of that
-// panel — flagged, because it is the one thing here the design does not say.
+// where the sidebar collapses into a panel — and sign-out moves to a «Вихід»
+// row at the foot of that panel (Figma 136:3530).
 export function AccountShell({
   cabinets,
   identity,
@@ -76,13 +76,14 @@ export function AccountShell({
             {/* Sign-out from lg, where the sidebar is always on screen. */}
             <div className="hidden lg:block">{signOut}</div>
 
-            {/* A <details>, so the panel opens with no JavaScript and the
+            {/* A <details> (inside AccountMenu, which closes it again on
+                navigation), so the panel opens with no JavaScript and the
                 keyboard and screen-reader behaviour come from the element —
                 the same reason the site header's menu is one. The <summary>
                 IS the close button: open, the burger swaps to an ×, and
                 because the summary stays put the × lands where the design
                 draws it. */}
-            <details className="group lg:hidden">
+            <AccountMenu className="group lg:hidden">
               <summary
                 aria-label={t("nav.menu")}
                 className={cn(
@@ -94,7 +95,7 @@ export function AccountShell({
                 <CloseIcon className="hidden size-5 group-open:block" />
               </summary>
 
-              <div className="bg-surface fixed inset-0 z-50 flex flex-col overflow-y-auto px-4 pt-6 pb-10">
+              <div className="bg-surface fixed inset-0 z-50 flex flex-col overflow-y-auto px-4 pt-6 pb-3.5">
                 {/* The panel covers the header, so it carries its own logo —
                     otherwise the brand disappears the moment the menu opens,
                     and the design keeps it in frame. The same reason the site
@@ -107,15 +108,26 @@ export function AccountShell({
                   <SiteLogo width={135} height={135} className="h-12 w-auto" />
                 </Link>
 
-                <AccountNav cabinets={cabinets} identity={identity} />
-                {/* The design gives a phone no sign-out at all — the round
-                    button is the menu toggle there. It belongs with the rest
-                    of the account controls rather than nowhere. */}
-                <div className="mt-auto flex justify-center pt-10">
-                  {signOut}
-                </div>
+                <AccountNav
+                  cabinets={cabinets}
+                  identity={identity}
+                  placement="panel"
+                />
+                {/* A row, not the round button: on a phone the round button
+                    is the menu toggle, and the design ends the menu with
+                    «Вихід» set like the rows above it. Its visible text is its
+                    name, so it needs no aria-label. */}
+                <form action={logout} className="mt-auto pt-6">
+                  <button
+                    type="submit"
+                    className="hover:text-primary focus-visible:outline-ring flex w-full items-center gap-3.5 rounded px-4 py-3.5 text-base leading-5 tracking-[-0.03em] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+                  >
+                    <ExitIcon className="size-6" />
+                    {t("nav.signOut")}
+                  </button>
+                </form>
               </div>
-            </details>
+            </AccountMenu>
           </div>
         </div>
       </header>
@@ -127,11 +139,15 @@ export function AccountShell({
         )}
       >
         {/* 310 of the design's 1920, and only from lg — below it the same nav
-            is the panel above. */}
+            is the panel above. At least as tall as the viewport below the
+            header (107) and above the shell's bottom padding (100), so a
+            cabinet's action sits at the foot of the screen as drawn — 98px
+            off the bottom of the 1080 frame — even when the page is short. */}
         <AccountNav
           cabinets={cabinets}
           identity={identity}
-          className="hidden w-[310px] shrink-0 pt-4 lg:flex"
+          placement="sidebar"
+          className="hidden w-[310px] shrink-0 pt-4 lg:flex lg:min-h-[calc(100dvh-207px)]"
         />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
