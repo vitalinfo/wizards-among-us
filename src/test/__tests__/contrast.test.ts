@@ -38,6 +38,11 @@ describe("colour contrast (WCAG AA)", () => {
     ["primary", "surface", AA_NORMAL],
     ["primary-foreground", "primary", AA_NORMAL],
     ["primary-tint-foreground", "primary-tint", AA_NORMAL],
+    // The claim briefing's «важливо!» and «ВАЖЛИВИЙ ДЕДЛАЙН». Emphasis inside
+    // body text, so it is held to the NORMAL threshold at every background it
+    // can land on — the design's own #ff0000 is 4.00:1 and would fail here.
+    ["danger", "background", AA_NORMAL],
+    ["danger", "surface", AA_NORMAL],
     // The 2026 redesign puts the public pages on a soft blue canvas rather than
     // white, so every foreground that was only ever checked against white needs
     // checking against that too.
@@ -55,6 +60,7 @@ describe("colour contrast (WCAG AA)", () => {
     ["foreground", "cream-soft", AA_NORMAL],
     ["muted-foreground", "cream-soft", AA_NORMAL],
     ["body", "cream-soft", AA_NORMAL],
+    ["danger", "cream-soft", AA_NORMAL],
     ["primary", "cream-soft", AA_NORMAL],
     ["foreground", "cream-warm", AA_NORMAL],
     ["muted-foreground", "cream-warm", AA_NORMAL],

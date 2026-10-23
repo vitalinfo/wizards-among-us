@@ -1,7 +1,7 @@
 import type { FileKind } from "@/db/enums";
 import type { applications, claims } from "@/db/schema";
 import { intakeOpen } from "@/features/campaigns/authz";
-import { isAdmin, isUser, type MaybeActor } from "@/lib/actor";
+import { hasRole, isAdmin, isUser, type MaybeActor } from "@/lib/actor";
 
 // Types are imported with `import type` so this module stays free of any runtime
 // DB/drizzle imports — the predicates are pure and safe to import anywhere.
@@ -158,12 +158,27 @@ export function canUploadApplicationFile(
 //                             volunteer must never see it, not even the one
 //                             holding the claim, and not even the parent's own
 //                             claiming volunteer.
-//   letter_photo            — same audience as the other sensitive fields:
-//   child_with_letter_photo   admin, the owning parent, or the volunteer
+//   letter_photo            — on the BROWSE CARD, so any signed-in volunteer
+//                             may read it while the child is browsable (Vital,
+//                             2026-10-23, from the Figma 118:420 card and the
+//                             §4.3 list he supplied with it). See below.
+//   child_with_letter_photo — admin, the owning parent, or the volunteer
 //   confirmation              holding the ACTIVE claim. The confirmation photo
 //                             deliberately reaches the claiming volunteer
 //                             (Vital, Phase 7): they bought the gift, and
 //                             seeing it arrive is the point of the whole thing.
+//
+// THE LETTER PHOTO IS NOW TIER 1 AND THE CHILD-WITH-LETTER PHOTO IS NOT. That
+// split is the whole point: a photograph of a letter shows a child's
+// handwriting and their wish, and the browse card is built around it; a
+// photograph of the CHILD shows their face, and that still waits for a claim.
+// Do not collapse the two kinds back together.
+//
+// `browsable` is what keeps the widening bounded. Without it this would reach
+// every letter photo ever uploaded — including drafts under review and
+// children from previous campaigns, who are hidden from volunteers precisely
+// because their campaign is over (the archive is derived, CLAUDE.md). The
+// route passes it from the application's own status and campaign.
 //
 // Separate from canViewSensitiveChildData so the certificate can never be
 // widened by a change to the sensitive-field rule.
@@ -172,9 +187,18 @@ export function canViewApplicationFile(
   application: Pick<Application, "parentId">,
   claim: Pick<Claim, "volunteerId" | "releasedAt"> | null | undefined,
   kind: FileKind,
+  ctx: {
+    // The application is APPROVED and its campaign is the active one — i.e. it
+    // is a card a volunteer could be looking at right now. Claimed children are
+    // not on any card, so they are not browsable either.
+    browsable: boolean;
+  } = { browsable: false },
 ): boolean {
   if (kind === "idp_certificate") {
     return isAdmin(actor) || ownsApplication(actor, application);
+  }
+  if (kind === "letter_photo" && ctx.browsable && hasRole(actor, "volunteer")) {
+    return true;
   }
   return canViewSensitiveChildData(actor, application, claim);
 }

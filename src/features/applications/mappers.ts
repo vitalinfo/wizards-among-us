@@ -15,9 +15,20 @@ type Application = typeof applications.$inferSelect;
 // can read; the delivery address, parent name and contact remain post-claim
 // only.
 //
-// `home_region` + `home_town` are also on the card (Vital, Phase 6) so a
-// volunteer sees the journey — «Донецька область (м. Донецьк) → Львівська
-// область». Origin is where the family no longer is, so it locates nobody.
+// `home_region` + `home_town` are also on the card (Vital, Phase 6). Origin is
+// where the family no longer is, so it locates nobody.
+//
+// The 118:420 redesign (Vital, 2026-10-23) moved the tier in BOTH directions,
+// and the §4.3 list he supplied with it is the authority for each half:
+//   OUT — `current_town`, `current_region` and `gift_price`. The card now shows
+//         one place, «звідки виїхали», and no price; §4.3 no longer promises
+//         any of the three. This reverses the Phase 6 widening I argued against
+//         twice, so the risk it carried is gone.
+//   IN  — the LETTER PHOTO and the SHOP LINKS, which §4.3 previously listed as
+//         things a volunteer does NOT see. That is the real widening here, and
+//         it is the one the policy had to move for.
+// The child-with-letter photo did NOT move: a letter is handwriting and a wish,
+// a photograph of the child is their face.
 //
 // This is a DTO mapper, not authorization — it lives beside the resource rather
 // than in authz.ts (CLAUDE.md).
@@ -43,22 +54,31 @@ export type BrowseCard = {
   // they can be found, so it carries far less risk than the destination.
   homeRegion: Application["homeRegion"];
   homeTown: Application["homeTown"];
-  currentRegion: Application["currentRegion"];
-  // Where the family lives NOW. On the card by an explicit decision (Vital,
-  // Phase 6) after I argued against it twice: combined with a first name, an
-  // age and the family story it can identify one displaced family in a small
-  // town, and any signed-in user can browse — there is no volunteer approval
-  // gate (§11). The parent-facing copy was rewritten in the same change so we
-  // no longer promise families it is post-claim only. If abuse appears, this
-  // and family_story are the two fields to pull back first.
-  currentTown: Application["currentTown"];
   giftDescription: Application["giftDescription"];
-  giftPrice: Application["giftPrice"];
+  // The shop links the parent chose, from type_fields. Tier 1 as of the 118:420
+  // card, which lists them under «Посилання на подарунок» — so a volunteer can
+  // see what the child actually asked for before committing. Note this also
+  // means someone can buy without claiming: the claim is what creates the
+  // contact and the audit entry, so a gift bought off a card nobody claimed
+  // arrives with no trail. Flagged, not solved.
+  giftUrls: readonly string[];
+  // The id of the letter photo, if the parent uploaded one — NOT the file, and
+  // not a signed url. Reads go through the authorized route, which checks the
+  // kind and logs every single one; a url that could be forwarded would defeat
+  // both. Null when the application has no letter photo, which is every
+  // application submitted before the upload existed.
+  letterPhotoId: string | null;
   familyStory: Application["familyStory"];
   status: Application["status"];
 };
 
-export function toBrowseCard(application: Application): BrowseCard {
+export function toBrowseCard(
+  application: Application,
+  // The letter photo lives in another table, so it cannot be derived from the
+  // application row — it is passed in, and defaults to absent. A caller that
+  // forgets it shows no photo; it can never show someone else's.
+  letterPhotoId: string | null = null,
+): BrowseCard {
   return {
     id: application.id,
     childFirstName: firstName(application.childName),
@@ -66,13 +86,42 @@ export function toBrowseCard(application: Application): BrowseCard {
     childGender: application.childGender,
     homeRegion: application.homeRegion,
     homeTown: application.homeTown,
-    currentRegion: application.currentRegion,
-    currentTown: application.currentTown,
     giftDescription: application.giftDescription,
-    giftPrice: application.giftPrice,
+    giftUrls: giftUrls(application.typeFields),
+    letterPhotoId,
     familyStory: application.familyStory,
     status: application.status,
   };
+}
+
+// type_fields is jsonb, so it is `unknown` as far as the type system is
+// concerned: anything in there has to be checked, not cast. A malformed value
+// yields no links rather than throwing on a page that lists children.
+function giftUrls(typeFields: Application["typeFields"]): readonly string[] {
+  if (!typeFields || typeof typeFields !== "object") {
+    return [];
+  }
+  const value = (typeFields as { giftUrls?: unknown }).giftUrls;
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (entry): entry is string => typeof entry === "string" && isHttpUrl(entry),
+  );
+}
+
+// These URLs are PARENT-SUPPLIED and now go into an href on a page every
+// volunteer sees. zod's `.url()` accepts anything the URL constructor does,
+// which includes `javascript:` — so the protocol is checked here, where the
+// value leaves the database, rather than trusted because it was validated once
+// on the way in. An older row could predate any validation at all.
+function isHttpUrl(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function firstName(fullName: string | null): string | null {

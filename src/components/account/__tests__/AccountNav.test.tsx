@@ -83,18 +83,17 @@ describe("AccountNav cabinets", () => {
     ).toHaveAttribute("href", "/account/parent/applications");
   });
 
-  // The ✅ says «this cabinet is yours». It is the only thing separating the
-  // two rows for anyone who cannot see that the other is grey, so it carries a
-  // name rather than being decorative.
-  it("marks the cabinets you hold, audibly", () => {
+  // The ✅ is gone (Vital, agreed with the designers). What separates the two
+  // rows for someone who cannot see the tint is that one is a link and the
+  // other is not — asserted above — so nothing here rests on colour alone.
+  it("no longer marks a held cabinet with a tick", () => {
     renderNav(cabinets({ volunteer: true, parent: false }));
 
-    expect(screen.getAllByRole("img", { name: t.nav.available })).toHaveLength(
-      1,
-    );
+    expect(screen.queryByText("✅")).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("img")).toHaveLength(0);
   });
 
-  it("marks where you are with aria-current, not with the tick", () => {
+  it("marks where you are with aria-current, not with a tick", () => {
     renderNav(cabinets({ volunteer: true, parent: true }));
 
     const current = screen.getByRole("link", {
@@ -121,14 +120,32 @@ describe("AccountNav sub-navigation", () => {
 
   // A page inside the cabinet is still in the cabinet — the row stays lit and
   // its links stay up, which is what the design shows for «Знайти історію».
-  it("keeps the cabinet current on a page beneath it", () => {
+  //
+  // But it is the SECTION you are in, not the page: «page» belongs to the
+  // sub-link, and two elements announcing "current page" is a defect only a
+  // screen-reader user would meet.
+  it("marks the cabinet as the section you are in, not the page", () => {
     pathname = "/account/volunteer/children";
     renderNav();
 
     expect(
       screen.getByRole("link", { name: new RegExp(t.cabinets.volunteer) }),
-    ).toHaveAttribute("aria-current", "page");
+    ).toHaveAttribute("aria-current", "location");
+    expect(
+      screen
+        .getAllByRole("link")
+        .filter((link) => link.getAttribute("aria-current") === "page"),
+    ).toHaveLength(1);
     pathname = "/account/volunteer";
+  });
+
+  it("marks the cabinet as the page when its own front page is open", () => {
+    pathname = "/account/volunteer";
+    renderNav();
+
+    expect(
+      screen.getByRole("link", { name: new RegExp(t.cabinets.volunteer) }),
+    ).toHaveAttribute("aria-current", "page");
   });
 
   // The check is the path or a path SEGMENT beneath it, so a route that merely
@@ -197,5 +214,35 @@ describe("AccountNav profile row", () => {
       "@olena",
     );
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+// The design highlights the page you are on inside the cabinet, not just the
+// cabinet itself.
+describe("AccountNav current page", () => {
+  it("marks the sub-link you are on, by name as well as by colour", () => {
+    pathname = "/account/volunteer/children";
+    renderNav();
+
+    expect(
+      screen.getByRole("link", { name: t.volunteer.links.children }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      screen.getByRole("link", { name: t.volunteer.links.claims }),
+    ).not.toHaveAttribute("aria-current");
+    pathname = "/account/volunteer";
+  });
+
+  // The cabinet row stays current for a page BENEATH it, but the sub-link is
+  // only current for its own page — otherwise two rows would claim to be where
+  // you are.
+  it("does not mark a sub-link from a deeper page under it", () => {
+    pathname = "/account/volunteer/children/abc/claim";
+    renderNav();
+
+    expect(
+      screen.getByRole("link", { name: t.volunteer.links.children }),
+    ).not.toHaveAttribute("aria-current");
+    pathname = "/account/volunteer";
   });
 });

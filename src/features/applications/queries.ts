@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { applications, claims, users } from "@/db/schema";
+import { applications, campaigns, claims, users } from "@/db/schema";
 
 // Data access for the parent application flow. Deliberately thin: every
 // authorization decision is made by the pure predicates in ./authz and passed in
@@ -215,30 +215,44 @@ export async function getUserFullName(userId: string): Promise<string | null> {
 }
 
 // Everything the file routes need to authorize a read: the application (for
-// ownership) and its ACTIVE claim (for the claiming-volunteer rule). Not scoped
-// to a parent — an admin or a claiming volunteer must be able to reach it, and
-// the authorization decision is made by the predicates, not by this query.
+// ownership), its ACTIVE claim (for the claiming-volunteer rule), and whether
+// it is BROWSABLE (for the letter photo, which any volunteer may see while the
+// child is on a card — see canViewApplicationFile). Not scoped to a parent — an
+// admin or a claiming volunteer must be able to reach it, and the authorization
+// decision is made by the predicates, not by this query.
 export async function getApplicationForFileAccess(
   applicationId: string,
 ): Promise<{
   application: Application;
   claim: { volunteerId: string; releasedAt: Date | null } | null;
+  browsable: boolean;
 } | null> {
   const db = getDb();
-  const [application] = await db
-    .select()
+  // The campaign comes along because "browsable" is not a property of the
+  // application alone: a child from last year is approved and claimed and still
+  // must not be reachable, because their campaign is no longer active.
+  const [row] = await db
+    .select({ application: applications, campaignStatus: campaigns.status })
     .from(applications)
+    .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
     .where(eq(applications.id, applicationId))
     .limit(1);
-  if (!application) {
+  if (!row) {
     return null;
   }
+  const application = row.application;
+  // `approved` only, exactly like the browse list: once a child is claimed they
+  // are on nobody's card, so no volunteer has a reason to read their letter
+  // through this route. The one who HOLDS them still can — that comes from the
+  // active claim, not from this flag.
+  const browsable =
+    row.campaignStatus === "active" && application.status === "approved";
   const [claim] = await db
     .select({ volunteerId: claims.volunteerId, releasedAt: claims.releasedAt })
     .from(claims)
     .where(eq(claims.applicationId, applicationId))
     .limit(1);
-  return { application, claim: claim ?? null };
+  return { application, claim: claim ?? null, browsable };
 }
 
 // Mark a wish fulfilled. Guarded on `claimed` in SQL, not only in the UI: a

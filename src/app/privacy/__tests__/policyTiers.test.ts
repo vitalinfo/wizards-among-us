@@ -19,23 +19,32 @@ import { toBrowseCard } from "@/features/applications/mappers";
 // Keys are read off the mapper's RETURN VALUE, not off the BrowseCard type: a
 // type cannot be enumerated at runtime, and a field added to the projection is
 // exactly the change that needs to fail here.
-const card = toBrowseCard({
-  id: "a1",
-  childName: "Марійка Коваль",
-  childAge: 8,
-  childGender: "girl",
-  homeRegion: "donetska",
-  homeTown: "Донецьк",
-  currentRegion: "lvivska",
-  currentTown: "Стрий",
-  giftDescription: "Лялька",
-  giftPrice: "700.00",
-  familyStory: "Виїхали у 2022 році.",
-  status: "approved",
-} as unknown as typeof applications.$inferSelect);
+const card = toBrowseCard(
+  {
+    id: "a1",
+    childName: "Марійка Коваль",
+    childAge: 8,
+    childGender: "girl",
+    homeRegion: "donetska",
+    homeTown: "Донецьк",
+    currentRegion: "lvivska",
+    currentTown: "Стрий",
+    giftDescription: "Лялька",
+    giftPrice: "700.00",
+    typeFields: { giftUrls: ["https://rozetka.com.ua/p1/"] },
+    familyStory: "Виїхали у 2022 році.",
+    status: "approved",
+  } as unknown as typeof applications.$inferSelect,
+  "file-1",
+);
 
 const access = messages.policy.sections.access.body;
-const [, preClaim = "", postClaimStage = ""] = access.split(
+// §4.3 only. The slice has to STOP at §4.4, or the «не бачать» half runs on
+// into the post-claim list — which legitimately names the shop link and the
+// letter photo as things the chosen charivnyk receives, and would make the
+// disjointness check below fail on fields that are correctly in both sections.
+const beforePostClaim = access.slice(0, access.indexOf("<h3>4.4."));
+const [, preClaim = "", postClaimStage = ""] = beforePostClaim.split(
   /<p>До вибору дитини чарівники можуть бачити в анкеті:<\/p>|<p>На цьому етапі чарівники не бачать:<\/p>/,
 );
 
@@ -59,10 +68,12 @@ const DESCRIBED: Record<string, string | null> = {
   childAge: "вік дитини",
   homeRegion: "родина була змушена залишити через війну",
   homeTown: "родина була змушена залишити через війну",
-  currentRegion: "у якому родина проживає зараз",
-  currentTown: "у якому родина проживає зараз",
   giftDescription: "опис бажаного подарунка",
-  giftPrice: "орієнтовну вартість",
+  // Both moved INTO the pre-claim list with the 118:420 card (Vital): §4.3 used
+  // to name them as things a charivnyk does not see, and the §4.3 he supplied
+  // with the design names them as things they do.
+  giftUrls: "посилання на бажаний подарунок",
+  letterPhotoId: "фотографію листа дитини Чарівному Миколаю",
   familyStory: "історію родини",
 };
 
@@ -100,15 +111,16 @@ describe("the policy's pre-claim list and the browse card", () => {
     }
   });
 
-  it("lists the letter photo, the shop link and the surnames as unseen", () => {
+  it("lists the surnames, the documents and the child's photo as unseen", () => {
     for (const phrase of [
       "прізвища дитини",
       "документів, наданих для перевірки анкети",
       "номера телефону батьків",
       "прізвища батьків або законного представника",
       "даних для доставки подарунка",
-      "посилання на бажаний подарунок",
-      "фотографії листа дитини Чарівному Миколаю",
+      // The photo of the CHILD stayed behind when the photo of the LETTER moved
+      // to the card. That split is the point: a letter is handwriting and a
+      // wish, a child's photograph is their face.
       "фотографії дитини з листом",
     ]) {
       expect(
@@ -122,11 +134,17 @@ describe("the policy's pre-claim list and the browse card", () => {
   // takes away — the two lists are read together and a field in both is worse
   // than a field in neither.
   it("keeps the two lists disjoint", () => {
-    for (const phrase of [
-      "фотографію листа дитини Чарівному Миколаю",
-      "посилання на бажаний подарунок",
-    ]) {
-      expect(preClaim, `§4.3 still offers: ${phrase}`).not.toContain(phrase);
+    // Nothing the card now shows may ALSO appear in the «не бачать» list: the
+    // two are read together, and a field in both is worse than a field in
+    // neither. This is the check that would have caught shipping the 118:420
+    // card without moving the document.
+    for (const phrase of Object.values(DESCRIBED)) {
+      if (phrase === null) {
+        continue;
+      }
+      expect(postClaimStage, `§4.3 still denies: ${phrase}`).not.toContain(
+        phrase,
+      );
     }
   });
 });

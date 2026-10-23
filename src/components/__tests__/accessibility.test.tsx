@@ -17,11 +17,11 @@ import { axe } from "@/test/axe";
 // The product is used on phones by stressed people and must work with a keyboard
 // and a screen reader (plan §12), so this runs in CI.
 
-vi.mock("@/app/account/parent/applications/actions", () => ({
+vi.mock("@/app/account/(shell)/parent/applications/actions", () => ({
   startApplication: vi.fn(),
   confirmReceiptAction: vi.fn(),
 }));
-vi.mock("@/app/account/parent/review/actions", () => ({
+vi.mock("@/app/account/(shell)/parent/review/actions", () => ({
   submitReviewAction: vi.fn(async () => ({ status: "idle" })),
 }));
 vi.mock("@/app/auth/actions", () => ({ logout: vi.fn() }));

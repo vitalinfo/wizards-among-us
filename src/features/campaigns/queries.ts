@@ -14,6 +14,9 @@ export type ActiveCampaignForIntake = {
   status: (typeof campaigns.$inferSelect)["status"];
   acceptingApplications: boolean;
   giftPriceCap: string | null;
+  // When the campaign closes. Read by the claim briefing, which states the gift
+  // deadline from the campaign rather than from a date typed into the copy.
+  endsAt: Date | null;
 };
 
 export async function getActiveCampaignForIntake(): Promise<ActiveCampaignForIntake | null> {
@@ -25,6 +28,7 @@ export async function getActiveCampaignForIntake(): Promise<ActiveCampaignForInt
       status: campaigns.status,
       acceptingApplications: campaigns.acceptingApplications,
       giftPriceCap: campaigns.giftPriceCap,
+      endsAt: campaigns.endsAt,
     })
     .from(campaigns)
     .where(eq(campaigns.status, "active"))
@@ -115,6 +119,7 @@ export async function getCampaignById(
       status: campaigns.status,
       acceptingApplications: campaigns.acceptingApplications,
       giftPriceCap: campaigns.giftPriceCap,
+      endsAt: campaigns.endsAt,
     })
     .from(campaigns)
     .where(eq(campaigns.id, id))

@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useFormStatus } from "react-dom";
 
-import { confirmReceiptAction } from "@/app/account/parent/applications/actions";
+import { confirmReceiptAction } from "@/app/account/(shell)/parent/applications/actions";
 import { UploadField, type UploadedFile } from "@/components/forms/UploadField";
 
 // Closing the loop: a photo of the child with their gift, then the button that

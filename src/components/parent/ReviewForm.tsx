@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 
-import { submitReviewAction } from "@/app/account/parent/review/actions";
+import { submitReviewAction } from "@/app/account/(shell)/parent/review/actions";
 import { TextAreaField } from "@/components/forms/TextAreaField";
 import { initialReviewActionState } from "@/features/reviews/formState";
 

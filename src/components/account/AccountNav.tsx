@@ -63,6 +63,17 @@ export function AccountNav({
   // and /account/volunteer/children both light the same row.
   const isCurrent = (cabinet: Cabinet) =>
     pathname === cabinet.href || pathname.startsWith(`${cabinet.href}/`);
+  // «page» belongs to exactly ONE element. Now that the sub-link claims it for
+  // the page you are on, the cabinet row above it can only claim to be the
+  // SECTION you are in — `location` — unless the cabinet's own front page is
+  // where you are. Two elements both announcing "current page" is a defect a
+  // sighted reader never sees.
+  const currentKind = (cabinet: Cabinet): "page" | "location" | undefined =>
+    pathname === cabinet.href
+      ? "page"
+      : isCurrent(cabinet)
+        ? "location"
+        : undefined;
   const current = cabinets.find(isCurrent);
 
   return (
@@ -99,6 +110,7 @@ export function AccountNav({
             <CabinetRow
               cabinet={cabinet}
               current={isCurrent(cabinet)}
+              currentKind={currentKind(cabinet)}
               label={t(`cabinets.${cabinet.key}`)}
             />
           </li>
@@ -111,17 +123,27 @@ export function AccountNav({
           {/* 69px between the two rows in the design, which is the line box
               plus this gap — not the 16 a default list rhythm would give. */}
           <ul className="flex flex-col gap-12">
-            {current.links.map((link) => (
-              <li key={link.key}>
-                <Link
-                  href={link.href}
-                  className="hover:text-primary focus-visible:outline-ring flex items-center gap-3 rounded px-4 text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
-                >
-                  <span aria-hidden="true">{link.emoji}</span>
-                  {t(link.labelKey)}
-                </Link>
-              </li>
-            ))}
+            {current.links.map((link) => {
+              // The page you are ON, not just the cabinet: the design sets this
+              // row in the primary blue, and aria-current says the same thing
+              // to a screen reader — colour alone would say it to nobody else.
+              const here = pathname === link.href;
+              return (
+                <li key={link.key}>
+                  <Link
+                    href={link.href}
+                    aria-current={here ? "page" : undefined}
+                    className={cn(
+                      "hover:text-primary focus-visible:outline-ring flex items-center gap-3 rounded px-4 text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2",
+                      here && "text-primary font-medium",
+                    )}
+                  >
+                    <span aria-hidden="true">{link.emoji}</span>
+                    {t(link.labelKey)}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </>
       ) : null}
@@ -132,10 +154,14 @@ export function AccountNav({
 function CabinetRow({
   cabinet,
   current,
+  currentKind,
   label,
 }: {
   cabinet: Cabinet;
+  // Drives the tint: the row stays lit for any page inside the cabinet.
   current: boolean;
+  // Drives aria-current, which is narrower — see currentKind above.
+  currentKind?: "page" | "location";
   label: string;
 }) {
   const t = useTranslations("account");
@@ -161,18 +187,12 @@ function CabinetRow({
       >
         {cabinet.emoji}
       </span>
-      <span className="flex items-center gap-2">
-        {label}
-        {/* The ✅ says «this cabinet is yours», not «you are here» —
-            aria-current says where you are. Read out, because it is the only
-            thing distinguishing the two rows for someone who cannot see that
-            the other one is grey. */}
-        {cabinet.available ? (
-          <span role="img" aria-label={t("nav.available")}>
-            ✅
-          </span>
-        ) : null}
-      </span>
+      {/* No ✅. The tinted row says «you are here» and aria-current says it to
+          a screen reader; the cabinet you do NOT hold is distinguished by not
+          being a link at all, plus its grey disc and muted label, so nothing
+          here rests on colour alone. Dropped on Vital's call, agreed with the
+          designers. */}
+      <span>{label}</span>
     </>
   );
 
@@ -190,7 +210,7 @@ function CabinetRow({
   return (
     <Link
       href={cabinet.href}
-      aria-current={current ? "page" : undefined}
+      aria-current={currentKind}
       className={cn(
         row,
         "focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2",

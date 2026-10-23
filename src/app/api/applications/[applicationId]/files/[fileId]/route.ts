@@ -44,6 +44,10 @@ export async function GET(
       context.application,
       context.claim,
       file.kind,
+      // The letter photo is on the browse card, so any volunteer may read it
+      // while this child is actually browsable — approved or claimed, in the
+      // ACTIVE campaign. Everything else still needs the claim.
+      { browsable: context.browsable },
     )
   ) {
     // 404, not 403: a volunteer probing for a certificate shouldn't learn that

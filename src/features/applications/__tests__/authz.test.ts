@@ -239,6 +239,73 @@ describe("canViewApplicationFile", () => {
     );
   });
 
+  // The letter photo is on the browse card as of the 118:420 redesign, so any
+  // volunteer may read it — but only while the child is actually browsable, and
+  // only that one kind.
+  describe("the letter photo on a browsable card", () => {
+    const browsable = { browsable: true };
+
+    it("shows it to a volunteer holding no claim at all", () => {
+      expect(
+        canViewApplicationFile(volunteer, app, null, "letter_photo", browsable),
+      ).toBe(true);
+    });
+
+    it("does NOT show the child's own photo to the same volunteer", () => {
+      expect(
+        canViewApplicationFile(
+          volunteer,
+          app,
+          null,
+          "child_with_letter_photo",
+          browsable,
+        ),
+      ).toBe(false);
+    });
+
+    it("does not widen the ВПО certificate", () => {
+      expect(
+        canViewApplicationFile(
+          volunteer,
+          app,
+          null,
+          "idp_certificate",
+          browsable,
+        ),
+      ).toBe(false);
+    });
+
+    // A draft under review, a rejected application, or a child from a previous
+    // campaign: not browsable, so the letter is back behind the claim. This is
+    // the bound on the whole widening.
+    it("refuses it when the child is not browsable", () => {
+      expect(
+        canViewApplicationFile(volunteer, app, null, "letter_photo", {
+          browsable: false,
+        }),
+      ).toBe(false);
+      // …and with no context at all, which is the default a caller gets if it
+      // forgets to pass one.
+      expect(canViewApplicationFile(volunteer, app, null, "letter_photo")).toBe(
+        false,
+      );
+    });
+
+    // Being signed in is not enough: the role is what browsing requires, and a
+    // parent who has not opted in as a volunteer is not browsing.
+    it("refuses a signed-in parent who is not a volunteer", () => {
+      expect(
+        canViewApplicationFile(
+          otherParent,
+          app,
+          null,
+          "letter_photo",
+          browsable,
+        ),
+      ).toBe(false);
+    });
+  });
+
   it("shows the photos to the claiming volunteer, but not to another one", () => {
     for (const kind of ["letter_photo", "child_with_letter_photo"] as const) {
       expect(canViewApplicationFile(volunteer, app, activeClaim, kind)).toBe(

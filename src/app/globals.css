@@ -49,6 +49,14 @@
      (darken ~12%) applied to the accent. */
   --accent-hover: #d0b719;
 
+  /* The one red in the system: «це важливо!» and «ВАЖЛИВИЙ ДЕДЛАЙН» on the
+     claim briefing. NOT the design's #ff0000, which is 4.00:1 on white and
+     fails AA at the size it is actually set — this is the lightest red that
+     clears 4.5:1 on white (4.77:1) AND on the cream (4.54:1), so it is safe on
+     every background it can land on. Used for emphasis in text only; nothing
+     here is a red button. */
+  --danger: #d93025;
+
   --border: #c5c7c7; /* 1.5px card borders */
   --divider: #e6e7e7; /* 1px section dividers */
 
@@ -106,6 +114,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-hover: var(--accent-hover);
+  --color-danger: var(--danger);
   --color-border: var(--border);
   --color-divider: var(--divider);
   --color-primary: var(--primary);

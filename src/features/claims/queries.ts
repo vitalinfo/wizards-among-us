@@ -12,7 +12,7 @@ import {
 
 import { getDb } from "@/db";
 import type { UkraineRegion } from "@/db/enums";
-import { applications, claims, users } from "@/db/schema";
+import { applicationFiles, applications, claims, users } from "@/db/schema";
 import { toBrowseCard, type BrowseCard } from "@/features/applications/mappers";
 
 // Volunteer-facing data access. Authorization lives in the actions/pages
@@ -24,27 +24,27 @@ export type BrowseFilters = {
   region?: UkraineRegion;
   minAge?: number;
   maxAge?: number;
-  // undefined = both. Claimed children stay visible (Phase 6 decision) so a
-  // volunteer can see how the campaign is going.
-  availability?: "available" | "claimed";
 };
 
 // A browse row is the redacted card plus whether it is taken. It deliberately
 // carries NOTHING beyond toBrowseCard's projection — the sensitive fields are
 // dropped at the data layer, so a card physically cannot leak an address to the
 // client (child-data invariant, tier 1).
-export type BrowseRow = BrowseCard & { claimed: boolean };
+export type BrowseRow = BrowseCard;
 
-// Only these two statuses are browsable: `approved` is available, `claimed` is
-// taken. A draft/submitted/rejected application must never appear.
-const BROWSABLE = sql`${applications.status} in ('approved','claimed')`;
+// `approved` and nothing else: a child who already has a charivnyk is not in
+// this list (Vital, 2026-10-23).
+//
+// Phase 6 kept `claimed` here, visible but marked, so a volunteer could see how
+// the campaign was going, and paired it with an availability filter for hiding
+// them. The 118:420 design has neither — no claimed state on the card and no
+// third picker — which is the design saying this list is what you can still
+// take. Taken children live in «Мої підопічні», where the volunteer holding
+// them looks. The «Уже взяли» label I had put on the card was me papering over
+// that mismatch rather than asking about it.
+const BROWSABLE = sql`${applications.status} = 'approved'`;
 
 function browseConditions(filters: BrowseFilters) {
-  const activeClaim = sql`exists (
-    select 1 from ${claims}
-    where ${claims.applicationId} = ${applications.id}
-      and ${claims.releasedAt} is null
-  )`;
   return [
     // Scoped to ONE campaign (invariant): prior-year families must never
     // surface to volunteers.
@@ -57,11 +57,6 @@ function browseConditions(filters: BrowseFilters) {
     filters.maxAge !== undefined
       ? lte(applications.childAge, filters.maxAge)
       : undefined,
-    filters.availability === "available"
-      ? sql`not ${activeClaim}`
-      : filters.availability === "claimed"
-        ? activeClaim
-        : undefined,
   ].filter(Boolean);
 }
 
@@ -76,16 +71,11 @@ export async function countBrowsable(filters: BrowseFilters): Promise<number> {
 export async function listBrowsable(
   filters: BrowseFilters & { limit: number; offset: number },
 ): Promise<BrowseRow[]> {
+  // No join on claims: `approved` already means nobody holds it, because
+  // claiming moves the status. There is nothing left to ask.
   const rows = await getDb()
-    .select({
-      application: applications,
-      claimId: claims.id,
-    })
+    .select({ application: applications })
     .from(applications)
-    .leftJoin(
-      claims,
-      and(eq(claims.applicationId, applications.id), isNull(claims.releasedAt)),
-    )
     .where(and(...browseConditions(filters)))
     // Oldest approval first so the longest-waiting child is seen first, with id
     // as the tiebreaker — without a total order, rows can swap between pages
@@ -94,10 +84,46 @@ export async function listBrowsable(
     .limit(filters.limit)
     .offset(filters.offset);
 
-  return rows.map((row) => ({
-    ...toBrowseCard(row.application),
-    claimed: row.claimId !== null,
-  }));
+  // One extra query for the whole page rather than a join: a letter photo is
+  // one row per application in the general case but nothing in the schema
+  // guarantees it (a parent can upload twice without removing the first), so a
+  // join would multiply the page. Ordered oldest-first and written into a map,
+  // so the LAST match wins — "the newest of this kind is the last match" is the
+  // rule listApplicationFiles documents, and the one every caller wants.
+  const letterPhotos = await latestLetterPhotos(
+    rows.map((r) => r.application.id),
+  );
+
+  return rows.map((row) =>
+    toBrowseCard(row.application, letterPhotos.get(row.application.id) ?? null),
+  );
+}
+
+async function latestLetterPhotos(
+  applicationIds: readonly string[],
+): Promise<Map<string, string>> {
+  if (applicationIds.length === 0) {
+    return new Map();
+  }
+  const rows = await getDb()
+    .select({
+      applicationId: applicationFiles.applicationId,
+      id: applicationFiles.id,
+    })
+    .from(applicationFiles)
+    .where(
+      and(
+        inArray(applicationFiles.applicationId, [...applicationIds]),
+        eq(applicationFiles.kind, "letter_photo"),
+      ),
+    )
+    .orderBy(asc(applicationFiles.createdAt), asc(applicationFiles.id));
+
+  const latest = new Map<string, string>();
+  for (const row of rows) {
+    latest.set(row.applicationId, row.id);
+  }
+  return latest;
 }
 
 // The active claim on an application, if any.

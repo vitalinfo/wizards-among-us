@@ -10,8 +10,6 @@ export const BROWSE_PAGE_SIZE = 24;
 // The results list, so filter/pager navigation returns to it.
 export const BROWSE_ANCHOR = "children";
 
-export type Availability = "all" | "available" | "claimed";
-
 // Age is picked as a BAND, not two free-text numbers: a volunteer thinks "a
 // child in primary school", not "between 5 and 8", and two inputs invite an
 // empty result set from a range nobody meant.
@@ -37,7 +35,6 @@ export type BrowseQuery = {
   // The region the family LEFT (applications.home_region), not where they are
   // now — volunteers look for families from a place they have a tie to.
   region: UkraineRegion | null;
-  availability: Availability;
   age: AgeBandKey | null;
   page: number;
 };
@@ -58,17 +55,12 @@ function parseAgeBand(value: string | undefined): AgeBandKey | null {
 
 export function parseBrowseQuery(params: {
   region?: string;
-  availability?: string;
   age?: string;
   page?: string;
 }): BrowseQuery {
   const page = Number(params.page);
   return {
     region: parseRegion(params.region),
-    availability:
-      params.availability === "available" || params.availability === "claimed"
-        ? params.availability
-        : "all",
     age: parseAgeBand(params.age),
     page: Number.isInteger(page) && page >= 1 ? page : 1,
   };
@@ -80,9 +72,6 @@ function browseParams(query: BrowseQuery, page: number): URLSearchParams {
   const params = new URLSearchParams();
   if (query.region) {
     params.set("region", query.region);
-  }
-  if (query.availability !== "all") {
-    params.set("availability", query.availability);
   }
   if (query.age !== null) {
     params.set("age", query.age);
@@ -112,22 +101,27 @@ export function browseHref(
   return browseUrl(browseParams(next, changedFilter ? 1 : next.page));
 }
 
-// The url that opens the claim confirmation for one child, preserving the view
-// the volunteer is looking at.
+// The url of the claim briefing for one child, carrying the view the volunteer
+// is looking at so «×» and a refused claim both come back to it.
 //
-// This exists because appending "?claim=..." to browseHref's output produced
-// `/account/volunteer/children#children?claim=<id>` — the query landed INSIDE the
-// fragment, so the server never saw it and the modal silently never opened.
-// Building the params first and adding the fragment last is the only ordering
-// that works, so no caller should be assembling this by hand.
+// A PAGE, not a `?claim=` parameter on this one (Figma 118:420 «Погодження»):
+// what a volunteer agrees to before taking a child is a screenful of
+// obligations — a budget, a deadline, a physical letter to post — and that is
+// not a modal. The old parameter is gone with it; the only thing that put a
+// child behind a confirmation was a row on the current page, and now the child
+// is in the path.
+//
+// `return` is a url this app produced, but it arrives back through a query
+// string, so every reader passes it through safeReturnPath before using it.
 export function claimHref(
   query: BrowseQuery,
   page: number,
   applicationId: string,
 ): string {
-  const params = browseParams(query, page);
-  params.set("claim", applicationId);
-  return browseUrl(params);
+  const params = new URLSearchParams({
+    return: browseUrl(browseParams(query, page)),
+  });
+  return `/account/volunteer/children/${applicationId}/claim?${params}`;
 }
 
 export function browsePageCount(total: number): number {
