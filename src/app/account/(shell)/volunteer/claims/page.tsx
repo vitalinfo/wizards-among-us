@@ -45,6 +45,14 @@ export default async function MyClaimsPage({
   const total = campaign
     ? await countMyClaims(actor.id, campaign.id, query.tab)
     : 0;
+  // Whether this volunteer holds ANY child, whatever the tab — the same count
+  // when the tab is «Всі», so it costs a second query only on the other two.
+  const holdsAny =
+    query.tab === "all"
+      ? total > 0
+      : campaign
+        ? (await countMyClaims(actor.id, campaign.id, "all")) > 0
+        : false;
   const pageCount = claimsPageCount(total);
   const page = Math.min(query.page, pageCount);
   const rows =
@@ -67,12 +75,16 @@ export default async function MyClaimsPage({
         </p>
       </div>
 
-      {/* The tabs stay up even with nothing in the list: «Завершені» being
-          empty is an answer, and losing the control that got you there would
-          leave no way back to «Всі». */}
-      <div className="mt-10">
-        <ClaimTabs current={query.tab} />
-      </div>
+      {/* No tabs for someone who holds nobody — there is nothing to filter,
+          and the design draws the empty cabinet without them. They DO stay up
+          when only one tab is empty: «Завершені» being empty is an answer, and
+          losing the control that got you there would leave no way back to
+          «Всі». */}
+      {holdsAny ? (
+        <div className="mt-10">
+          <ClaimTabs current={query.tab} />
+        </div>
+      ) : null}
 
       {rows.length === 0 ? (
         <Empty tab={query.tab} />
