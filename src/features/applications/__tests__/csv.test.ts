@@ -55,4 +55,32 @@ describe("toCsv", () => {
   it("writes just the header when there are no rows", () => {
     expect(toCsv(["a", "b"], [])).toBe("a,b");
   });
+
+  // The export's headers and its row values are two parallel lists. If they
+  // drift, every value after the missing column lands under the wrong
+  // heading — a current town under «home_town», a contact under
+  // «family_story» — and the file still opens and still looks plausible.
+  // Refusing to write it is the only safe answer.
+  it("refuses a row that does not fill every column", () => {
+    expect(() => toCsv(["a", "b", "c"], [["1", "2"]])).toThrow(
+      /row 0 has 2 values for 3 columns/,
+    );
+    expect(() => toCsv(["a", "b"], [["1", "2", "3"]])).toThrow(
+      /row 0 has 3 values for 2 columns/,
+    );
+  });
+
+  // The index is in the message because the one caller exports a whole
+  // campaign: "some row is wrong" would mean reading thousands.
+  it("names which row is wrong", () => {
+    expect(() => toCsv(["a", "b"], [["1", "2"], ["3", "4"], ["5"]])).toThrow(
+      /row 2 has 1 values for 2 columns/,
+    );
+  });
+
+  // An empty row is a row, not an absence: a trailing [] in the list would
+  // otherwise write a blank line that shifts nothing but reads as a family.
+  it("refuses an empty row", () => {
+    expect(() => toCsv(["a", "b"], [[]])).toThrow(/row 0 has 0 values/);
+  });
 });

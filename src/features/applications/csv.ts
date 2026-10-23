@@ -24,12 +24,34 @@ export function csvCell(value: unknown): string {
   return /["\n\r,;]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
+// The caller builds a CSV from two parallel lists — the column names and the
+// values each row maps to — and nothing but care keeps them the same length.
+// Edit one side only and every value after the missing column shifts by one:
+// a current town under «home_town», a phone number under «family_story». The
+// file still opens, still looks plausible, and describes the wrong families.
+// So a row that does not match the header count is refused rather than written.
+//
+// It throws, and a failed download is the right outcome: this export is the
+// most dangerous artifact the system produces, and a misaligned one is worse
+// than none. It can only fire if the code is wrong, never because of the data.
+//
+// NOT enforced in the type system, though it nearly can be: typing rows as
+// `readonly { [K in keyof H]: unknown }[]` over a tuple of headers does check
+// the width — but only while the row literal is contextually typed by this
+// call, so it evaporates the moment someone hoists the `.map(…)` into a
+// variable, which is exactly how the one caller is written. A guard that
+// disappears under an innocuous refactor is worse than one that always runs.
 export function toCsv(
   headers: readonly string[],
   rows: readonly (readonly unknown[])[],
 ): string {
   const lines = [headers.map(csvCell).join(",")];
-  for (const row of rows) {
+  for (const [index, row] of rows.entries()) {
+    if (row.length !== headers.length) {
+      throw new Error(
+        `csv row ${index} has ${row.length} values for ${headers.length} columns`,
+      );
+    }
     lines.push(row.map(csvCell).join(","));
   }
   // CRLF per RFC 4180 — Excel is the target reader.
