@@ -120,7 +120,12 @@ export function AccountShell({
         </div>
       </header>
 
-      <div className={cn(SITE_CONTAINER, "flex flex-1 gap-6 pb-15 lg:pb-25")}>
+      <div
+        className={cn(
+          SITE_CONTAINER,
+          "flex flex-1 gap-6 pb-15 lg:gap-[42px] lg:pb-25",
+        )}
+      >
         {/* 310 of the design's 1920, and only from lg — below it the same nav
             is the panel above. */}
         <AccountNav

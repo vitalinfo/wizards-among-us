@@ -15,14 +15,17 @@ const saveResult = vi.hoisted(() => ({
   current: { status: "saved", errors: {} } as SaveDraftState,
 }));
 
-vi.mock("@/app/account/parent/applications/[applicationId]/actions", () => ({
-  saveApplicationDraft: vi.fn(async () => saveResult.current),
-  submitApplicationAction: vi.fn(async () => ({
-    status: "idle",
-    errors: {},
-    blockReason: null,
-  })),
-}));
+vi.mock(
+  "@/app/account/(shell)/parent/applications/[applicationId]/actions",
+  () => ({
+    saveApplicationDraft: vi.fn(async () => saveResult.current),
+    submitApplicationAction: vi.fn(async () => ({
+      status: "idle",
+      errors: {},
+      blockReason: null,
+    })),
+  }),
+);
 
 import { ApplicationForm } from "../ApplicationForm";
 import { DeliveryStep } from "../DeliveryStep";

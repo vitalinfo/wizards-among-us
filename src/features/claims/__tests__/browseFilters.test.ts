@@ -130,30 +130,42 @@ describe("browsePageCount", () => {
   });
 });
 
-// Regression: the claim link used to be built by appending "?claim=..." to
-// browseHref's output, which already ended in "#children". The query landed
-// INSIDE the fragment, so the server never saw it — the url changed and the
-// confirmation silently never opened.
+// The claim link now points at the briefing PAGE, with the browse view carried
+// in `return` so «×» and a refused claim both land back on it.
+//
+// Regression it replaces: the link used to be built by appending "?claim=..."
+// to browseHref's output, which already ended in "#children". The query landed
+// INSIDE the fragment, so the server never saw it and the confirmation silently
+// never opened. The `return` value has the same hazard — it ENDS in a fragment
+// — which is why it goes through URLSearchParams rather than string
+// concatenation.
 describe("claimHref", () => {
   const query = parseBrowseQuery({ region: "lviv", age: "5-8", page: "2" });
 
-  it("puts the query before the fragment, never inside it", () => {
+  it("addresses the child in the path, not in a query parameter", () => {
+    const url = new URL(claimHref(query, 2, "app-1"), "http://x");
+    expect(url.pathname).toBe("/account/volunteer/children/app-1/claim");
+    expect(url.searchParams.get("claim")).toBeNull();
+  });
+
+  it("carries the browse view back, fragment and all", () => {
+    const url = new URL(claimHref(query, 2, "app-1"), "http://x");
+    const back = new URL(url.searchParams.get("return") ?? "", "http://x");
+
+    expect(back.pathname).toBe("/account/volunteer/children");
+    expect(back.searchParams.get("region")).toBe("lviv");
+    expect(back.searchParams.get("age")).toBe("5-8");
+    expect(back.searchParams.get("page")).toBe("2");
+    expect(back.hash).toBe(`#${BROWSE_ANCHOR}`);
+  });
+
+  // The fragment must survive the round trip ENCODED: a raw "#children" in the
+  // query would truncate the parameter at the browser, and the volunteer would
+  // come back to the top of an unfiltered page.
+  it("encodes the fragment inside the parameter", () => {
     const href = claimHref(query, 2, "app-1");
-    expect(href.indexOf("?")).toBeLessThan(href.indexOf("#"));
-    expect(href).not.toMatch(/#.*\?/);
-  });
-
-  it("is actually parseable as a url with the claim in searchParams", () => {
-    const url = new URL(claimHref(query, 2, "app-1"), "http://x");
-    expect(url.searchParams.get("claim")).toBe("app-1");
-    expect(url.hash).toBe(`#${BROWSE_ANCHOR}`);
-  });
-
-  it("preserves the view the volunteer is looking at", () => {
-    const url = new URL(claimHref(query, 2, "app-1"), "http://x");
-    expect(url.searchParams.get("region")).toBe("lviv");
-    expect(url.searchParams.get("age")).toBe("5-8");
-    expect(url.searchParams.get("page")).toBe("2");
+    expect(href).toContain("%23children");
+    expect(href).not.toMatch(/#/);
   });
 
   it("works from the unfiltered first page too", () => {
@@ -161,7 +173,8 @@ describe("claimHref", () => {
       claimHref(parseBrowseQuery({}), 1, "app-2"),
       "http://x",
     );
-    expect(url.searchParams.get("claim")).toBe("app-2");
-    expect(url.searchParams.get("page")).toBeNull();
+    expect(url.pathname).toBe("/account/volunteer/children/app-2/claim");
+    const back = new URL(url.searchParams.get("return") ?? "", "http://x");
+    expect(back.searchParams.get("page")).toBeNull();
   });
 });

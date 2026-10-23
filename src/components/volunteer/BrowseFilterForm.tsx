@@ -1,12 +1,21 @@
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
 
+import { CloseIcon, FiltersIcon } from "@/components/icons";
 import { AGE_BANDS, type BrowseQuery } from "@/features/claims/browseFilters";
 import { displacedFromRegionOptions } from "@/lib/regionOptions";
+import { cn } from "@/lib/utils";
 
-// A plain GET form: the browser turns it into the query string the page already
-// parses, so filtering needs no client JavaScript and every result set stays a
-// shareable url.
+// The browse filters (Figma 118:420): a row of two pickers and «Застосувати»
+// from lg, and a full-screen sheet behind «Застосувати фільтр» on a phone.
+//
+// A plain GET form, so filtering needs no client JavaScript and every result
+// set stays a shareable url — the same reason the pager is links. The phone
+// sheet is a <details>, for the same reason again: it opens, traps nothing, and
+// closes with the keyboard because the element does that itself.
+//
+// Two filters, not three. The design drops the availability picker the first
+// version had; a child who already has a charivnyk stays in the list either
+// way (Phase 6), and the card says so in words.
 export async function BrowseFilterForm({
   query,
   anchor,
@@ -22,27 +31,32 @@ export async function BrowseFilterForm({
   // the oblasts the form can record, not all twenty-five. Sorted by the
   // Ukrainian label; the enum's slug order reads as random in Cyrillic.
   const regions = displacedFromRegionOptions(tRegions);
+  const action = `/account/volunteer/children#${anchor}`;
 
-  const field =
-    "border-border bg-surface focus-visible:outline-ring rounded-md border px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
+  // The native arrow, not appearance-none: the design draws a chevron on the
+  // right of each picker, and the platform's own is the one that matches what
+  // the operating system does when the list opens.
+  const select =
+    "border-border bg-surface text-foreground focus-visible:outline-ring h-12 w-full rounded-lg border px-4 text-sm tracking-[-0.06em] focus-visible:outline-2 focus-visible:outline-offset-2";
+  const apply =
+    "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex h-12 items-center justify-center rounded-lg px-8 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
 
-  return (
-    <form
-      method="get"
-      action={`/account/volunteer/children#${anchor}`}
-      className="border-border bg-surface-muted flex flex-wrap items-end gap-3 rounded-lg border p-4"
-    >
-      <div className="flex flex-col gap-1">
-        <label htmlFor="region" className="text-xs font-medium">
+  // Both layouts render the same two controls, so the markup is written once
+  // and placed twice. They are separate FORMS rather than one form shown twice,
+  // because two copies of the same input name in one form would submit both.
+  const fields = (
+    <>
+      <div className="w-full lg:w-[386px]">
+        <label htmlFor="region" className="sr-only">
           {t("region")}
         </label>
         <select
           id="region"
           name="region"
           defaultValue={query.region ?? ""}
-          className={field}
+          className={select}
         >
-          <option value="">{t("anyRegion")}</option>
+          <option value="">{t("region")}</option>
           {regions.map((region) => (
             <option key={region.value} value={region.value}>
               {region.label}
@@ -51,33 +65,17 @@ export async function BrowseFilterForm({
         </select>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="availability" className="text-xs font-medium">
-          {t("availability")}
-        </label>
-        <select
-          id="availability"
-          name="availability"
-          defaultValue={query.availability}
-          className={field}
-        >
-          <option value="all">{t("any")}</option>
-          <option value="available">{t("available")}</option>
-          <option value="claimed">{t("claimed")}</option>
-        </select>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="age" className="text-xs font-medium">
+      <div className="w-full lg:w-[172px]">
+        <label htmlFor="age" className="sr-only">
           {t("age")}
         </label>
         <select
           id="age"
           name="age"
           defaultValue={query.age ?? ""}
-          className={field}
+          className={select}
         >
-          <option value="">{t("anyAge")}</option>
+          <option value="">{t("age")}</option>
           {AGE_BANDS.map((band) => (
             <option key={band.key} value={band.key}>
               {t(`ageBands.${band.key}`)}
@@ -85,19 +83,60 @@ export async function BrowseFilterForm({
           ))}
         </select>
       </div>
+    </>
+  );
 
-      <button
-        type="submit"
-        className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring rounded-md px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
+  return (
+    <>
+      {/* The row, from lg. */}
+      <form
+        method="get"
+        action={action}
+        className="hidden items-center gap-4 lg:flex"
       >
-        {t("apply")}
-      </button>
-      <Link
-        href={`/account/volunteer/children#${anchor}`}
-        className="text-primary text-sm font-semibold underline underline-offset-4"
-      >
-        {t("reset")}
-      </Link>
-    </form>
+        <FiltersIcon aria-hidden="true" className="text-foreground size-6" />
+        {fields}
+        <button type="submit" className={apply}>
+          {t("apply")}
+        </button>
+      </form>
+
+      {/* The sheet, below lg. ONE <summary>, which is both the trigger and
+          the × — only the first summary in a <details> is the disclosure
+          control, so a second one in the panel would render a close button
+          that does nothing. Open, it moves itself to the corner the design
+          draws it in and swaps its contents, which also swaps its accessible
+          name from «Застосувати фільтр» to «Закрити фільтр». */}
+      <details className="group lg:hidden">
+        <summary className="focus-visible:outline-ring flex w-fit cursor-pointer list-none items-center gap-3 text-sm font-medium tracking-[-0.06em] group-open:fixed group-open:top-4 group-open:right-4 group-open:z-60 group-open:size-10 group-open:justify-center group-open:gap-0 group-open:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
+          <FiltersIcon
+            aria-hidden="true"
+            className="size-6 group-open:hidden"
+          />
+          <CloseIcon
+            aria-hidden="true"
+            className="text-muted-foreground hidden size-6 group-open:block"
+          />
+          <span className="group-open:hidden">{t("openSheet")}</span>
+          <span className="sr-only hidden group-open:inline">
+            {t("closeSheet")}
+          </span>
+        </summary>
+
+        <div className="bg-surface fixed inset-0 z-50 flex flex-col gap-6 overflow-y-auto p-4 pt-20">
+          <span className="flex items-center gap-3 text-base font-medium">
+            <FiltersIcon aria-hidden="true" className="size-6" />
+            {t("sheetTitle")}
+          </span>
+
+          <form method="get" action={action} className="flex flex-col gap-4">
+            {fields}
+            <button type="submit" className={cn(apply, "h-14 rounded-full")}>
+              {t("apply")}
+            </button>
+          </form>
+        </div>
+      </details>
+    </>
   );
 }

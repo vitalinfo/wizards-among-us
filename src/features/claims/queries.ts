@@ -12,7 +12,7 @@ import {
 
 import { getDb } from "@/db";
 import type { UkraineRegion } from "@/db/enums";
-import { applications, claims, users } from "@/db/schema";
+import { applicationFiles, applications, claims, users } from "@/db/schema";
 import { toBrowseCard, type BrowseCard } from "@/features/applications/mappers";
 
 // Volunteer-facing data access. Authorization lives in the actions/pages
@@ -94,10 +94,50 @@ export async function listBrowsable(
     .limit(filters.limit)
     .offset(filters.offset);
 
+  // One extra query for the whole page rather than a join: a letter photo is
+  // one row per application in the general case but nothing in the schema
+  // guarantees it (a parent can upload twice without removing the first), so a
+  // join would multiply the page. Ordered oldest-first and written into a map,
+  // so the LAST match wins — "the newest of this kind is the last match" is the
+  // rule listApplicationFiles documents, and the one every caller wants.
+  const letterPhotos = await latestLetterPhotos(
+    rows.map((r) => r.application.id),
+  );
+
   return rows.map((row) => ({
-    ...toBrowseCard(row.application),
+    ...toBrowseCard(
+      row.application,
+      letterPhotos.get(row.application.id) ?? null,
+    ),
     claimed: row.claimId !== null,
   }));
+}
+
+async function latestLetterPhotos(
+  applicationIds: readonly string[],
+): Promise<Map<string, string>> {
+  if (applicationIds.length === 0) {
+    return new Map();
+  }
+  const rows = await getDb()
+    .select({
+      applicationId: applicationFiles.applicationId,
+      id: applicationFiles.id,
+    })
+    .from(applicationFiles)
+    .where(
+      and(
+        inArray(applicationFiles.applicationId, [...applicationIds]),
+        eq(applicationFiles.kind, "letter_photo"),
+      ),
+    )
+    .orderBy(asc(applicationFiles.createdAt), asc(applicationFiles.id));
+
+  const latest = new Map<string, string>();
+  for (const row of rows) {
+    latest.set(row.applicationId, row.id);
+  }
+  return latest;
 }
 
 // The active claim on an application, if any.
