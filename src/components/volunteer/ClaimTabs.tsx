@@ -49,7 +49,7 @@ export async function ClaimTabs({ current }: { current: ClaimTab }) {
           design draws — three pills and a 328px screen do not fit. A <details>
           rather than a <select>: a select cannot navigate without JavaScript,
           and these are links. */}
-      <details className="group w-fit lg:hidden">
+      <details className="group relative w-fit lg:hidden">
         <summary
           className={cn(
             pill,
@@ -62,7 +62,11 @@ export async function ClaimTabs({ current }: { current: ClaimTab }) {
             className="size-4 rotate-90 transition-transform group-open:-rotate-90"
           />
         </summary>
-        <ul className="border-divider bg-surface mt-2 flex w-fit flex-col gap-1 rounded-2xl border p-1">
+        {/* OVER the list, not above it: in the flow this pushed every card
+            down by the height of the menu, so opening the filter moved the
+            thing you were about to read. Absolute, with a shadow, because it
+            now sits on top of cards rather than between them. */}
+        <ul className="border-divider bg-surface absolute top-full left-0 z-20 mt-2 flex w-max flex-col gap-1 rounded-2xl border p-1 shadow-lg">
           {links}
         </ul>
       </details>
