@@ -45,7 +45,11 @@ export function AccountShell({
   return (
     <>
       <header className={cn(SITE_CONTAINER, "relative z-40")}>
-        <div className="flex h-14 items-center justify-between gap-4 lg:h-[107px]">
+        {/* 24px down on a phone, flush from lg — the design puts the header
+            row at y=26 in both mobile frames. It has to match the panel's own
+            top padding below, or the logo jumps the moment the panel opens:
+            the panel covers the header and draws the logo again. */}
+        <div className="mt-6 flex h-14 items-center justify-between gap-4 lg:mt-0 lg:h-[107px]">
           {/* The kicker sits left of the logo on the desktop frame and is not
               drawn on a phone, where the row has no room for it beside the
               logo and the toggle. */}
@@ -88,7 +92,7 @@ export function AccountShell({
                 <CloseIcon className="hidden size-5 group-open:block" />
               </summary>
 
-              <div className="bg-surface fixed inset-0 z-50 flex flex-col overflow-y-auto px-4 pt-4 pb-10">
+              <div className="bg-surface fixed inset-0 z-50 flex flex-col overflow-y-auto px-4 pt-6 pb-10">
                 {/* The panel covers the header, so it carries its own logo —
                     otherwise the brand disappears the moment the menu opens,
                     and the design keeps it in frame. The same reason the site

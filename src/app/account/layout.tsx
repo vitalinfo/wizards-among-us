@@ -34,7 +34,7 @@ export default async function AccountLayout({
     {
       key: "volunteer",
       href: "/account/volunteer",
-      emoji: "🧙",
+      emoji: "🔮",
       available: hasRole(actor, "volunteer"),
       links: [
         {

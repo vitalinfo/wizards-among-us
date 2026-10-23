@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { UserIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 export type CabinetKey = "volunteer" | "parent";
@@ -71,11 +72,16 @@ export function AccountNav({
           here because the design uses it to say «you are signed in, through
           Telegram» — so it states that and nothing more. */}
       <div className="flex items-center gap-4 px-4 py-3">
+        {/* White on the accent yellow is 1.54:1 — which globals.css rejects
+            for a LABEL, and rightly. It stands here because this is a stroked
+            decorative glyph, hidden from assistive tech and saying nothing the
+            two lines beside it do not, and because it is what the design
+            draws. Nothing is lost if a reader cannot make it out. */}
         <span
           aria-hidden="true"
-          className="bg-accent text-accent-foreground flex size-11 shrink-0 items-center justify-center rounded-full text-lg"
+          className="bg-accent flex size-11 shrink-0 items-center justify-center rounded-full text-white"
         >
-          🙂
+          <UserIcon className="size-6" />
         </span>
         <span className="flex flex-col">
           <span className="text-base font-semibold">
@@ -102,7 +108,9 @@ export function AccountNav({
       {current && current.links.length > 0 ? (
         <>
           <hr className="border-divider my-6" />
-          <ul className="flex flex-col gap-4">
+          {/* 69px between the two rows in the design, which is the line box
+              plus this gap — not the 16 a default list rhythm would give. */}
+          <ul className="flex flex-col gap-12">
             {current.links.map((link) => (
               <li key={link.key}>
                 <Link
@@ -145,7 +153,10 @@ function CabinetRow({
           disc,
           cabinet.available
             ? "bg-primary text-primary-foreground"
-            : "bg-primary-soft",
+            : // The design's grey for a cabinet you do not hold. A literal
+              // rather than a token: it appears exactly here, and the greys we
+              // do have are either lighter (--divider) or blue (--primary-soft).
+              "bg-[#dddddd]",
         )}
       >
         {cabinet.emoji}
@@ -183,7 +194,7 @@ function CabinetRow({
       className={cn(
         row,
         "focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2",
-        current ? "bg-primary-tint" : "hover:bg-primary-tint/60",
+        current ? "bg-canvas" : "hover:bg-canvas/60",
       )}
     >
       {body}

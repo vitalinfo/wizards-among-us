@@ -41,15 +41,28 @@ export default async function VolunteerCabinetPage() {
 
   return (
     <section className="relative isolate flex min-h-[60vh] flex-col items-center justify-center overflow-hidden py-12 text-center lg:py-20">
-      <SparklesArt />
+      <SparklesArt className="top-6 lg:top-20" />
 
-      <h1 className="font-display max-w-[616px] text-[36px] leading-10 font-bold tracking-[-0.06em] lg:text-[min(3.33vw,64px)] lg:leading-[min(3.44vw,66px)]">
+      {/* 106, not the 100 a canvas measurement suggested: canvas measureText
+          over-predicts the rendered ink by its side bearings, and at 100 both
+          drawn lines came out 34px narrow. Scaled to the widths the browser
+          actually paints — 616 and 534 — which is what the design was measured
+          from. The cap ends line one at «частиною», as drawn.
+          50 on a phone is the same heading scaled by the design's own ratio
+          (its mobile line one is 295 of the desktop's 616), not a smaller
+          setting — which is also what puts the break back at «частиною»: at 40
+          the third word still fitted. */}
+      <h1 className="font-display max-w-[334px] text-[50px] leading-[44px] font-bold tracking-[-0.06em] lg:max-w-[700px] lg:text-[min(5.52vw,106px)] lg:leading-[min(4.84vw,93px)]">
         {t.rich("title", {
           em: (chunks) => <span className="text-primary">{chunks}</span>,
         })}
       </h1>
 
-      <p className="text-muted-foreground mt-6 max-w-[560px] text-base leading-[22px] tracking-[-0.03em]">
+      {/* 14/18 on a phone against 16/22 from lg, and no cap of its own below
+          lg: the design runs this paragraph to the gutter on both sides (320
+          of its 360 frame) and lands it on three lines. Capped at 334 like the
+          heading it took four. */}
+      <p className="text-muted-foreground mt-6 text-sm leading-[18px] tracking-[-0.03em] lg:max-w-[670px] lg:text-base lg:leading-[22px]">
         {t("body")}
       </p>
 
@@ -61,7 +74,7 @@ export default async function VolunteerCabinetPage() {
         href="/account/volunteer/children"
         className={cn(
           ctaVariants.primary,
-          "focus-visible:outline-ring mt-8 inline-flex h-16 items-center justify-center gap-2 rounded-full px-14 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-10",
+          "focus-visible:outline-ring mt-8 inline-flex h-16 items-center justify-center gap-2 rounded-full px-8 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:mt-10 lg:px-14",
         )}
       >
         <span aria-hidden="true">🔍</span>
