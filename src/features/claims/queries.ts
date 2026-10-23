@@ -277,6 +277,9 @@ export type MyClaimRow = {
   applicationId: string;
   childName: string | null;
   childAge: number | null;
+  // Drives the avatar: the design tints the disc pink for a girl and blue for a
+  // boy, which is the first thing on the row that is not text.
+  childGender: Application["childGender"];
   campaignTitle: string;
   // `claimed` while the gift is on its way, `fulfilled` once the family has
   // confirmed it arrived. Nothing else can be here: a claim only exists on an
@@ -331,6 +334,7 @@ export async function listMyClaims(
         applicationId: applications.id,
         childName: applications.childName,
         childAge: applications.childAge,
+        childGender: applications.childGender,
         campaignTitle: campaigns.title,
         status: applications.status,
         claimedAt: claims.claimedAt,

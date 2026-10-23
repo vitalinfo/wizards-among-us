@@ -20,6 +20,7 @@ const rows: MyClaimRow[] = [
     applicationId: "a1",
     childName: "Софійка",
     childAge: 10,
+    childGender: "girl",
     campaignTitle: "Чарівний Миколай",
     status: "claimed",
     claimedAt: new Date("2026-11-01T10:00:00Z"),
@@ -28,6 +29,7 @@ const rows: MyClaimRow[] = [
     applicationId: "a2",
     childName: "Максим",
     childAge: 6,
+    childGender: "boy",
     campaignTitle: "Чарівний Миколай",
     status: "fulfilled",
     claimedAt: new Date("2026-11-02T10:00:00Z"),
@@ -56,16 +58,20 @@ describe("ClaimsTable", () => {
       ).toBeInTheDocument();
     }
     expect(within(table).getAllByRole("row")).toHaveLength(rows.length + 1);
+    // …and the same children again as cards, for the phone.
+    expect(screen.getAllByRole("listitem")).toHaveLength(rows.length);
   });
 
+  // The name alone — no «Дитина: » prefix (Vital). Rendered twice, because the
+  // table and the phone cards are separate markup: one of them is display:none
+  // at any given width.
   it("names the child, the age and the campaign on each row", async () => {
     await renderTable();
 
-    expect(
-      screen.getByText(t.childName.replace("{name}", "Софійка")),
-    ).toBeInTheDocument();
-    expect(screen.getByText("10 років")).toBeInTheDocument();
-    expect(screen.getAllByText("Чарівний Миколай")).toHaveLength(2);
+    expect(screen.getAllByText("Софійка")).toHaveLength(2);
+    expect(screen.queryByText(/^Дитина:/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("10 років")).toHaveLength(2);
+    expect(screen.getAllByText(/Чарівний Миколай/)).toHaveLength(4);
   });
 
   // The state is the word. A volunteer who cannot tell the blue pill from the
@@ -73,8 +79,8 @@ describe("ClaimsTable", () => {
   it("says the state in words, per row", async () => {
     await renderTable();
 
-    expect(screen.getByText(t.state.active)).toBeInTheDocument();
-    expect(screen.getByText(t.state.completed)).toBeInTheDocument();
+    expect(screen.getAllByText(t.state.active)).toHaveLength(2);
+    expect(screen.getAllByText(t.state.completed)).toHaveLength(2);
   });
 
   // «Переглянути» repeated down a column tells a screen-reader user nothing
@@ -82,14 +88,18 @@ describe("ClaimsTable", () => {
   it("names each details link with the child it opens", async () => {
     await renderTable();
 
-    expect(
-      screen.getByRole("link", {
-        name: t.view.replace("{name}", "Софійка"),
-      }),
-    ).toHaveAttribute("href", "/account/volunteer/claims/a1");
-    expect(
-      screen.getByRole("link", { name: t.view.replace("{name}", "Максим") }),
-    ).toHaveAttribute("href", "/account/volunteer/claims/a2");
+    for (const [name, id] of [
+      ["Софійка", "a1"],
+      ["Максим", "a2"],
+    ] as const) {
+      const links = screen.getAllByRole("link", {
+        name: t.view.replace("{name}", name),
+      });
+      expect(links).toHaveLength(2);
+      for (const link of links) {
+        expect(link).toHaveAttribute("href", `/account/volunteer/claims/${id}`);
+      }
+    }
   });
 
   // Nothing tier-2 is in the projection, and nothing tier-2 may appear here:
@@ -104,11 +114,11 @@ describe("ClaimsTable", () => {
   });
 
   it("renders an application with no name or age", async () => {
-    await renderTable([{ ...rows[0]!, childName: null, childAge: null }]);
+    await renderTable([
+      { ...rows[0]!, childName: null, childAge: null, childGender: null },
+    ]);
 
-    expect(
-      screen.getByText(t.childName.replace("{name}", t.noName)),
-    ).toBeInTheDocument();
+    expect(screen.getAllByText(t.noName)).toHaveLength(2);
   });
 
   it("has no accessibility violations", async () => {

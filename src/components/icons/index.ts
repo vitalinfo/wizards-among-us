@@ -1,5 +1,6 @@
 export { ArrowRightIcon } from "./ArrowRightIcon";
 export { CheckIcon } from "./CheckIcon";
+export { ChildIcon } from "./ChildIcon";
 export { ChevronRightIcon } from "./ChevronRightIcon";
 export { ClockIcon } from "./ClockIcon";
 export { CloseIcon } from "./CloseIcon";

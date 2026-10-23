@@ -3,18 +3,20 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 // «Допомога триває» / «Допомогу завершено» — the two states a child a volunteer
-// holds can be in (Figma 130:2506). Blue while the gift is on its way, green
-// once the family has confirmed it arrived.
+// holds can be in (Figma 130:2506).
 //
-// The STATE is the word, not the colour: the pill reads the same to someone who
-// cannot tell the two tints apart, which is the rule for every status in this
-// app. The green is --status-open, the one green the system already has, at
-// 4.52:1 on white.
+// The fills are the design's (#e4f0ff and #e9ffe4, now tokens). The LABELS are
+// not: the design sets them in a light blue and a light green that read 1.85:1
+// and 1.74:1 on those fills, so they are --primary and --status-done instead.
+// See globals.css.
+//
+// The state is the word, not the colour — the pill says the same thing to
+// someone who cannot tell the two tints apart.
 export type ClaimState = "active" | "completed";
 
 const TONE: Record<ClaimState, string> = {
-  active: "bg-primary/10 text-primary",
-  completed: "bg-status-open/12 text-status-open",
+  active: "bg-status-progress-tint text-primary",
+  completed: "bg-status-done-tint text-status-done",
 };
 
 export function ClaimStatusBadge({ state }: { state: ClaimState }) {

@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { CloseIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
@@ -74,10 +74,12 @@ export async function ClaimDetail({
             column, 32 of gap and a 728 measure, sitting in the middle of the
             page rather than against the gutter the logo uses. */}
         <div className="mx-auto flex max-w-[1066px] flex-col gap-8 lg:flex-row">
-          {/* The letter and the child, stacked, 306 wide as drawn. Thumbnails
+          {/* The letter and the child. A column of two beside the text from lg;
+              on a phone the design puts them BELOW it, side by side — so the
+              order flips and the stack becomes a two-column grid. Thumbnails
               open over the page: one is enough to see a letter exists and
               useless for reading it, which is the only reason to show one. */}
-          <div className="flex shrink-0 flex-col gap-6 lg:w-[306px]">
+          <div className="order-last grid grid-cols-2 gap-3 lg:order-first lg:flex lg:w-[306px] lg:shrink-0 lg:flex-col lg:gap-6">
             {(["child_with_letter_photo", "letter_photo"] as const).map(
               (kind) => {
                 const photo = byKind.get(kind);
@@ -223,6 +225,7 @@ export async function ClaimDetail({
                 title={tPhotos("confirmation.title")}
                 alt={tPhotos("confirmation.alt", { child })}
                 height={340}
+                mobileHeight={443}
               />
             </div>
           ) : (
@@ -246,12 +249,16 @@ function Photo({
   title,
   alt,
   height,
+  mobileHeight = 261,
 }: {
   applicationId: string;
   fileId: string;
   title: string;
   alt: string;
   height: number;
+  // The design gives the two portraits 261 on a phone, side by side, and the
+  // family photo 443 across the full width.
+  mobileHeight?: number;
 }) {
   return (
     <PhotoLightbox
@@ -267,8 +274,13 @@ function Photo({
         height={height}
         loading="lazy"
         decoding="async"
-        className="w-full rounded-2xl object-cover"
-        style={{ height }}
+        className="h-[var(--photo-h-sm)] w-full rounded-2xl object-cover lg:h-[var(--photo-h)]"
+        style={
+          {
+            "--photo-h-sm": `${mobileHeight}px`,
+            "--photo-h": `${height}px`,
+          } as CSSProperties
+        }
       />
     </PhotoLightbox>
   );

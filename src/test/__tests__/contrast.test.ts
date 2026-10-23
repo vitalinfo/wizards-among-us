@@ -43,6 +43,10 @@ describe("colour contrast (WCAG AA)", () => {
     // can land on — the design's own #ff0000 is 4.00:1 and would fail here.
     ["danger", "background", AA_NORMAL],
     ["danger", "surface", AA_NORMAL],
+    // The claim status pills. The design's own labels on these fills are
+    // 1.85:1 and 1.74:1; these are what replaced them.
+    ["primary", "status-progress-tint", AA_NORMAL],
+    ["status-done", "status-done-tint", AA_NORMAL],
     // The 2026 redesign puts the public pages on a soft blue canvas rather than
     // white, so every foreground that was only ever checked against white needs
     // checking against that too.
