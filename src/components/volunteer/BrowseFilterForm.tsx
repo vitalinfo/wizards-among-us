@@ -39,8 +39,14 @@ export async function BrowseFilterForm({
   // design draws one small chevron 16px from the right edge.
   const select =
     "border-border bg-surface text-foreground focus-visible:outline-ring h-12 w-full appearance-none rounded-lg border pr-11 pl-4 text-sm tracking-[-0.06em] focus-visible:outline-2 focus-visible:outline-offset-2";
+  // NO height here, and no radius. The height differs between the row and the
+  // sheet (48 against 56), and appending a second value to this string does not
+  // override the first: `cn` is a join, so two utilities for one property are
+  // settled by Tailwind's EMIT ORDER, not by the order they appear in. That is
+  // exactly how the sheet's button shipped with a small radius while its class
+  // string said rounded-full.
   const apply =
-    "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex h-12 items-center justify-center rounded-lg px-8 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
+    "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex items-center justify-center px-8 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
 
   // Both layouts render the same two controls, so the markup is written once
   // and placed twice. They are separate FORMS rather than one form shown twice,
@@ -99,7 +105,7 @@ export async function BrowseFilterForm({
       >
         <FiltersIcon aria-hidden="true" className="text-foreground size-6" />
         {fields}
-        <button type="submit" className={apply}>
+        <button type="submit" className={cn(apply, "h-12 rounded-full")}>
           {t("apply")}
         </button>
       </form>
