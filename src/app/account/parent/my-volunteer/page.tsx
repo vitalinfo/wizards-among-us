@@ -2,8 +2,6 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { getMyVolunteers } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
@@ -42,8 +40,7 @@ export default async function MyVolunteerPage() {
 
   return (
     <>
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-10 sm:px-8">
+      <div className="mx-auto w-full max-w-2xl py-10">
         <Link
           href="/account/parent/applications"
           className="text-primary text-sm font-semibold underline underline-offset-4"
@@ -120,8 +117,7 @@ export default async function MyVolunteerPage() {
             })}
           </ul>
         )}
-      </main>
-      <SiteFooter />
+      </div>
     </>
   );
 }

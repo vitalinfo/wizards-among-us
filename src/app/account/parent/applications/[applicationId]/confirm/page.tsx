@@ -2,8 +2,6 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { ConfirmReceiptForm } from "@/components/parent/ConfirmReceiptForm";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { getMyApplication } from "@/features/applications/queries";
@@ -45,8 +43,7 @@ export default async function ConfirmReceiptPage({
 
   return (
     <>
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:px-8">
+      <div className="mx-auto w-full max-w-lg py-10">
         <Link
           href="/account/parent/applications"
           className="text-primary text-sm font-semibold underline underline-offset-4"
@@ -93,8 +90,7 @@ export default async function ConfirmReceiptPage({
             </div>
           </>
         )}
-      </main>
-      <SiteFooter />
+      </div>
     </>
   );
 }

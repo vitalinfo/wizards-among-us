@@ -6,6 +6,7 @@ export { CloseIcon } from "./CloseIcon";
 export { MenuIcon } from "./MenuIcon";
 export { InstagramIcon } from "./InstagramIcon";
 export { ShieldIcon } from "./ShieldIcon";
+export { SignOutIcon } from "./SignOutIcon";
 export { StarIcon } from "./StarIcon";
 export { TelegramIcon } from "./TelegramIcon";
 export { UserIcon } from "./UserIcon";

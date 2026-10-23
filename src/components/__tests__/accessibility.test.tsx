@@ -25,11 +25,13 @@ vi.mock("@/app/account/parent/review/actions", () => ({
   submitReviewAction: vi.fn(async () => ({ status: "idle" })),
 }));
 vi.mock("@/app/auth/actions", () => ({ logout: vi.fn() }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/account/volunteer" }));
 
 const { ReviewForm } = await import("@/components/parent/ReviewForm");
 const { MyApplicationsList } =
   await import("@/components/parent/MyApplicationsList");
 const { SiteHeaderClient } = await import("@/components/site/SiteHeaderClient");
+const { AccountShell } = await import("@/components/account");
 const { ApplicationStatusBadge } =
   await import("@/components/ui/ApplicationStatusBadge");
 
@@ -84,11 +86,49 @@ describe("accessibility smoke checks", () => {
     // destination, and the name is all a screen-reader user gets — so it is
     // worth sweeping both states rather than assuming one covers the other.
     const inn = renderWithIntl(
-      <SiteHeaderClient
-        account={{ href: "/account/parent/applications", labelKey: "account" }}
-      />,
+      <SiteHeaderClient account={{ href: "/account", labelKey: "account" }} />,
     );
     expect(await axe(inn.container)).toHaveNoViolations();
+  });
+
+  // The account chrome renders its navigation AND its sign-out twice — once
+  // for the sidebar, once for the phone panel — because a <details> panel
+  // cannot move the sidebar's markup, only hide one copy of it. Exactly one of
+  // each is exposed at a time, but the duplication is the kind axe is good at
+  // catching if it ever stops being hidden: duplicate landmarks, repeated ids,
+  // two controls with one name.
+  it("the account shell has no violations", async () => {
+    const { container } = renderWithIntl(
+      <AccountShell
+        identity="@olena"
+        cabinets={[
+          {
+            key: "volunteer",
+            href: "/account/volunteer",
+            emoji: "🧙",
+            available: true,
+            links: [
+              {
+                key: "children",
+                href: "/account/volunteer/children",
+                labelKey: "volunteer.links.children",
+                emoji: "🔍",
+              },
+            ],
+          },
+          {
+            key: "parent",
+            href: "/account/parent/applications",
+            emoji: "👫",
+            available: false,
+            links: [],
+          },
+        ]}
+      >
+        <h1>Кабінет</h1>
+      </AccountShell>,
+    );
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   // Contrast is NOT checked here — axe cannot measure it in jsdom (see

@@ -3,8 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ReviewForm } from "@/components/parent/ReviewForm";
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { getMyApplication } from "@/features/applications/queries";
 import { getReviewBlockReason } from "@/features/reviews/authz";
 import { hasReviewed } from "@/features/reviews/queries";
@@ -42,8 +40,7 @@ export default async function LeaveReviewPage({
 
   return (
     <>
-      <SiteHeader />
-      <main className="mx-auto w-full max-w-lg flex-1 px-5 py-10 sm:px-8">
+      <div className="mx-auto w-full max-w-lg py-10">
         <h1 className="text-3xl font-semibold">{t("title")}</h1>
 
         {blocked ? (
@@ -68,8 +65,7 @@ export default async function LeaveReviewPage({
             </div>
           </>
         )}
-      </main>
-      <SiteFooter />
+      </div>
     </>
   );
 }

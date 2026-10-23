@@ -2,8 +2,6 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { SiteFooter } from "@/components/site/SiteFooter";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { BrowseFilterForm } from "@/components/volunteer/BrowseFilterForm";
 import { ChildCard } from "@/components/volunteer/ChildCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -60,12 +58,10 @@ export default async function BrowseChildrenPage({
   if (!campaign) {
     return (
       <>
-        <SiteHeader />
-        <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8">
+        <div className="mx-auto w-full max-w-3xl py-10">
           <h1 className="text-3xl font-semibold">{t("title")}</h1>
           <p className="text-muted-foreground mt-4">{t("noCampaign")}</p>
-        </main>
-        <SiteFooter />
+        </div>
       </>
     );
   }
@@ -106,10 +102,13 @@ export default async function BrowseChildrenPage({
 
   return (
     <>
-      <SiteHeader />
-      <main
+      {/* `inert` stays on the CONTENT, not on the layout's <main>: the claim
+          confirmation covers the page, and everything behind it must be out of
+          reach of a tab key. The account chrome above is deliberately left
+          reachable, exactly as the site header was before this moved. */}
+      <div
         inert={pendingClaim !== null}
-        className="mx-auto w-full max-w-3xl flex-1 px-5 py-10 sm:px-8"
+        className="mx-auto w-full max-w-3xl py-10"
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-3xl font-semibold">{t("title")}</h1>
@@ -153,7 +152,7 @@ export default async function BrowseChildrenPage({
           to={(page - 1) * BROWSE_PAGE_SIZE + rows.length}
           hrefFor={(target) => browseHref(query, { page: target })}
         />
-      </main>
+      </div>
 
       {pendingClaim ? (
         <ConfirmModal
@@ -166,7 +165,6 @@ export default async function BrowseChildrenPage({
           cancelHref={currentHref}
         />
       ) : null}
-      <SiteFooter />
     </>
   );
 }
