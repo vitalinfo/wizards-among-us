@@ -18,12 +18,19 @@ export async function ChildrenEmptyState({ filtered }: { filtered: boolean }) {
 
   return (
     <div className="flex flex-col items-center py-16 text-center lg:py-24">
-      <h2 className="font-display max-w-[320px] text-[40px] leading-10 font-bold tracking-[-0.03em] lg:max-w-[560px] lg:text-[64px] lg:leading-[64px]">
+      {/* 92, not the 64 I first set: the drawn first line is 560 of ink and 64
+          renders it at 389. No cap from lg either — the break is TYPED, because the drawn first line
+          («Тут поки що немає», 560 of ink) is narrower than any max-width that
+          would still keep «історій» off it. Below lg the line is too long for
+          328 anyway, so the break is hidden there and the text wraps on its
+          own — a <br> set to display:none does not break. */}
+      <h2 className="font-display max-w-[320px] text-[40px] leading-10 font-bold tracking-[-0.03em] lg:max-w-none lg:text-[92px] lg:leading-[94px]">
         {t.rich(filtered ? "filteredTitle" : "title", {
           em: (chunks) => <span className="text-primary">{chunks}</span>,
+          br: () => <br className="hidden lg:inline" />,
         })}
       </h2>
-      <p className="text-muted-foreground mt-6 max-w-[320px] text-sm leading-5 tracking-[-0.03em] lg:max-w-[600px] lg:text-base">
+      <p className="text-muted-foreground mt-6 max-w-[320px] text-sm leading-5 tracking-[-0.03em] lg:max-w-[675px] lg:text-base">
         {t(filtered ? "filteredBody" : "body")}
       </p>
       <Link
