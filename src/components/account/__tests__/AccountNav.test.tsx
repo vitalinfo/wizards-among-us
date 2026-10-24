@@ -26,10 +26,37 @@ const VOLUNTEER_LINKS = [
   },
 ] as const;
 
+const PARENT_LINKS = [
+  {
+    key: "applications",
+    href: "/account/parent/applications",
+    labelKey: "parent.links.applications",
+    emoji: "📋",
+  },
+  {
+    key: "volunteer",
+    href: "/account/parent/my-volunteer",
+    labelKey: "parent.links.volunteer",
+    emoji: "🔮",
+  },
+] as const;
+
+// Stand-ins for the server-rendered «Подати заявку», distinguishable by name
+// so a spec can tell which drawing the nav chose.
+const PARENT_ACTION = {
+  sidebar: <button type="button">sidebar action</button>,
+  panel: <button type="button">panel action</button>,
+};
+
 function cabinets({
   volunteer = true,
   parent = false,
-}: { volunteer?: boolean; parent?: boolean } = {}): Cabinet[] {
+  action = false,
+}: {
+  volunteer?: boolean;
+  parent?: boolean;
+  action?: boolean;
+} = {}): Cabinet[] {
   return [
     {
       key: "volunteer",
@@ -40,10 +67,11 @@ function cabinets({
     },
     {
       key: "parent",
-      href: "/account/parent/applications",
+      href: "/account/parent",
       emoji: "👫",
       available: parent,
-      links: [],
+      links: PARENT_LINKS,
+      action: action ? PARENT_ACTION : undefined,
     },
   ];
 }
@@ -51,10 +79,11 @@ function cabinets({
 function renderNav(
   list: Cabinet[] = cabinets(),
   identity: string | null = null,
+  placement: "sidebar" | "panel" = "sidebar",
 ) {
   return render(
     <NextIntlClientProvider locale="uk" messages={messages}>
-      <AccountNav cabinets={list} identity={identity} />
+      <AccountNav cabinets={list} identity={identity} placement={placement} />
     </NextIntlClientProvider>,
   );
 }
@@ -80,7 +109,7 @@ describe("AccountNav cabinets", () => {
 
     expect(
       screen.getByRole("link", { name: new RegExp(t.cabinets.parent) }),
-    ).toHaveAttribute("href", "/account/parent/applications");
+    ).toHaveAttribute("href", "/account/parent");
   });
 
   // The ✅ is gone (Vital, agreed with the designers). What separates the two
@@ -170,7 +199,13 @@ describe("AccountNav sub-navigation", () => {
 
     expect(
       screen.getByRole("link", { name: new RegExp(t.cabinets.parent) }),
+    ).toHaveAttribute("aria-current", "location");
+    expect(
+      screen.getByRole("link", { name: t.parent.links.applications }),
     ).toHaveAttribute("aria-current", "page");
+    expect(
+      screen.getByRole("link", { name: t.parent.links.volunteer }),
+    ).toHaveAttribute("href", "/account/parent/my-volunteer");
     expect(
       screen.getByRole("link", { name: new RegExp(t.cabinets.volunteer) }),
     ).not.toHaveAttribute("aria-current");
@@ -244,5 +279,42 @@ describe("AccountNav current page", () => {
       screen.getByRole("link", { name: t.volunteer.links.children }),
     ).not.toHaveAttribute("aria-current");
     pathname = "/account/volunteer";
+  });
+});
+
+// «Подати заявку» belongs to the parent cabinet (Figma 136:3530) and the design
+// draws it only while you are in it.
+describe("AccountNav cabinet action", () => {
+  it("shows the current cabinet's action, in the sidebar's drawing", () => {
+    pathname = "/account/parent";
+    renderNav(cabinets({ parent: true, action: true }));
+
+    expect(
+      screen.getByRole("button", { name: "sidebar action" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "panel action" }),
+    ).not.toBeInTheDocument();
+    pathname = "/account/volunteer";
+  });
+
+  it("uses the phone menu's drawing in the panel", () => {
+    pathname = "/account/parent/applications";
+    renderNav(cabinets({ parent: true, action: true }), null, "panel");
+
+    expect(
+      screen.getByRole("button", { name: "panel action" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "sidebar action" }),
+    ).not.toBeInTheDocument();
+    pathname = "/account/volunteer";
+  });
+
+  it("does not show another cabinet's action", () => {
+    pathname = "/account/volunteer";
+    renderNav(cabinets({ volunteer: true, parent: true, action: true }));
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });

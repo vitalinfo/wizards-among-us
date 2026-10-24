@@ -118,7 +118,7 @@ describe("accessibility smoke checks", () => {
           },
           {
             key: "parent",
-            href: "/account/parent/applications",
+            href: "/account/parent",
             emoji: "👫",
             available: false,
             links: [],

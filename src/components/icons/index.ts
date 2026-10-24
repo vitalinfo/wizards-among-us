@@ -1,13 +1,16 @@
+export { ArrowDownIcon } from "./ArrowDownIcon";
 export { ArrowRightIcon } from "./ArrowRightIcon";
 export { CheckIcon } from "./CheckIcon";
 export { ChildIcon } from "./ChildIcon";
 export { ChevronRightIcon } from "./ChevronRightIcon";
 export { ClockIcon } from "./ClockIcon";
 export { CloseIcon } from "./CloseIcon";
+export { ExitIcon } from "./ExitIcon";
 export { EyeIcon } from "./EyeIcon";
 export { FiltersIcon } from "./FiltersIcon";
 export { MenuIcon } from "./MenuIcon";
 export { InstagramIcon } from "./InstagramIcon";
+export { PlusIcon } from "./PlusIcon";
 export { ShieldIcon } from "./ShieldIcon";
 export { SignOutIcon } from "./SignOutIcon";
 export { StarIcon } from "./StarIcon";

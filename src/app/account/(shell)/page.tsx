@@ -24,6 +24,6 @@ export default async function AccountPage() {
   redirect(
     hasRole(actor, "volunteer") && !hasRole(actor, "parent")
       ? "/account/volunteer"
-      : "/account/parent/applications",
+      : "/account/parent",
   );
 }
