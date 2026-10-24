@@ -1,5 +1,6 @@
 import { NextIntlClientProvider } from "next-intl";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import messages from "../../../../messages/uk.json";
@@ -118,5 +119,29 @@ describe("SiteHeaderClient contacts link", () => {
     for (const link of links) {
       expect(link).toHaveAttribute("href", "/contacts");
     }
+  });
+});
+
+// The root layout holds this header, so it persists across pages — and a bare
+// <details> would stay open over the page the person just chose.
+describe("SiteHeaderClient mobile menu", () => {
+  it("closes when a page in it is chosen", async () => {
+    renderHeader(null);
+    const summary = screen.getByLabelText(messages.common.nav.menu);
+    const details = summary.closest("details")!;
+
+    await userEvent.click(summary);
+    expect(details).toHaveAttribute("open");
+
+    // Outside an app router the Link is a plain anchor, and jsdom cannot
+    // follow it. Cancel only the browser's default action — at the document,
+    // after the component's own handler has seen the click.
+    const stay = (event: Event) => event.preventDefault();
+    document.addEventListener("click", stay);
+    await userEvent.click(
+      within(details).getByRole("link", { name: messages.common.nav.about }),
+    );
+    document.removeEventListener("click", stay);
+    expect(details).not.toHaveAttribute("open");
   });
 });

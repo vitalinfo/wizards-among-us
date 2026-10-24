@@ -5,31 +5,31 @@ import { describe, expect, it, vi } from "vitest";
 let pathname = "/account/parent";
 vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
 
-import { AccountMenu } from "../AccountMenu";
+import { MenuDetails } from "../MenuDetails";
 
 function menu() {
   return (
-    <AccountMenu>
+    <MenuDetails>
       <summary>Меню</summary>
       {/* A hash, so jsdom does not attempt a navigation it cannot do; the
           component only cares that it is a link. */}
       <a href="#applications">Мої заявки</a>
       <span>Мій профіль</span>
-    </AccountMenu>
+    </MenuDetails>
   );
 }
 
 const details = () => screen.getByText("Меню").closest("details")!;
 
-describe("AccountMenu", () => {
+describe("MenuDetails", () => {
   it("opens from its summary", async () => {
     render(menu());
     await userEvent.click(screen.getByText("Меню"));
     expect(details()).toHaveAttribute("open");
   });
 
-  // The account layout persists between its pages, so without this the panel
-  // stays over the page the person just picked.
+  // The layout holding the header persists between pages, so without this the
+  // panel stays over the page the person just picked.
   it("closes when a link in it is tapped", async () => {
     render(menu());
     await userEvent.click(screen.getByText("Меню"));
