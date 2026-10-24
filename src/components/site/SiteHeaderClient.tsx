@@ -8,6 +8,7 @@ import { SITE_CONTAINER } from "@/components/site/layout";
 import { SITE_NAV } from "@/components/site/nav";
 import { SiteLogo } from "@/components/site/SiteLogo";
 import { SocialLinks } from "@/components/site/SocialLinks";
+import { MenuDetails } from "@/components/ui/MenuDetails";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -114,8 +115,12 @@ export function SiteHeaderClient({
               burger swaps to an ×, and because the summary stays where it was
               in the header, the × lands exactly where the design puts it. That
               is why there is no second button to close with — there cannot be
-              one without script. */}
-          <details className="group lg:hidden">
+              one without script.
+
+              MenuDetails closes it again when a link in it is tapped: the
+              root layout holds this header, so it persists across pages, and
+              a bare <details> would stay open over the page just chosen. */}
+          <MenuDetails className="group lg:hidden">
             <summary
               aria-label={t("nav.menu")}
               className="focus-visible:outline-ring relative z-60 grid size-8 cursor-pointer list-none place-items-center rounded focus-visible:outline-2 focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden"
@@ -167,7 +172,7 @@ export function SiteHeaderClient({
                 />
               </div>
             </div>
-          </details>
+          </MenuDetails>
         </div>
       </div>
     </header>

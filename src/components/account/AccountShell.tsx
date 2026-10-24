@@ -6,9 +6,9 @@ import { logout } from "@/app/auth/actions";
 import { CloseIcon, ExitIcon, MenuIcon, SignOutIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
 import { SiteLogo } from "@/components/site/SiteLogo";
+import { MenuDetails } from "@/components/ui/MenuDetails";
 import { cn } from "@/lib/utils";
 
-import { AccountMenu } from "./AccountMenu";
 import { AccountNav, type Cabinet } from "./AccountNav";
 
 const ROUND =
@@ -76,14 +76,14 @@ export function AccountShell({
             {/* Sign-out from lg, where the sidebar is always on screen. */}
             <div className="hidden lg:block">{signOut}</div>
 
-            {/* A <details> (inside AccountMenu, which closes it again on
+            {/* A <details> (inside MenuDetails, which closes it again on
                 navigation), so the panel opens with no JavaScript and the
                 keyboard and screen-reader behaviour come from the element —
                 the same reason the site header's menu is one. The <summary>
                 IS the close button: open, the burger swaps to an ×, and
                 because the summary stays put the × lands where the design
                 draws it. */}
-            <AccountMenu className="group lg:hidden">
+            <MenuDetails className="group lg:hidden">
               <summary
                 aria-label={t("nav.menu")}
                 className={cn(
@@ -127,7 +127,7 @@ export function AccountShell({
                   </button>
                 </form>
               </div>
-            </AccountMenu>
+            </MenuDetails>
           </div>
         </div>
       </header>
