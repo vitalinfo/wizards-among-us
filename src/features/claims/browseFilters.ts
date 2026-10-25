@@ -1,11 +1,14 @@
 import { UKRAINE_REGIONS, type UkraineRegion } from "@/db/enums";
 import { CHILD_AGE_MAX } from "@/lib/applicationFieldOptions";
+import {
+  DEFAULT_PAGE_SIZE,
+  parsePageSize,
+  type PageSize,
+} from "@/lib/pageSize";
 
 // The volunteer browse filters live in the url so each view is addressable and
 // shareable, and so returning from a child lands back where you were — the same
 // approach as the admin moderation queue.
-
-export const BROWSE_PAGE_SIZE = 24;
 
 // The results list, so filter/pager navigation returns to it.
 export const BROWSE_ANCHOR = "children";
@@ -37,6 +40,8 @@ export type BrowseQuery = {
   region: UkraineRegion | null;
   age: AgeBandKey | null;
   page: number;
+  // «Записів на сторінці», shared with the other cabinet lists (lib/pageSize).
+  per: PageSize;
 };
 
 function parseRegion(value: string | undefined): UkraineRegion | null {
@@ -57,12 +62,14 @@ export function parseBrowseQuery(params: {
   region?: string;
   age?: string;
   page?: string;
+  per?: string;
 }): BrowseQuery {
   const page = Number(params.page);
   return {
     region: parseRegion(params.region),
     age: parseAgeBand(params.age),
     page: Number.isInteger(page) && page >= 1 ? page : 1,
+    per: parsePageSize(params.per),
   };
 }
 
@@ -79,6 +86,9 @@ function browseParams(query: BrowseQuery, page: number): URLSearchParams {
   if (page > 1) {
     params.set("page", String(page));
   }
+  if (query.per !== DEFAULT_PAGE_SIZE) {
+    params.set("per", String(query.per));
+  }
   return params;
 }
 
@@ -90,8 +100,8 @@ function browseUrl(params: URLSearchParams): string {
 }
 
 // Rebuild the url for a query, optionally overriding parts of it. Any change to
-// a FILTER resets to page 1 — a narrower filter may not have the page you were
-// on.
+// a FILTER or the page size resets to page 1 — the page you were on may not
+// exist any more.
 export function browseHref(
   query: BrowseQuery,
   override: Partial<BrowseQuery> = {},
@@ -122,8 +132,4 @@ export function claimHref(
     return: browseUrl(browseParams(query, page)),
   });
   return `/account/volunteer/children/${applicationId}/claim?${params}`;
-}
-
-export function browsePageCount(total: number): number {
-  return Math.max(1, Math.ceil(total / BROWSE_PAGE_SIZE));
 }

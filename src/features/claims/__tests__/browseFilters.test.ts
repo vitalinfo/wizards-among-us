@@ -6,21 +6,20 @@ import {
   AGE_BANDS,
   ageBand,
   browseHref,
-  browsePageCount,
   claimHref,
   BROWSE_ANCHOR,
-  BROWSE_PAGE_SIZE,
   parseBrowseQuery,
 } from "../browseFilters";
 
 const empty = parseBrowseQuery({});
 
 describe("parseBrowseQuery", () => {
-  it("defaults to everything, page 1", () => {
+  it("defaults to everything, page 1, ten a page", () => {
     expect(empty).toEqual({
       region: null,
       age: null,
       page: 1,
+      per: 10,
     });
   });
 
@@ -30,11 +29,13 @@ describe("parseBrowseQuery", () => {
         region: "lviv",
         age: "5-8",
         page: "3",
+        per: "20",
       }),
     ).toEqual({
       region: "lviv",
       age: "5-8",
       page: 3,
+      per: 20,
     });
   });
 
@@ -45,11 +46,13 @@ describe("parseBrowseQuery", () => {
       region: "atlantis",
       age: "7-9",
       page: "0",
+      per: "100000",
     });
     expect(q).toEqual({
       region: null,
       age: null,
       page: 1,
+      per: 10,
     });
   });
 
@@ -96,6 +99,7 @@ describe("browseHref", () => {
       region: "kyiv",
       age: "9-12",
       page: "2",
+      per: "5",
     });
     const href = browseHref(q);
     const params = Object.fromEntries(
@@ -113,14 +117,29 @@ describe("browseHref", () => {
   });
 });
 
-describe("browsePageCount", () => {
-  it("always has at least one page", () => {
-    expect(browsePageCount(0)).toBe(1);
+// The size is chosen once and kept: by paging, by a filter change, and in
+// the claim link's `return`, so «×» comes back to the same view.
+describe("page size", () => {
+  const twenty = parseBrowseQuery({ page: "3", region: "lviv", per: "20" });
+
+  it("rides along on paging and filtering, and the default stays out", () => {
+    expect(browseHref(twenty, { page: 4 })).toContain("per=20");
+    expect(browseHref(twenty, { region: "kyiv" })).toContain("per=20");
+    expect(browseHref(empty)).not.toContain("per=");
   });
 
-  it("counts by page size", () => {
-    expect(browsePageCount(BROWSE_PAGE_SIZE)).toBe(1);
-    expect(browsePageCount(BROWSE_PAGE_SIZE + 1)).toBe(2);
+  it("starts again from page 1 when the size changes", () => {
+    const href = browseHref(twenty, { per: 5 });
+    expect(href).toContain("per=5");
+    expect(href).not.toContain("page=");
+  });
+
+  it("is carried back by the claim link", () => {
+    const back = new URL(
+      claimHref(twenty, 3, "app-1"),
+      "http://x",
+    ).searchParams.get("return");
+    expect(back).toContain("per=20");
   });
 });
 

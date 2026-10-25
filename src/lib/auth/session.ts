@@ -1,5 +1,6 @@
 import { and, eq, gt } from "drizzle-orm";
 import { cookies } from "next/headers";
+import { cache } from "react";
 
 import { getDb } from "@/db";
 import type { ActorType } from "@/db/enums";
@@ -53,7 +54,20 @@ export async function createSession(target: SessionTarget): Promise<void> {
 // Resolve the current request's actor, or null. Looks up a non-expired session
 // by token hash, then maps it to the Phase-1 Actor from our domain tables.
 // A client-side check is never a substitute for calling this on the server.
-export async function getSessionActor(): Promise<Actor | null> {
+//
+// Memoised per request with React's cache(). A cabinet page asks three times —
+// the account layout, the shell layout and the page — and each ask was two
+// queries, so six round trips answered one question. Every caller still asks
+// for itself; only the answer is shared, and only within one request.
+//
+// Safe against a stale actor because nothing reads it again after changing it
+// in the same request: signing in, signing out and joining as a volunteer all
+// end in a redirect, and the page it lands on is rendered by a new request.
+// Keep it that way — an action that changes roles and then re-reads the actor
+// would get the old one.
+export const getSessionActor = cache(loadSessionActor);
+
+async function loadSessionActor(): Promise<Actor | null> {
   const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
   if (!token) {
     return null;

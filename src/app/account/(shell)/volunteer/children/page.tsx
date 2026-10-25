@@ -4,14 +4,12 @@ import { redirect } from "next/navigation";
 import { BrowseFilterForm } from "@/components/volunteer/BrowseFilterForm";
 import { ChildCard } from "@/components/volunteer/ChildCard";
 import { ChildrenEmptyState } from "@/components/volunteer/ChildrenEmptyState";
-import { Pager } from "@/components/ui/Pager";
+import { ListPager } from "@/components/ui/ListPager";
 import {
   ageBand,
   browseHref,
-  browsePageCount,
   claimHref,
   BROWSE_ANCHOR,
-  BROWSE_PAGE_SIZE,
   parseBrowseQuery,
 } from "@/features/claims/browseFilters";
 import { countBrowsable, listBrowsable } from "@/features/claims/queries";
@@ -21,6 +19,7 @@ import { canBrowseChildren } from "@/lib/authz";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
+import { pageCount as countPages } from "@/lib/pageSize";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +31,7 @@ export default async function BrowseChildrenPage({
     region?: string;
     age?: string;
     page?: string;
+    per?: string;
   }>;
 }) {
   const actor = await getSessionActor();
@@ -69,12 +69,13 @@ export default async function BrowseChildrenPage({
   };
 
   const total = await countBrowsable(filters);
-  const pageCount = browsePageCount(total);
+  const { per } = query;
+  const pageCount = countPages(total, per);
   const page = Math.min(query.page, pageCount);
   const rows = await listBrowsable({
     ...filters,
-    limit: BROWSE_PAGE_SIZE,
-    offset: (page - 1) * BROWSE_PAGE_SIZE,
+    limit: per,
+    offset: (page - 1) * per,
   });
 
   await recordAuditLog({
@@ -117,14 +118,16 @@ export default async function BrowseChildrenPage({
             ))}
           </ul>
 
-          <Pager
+          <ListPager
             label={t("pager.label")}
             page={page}
             pageCount={pageCount}
             total={total}
-            from={(page - 1) * BROWSE_PAGE_SIZE + 1}
-            to={(page - 1) * BROWSE_PAGE_SIZE + rows.length}
+            from={(page - 1) * per + 1}
+            to={(page - 1) * per + rows.length}
+            per={per}
             hrefFor={(target) => browseHref(query, { page: target })}
+            sizeHref={(size) => browseHref(query, { per: size })}
           />
         </>
       )}
