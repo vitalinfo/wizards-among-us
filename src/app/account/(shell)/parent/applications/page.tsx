@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
+import { ApplicationDialogModal } from "@/components/parent/ApplicationDialogModal";
 import { ApplicationsTable } from "@/components/parent/ApplicationsTable";
 import { StartApplicationButton } from "@/components/parent/StartApplicationButton";
-import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { FilterTabs } from "@/components/ui/FilterTabs";
 import { Pager } from "@/components/ui/Pager";
 import {
@@ -13,15 +13,13 @@ import {
   applicationsHref,
   applicationsPageCount,
   parseApplicationsQuery,
+  parseDialog,
   type ApplicationTab,
 } from "@/features/applications/applicationTabs";
-import {
-  canDeleteApplication,
-  canStartApplication,
-} from "@/features/applications/authz";
+import { canStartApplication } from "@/features/applications/authz";
+import { loadApplicationDialog } from "@/features/applications/dialogs";
 import {
   countMyApplications,
-  getMyApplication,
   listMyApplications,
 } from "@/features/applications/queries";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
@@ -29,8 +27,6 @@ import { getResolvedSettings } from "@/features/settings/queries";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
-
-import { deleteDraftAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("parent.applications");
@@ -50,12 +46,14 @@ export const dynamic = "force-dynamic";
 export default async function MyApplicationsPage({
   searchParams,
 }: {
-  // `confirm` + `id` open the delete confirmation over the list.
+  // `dialog` + `id` open a dialog over the list (delete a draft, confirm the
+  // gift, review); `blocked` is the confirm action saying why it refused.
   searchParams: Promise<{
     tab?: string;
     page?: string;
-    confirm?: string;
+    dialog?: string;
     id?: string;
+    blocked?: string;
   }>;
 }) {
   const actor = await getSessionActor();
@@ -87,23 +85,17 @@ export default async function MyApplicationsPage({
         })
       : [];
 
-  // The draft the bin was pressed on, if the confirmation is open. Looked up
-  // rather than taken from the list, because the id is in the url: someone
-  // else's id, or a draft submitted since, simply opens no dialog.
-  const pending =
-    params.confirm === "delete" && params.id
-      ? await getMyApplication(params.id, actor.id)
-      : null;
-  const toDelete =
-    pending && canDeleteApplication(actor, pending) ? pending : null;
-  const tDelete = await getTranslations("parent.applications.deleteDraft");
+  const requested = parseDialog(params);
+  const dialog = requested
+    ? await loadApplicationDialog(actor, requested)
+    : null;
 
   return (
     <>
-      {/* inert while the dialog is up: Tab must not walk into the list under
+      {/* inert while a dialog is up: Tab must not walk into the list under
         it. The header and sidebar are outside this page — InertOutside, in
         the dialog, covers those. */}
-      <div className="pt-10 pb-10 lg:pt-11" inert={toDelete !== null}>
+      <div className="pt-10 pb-10 lg:pt-11" inert={dialog !== null}>
         <div className="flex flex-col gap-2">
           <h1 className="text-xl leading-5 font-semibold tracking-[-0.03em]">
             {t("title")}
@@ -117,7 +109,10 @@ export default async function MyApplicationsPage({
           being empty is an answer, and losing the control that got you there
           would leave no way back to «Всі». On a phone «Подати заявку» shares
           the row — on desktop it is at the foot of the sidebar instead. */}
-        <div className="mt-5 flex items-center justify-between gap-4 lg:mt-10">
+        {/* Wraps when a long filter («Чарівник знайшовся») and «Подати
+            заявку» do not fit one 328px row; ml-auto keeps the button on the
+            right when it moves to its own line. */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 lg:mt-10">
           <FilterTabs
             label={t("tabs.label")}
             current={query.tab}
@@ -128,7 +123,10 @@ export default async function MyApplicationsPage({
             }))}
           />
           {canStart ? (
-            <StartApplicationButton variant="panel" className="lg:hidden" />
+            <StartApplicationButton
+              variant="panel"
+              className="ml-auto lg:hidden"
+            />
           ) : null}
         </div>
 
@@ -154,18 +152,11 @@ export default async function MyApplicationsPage({
         )}
       </div>
 
-      {toDelete ? (
-        <ConfirmModal
-          action={deleteDraftAction.bind(null, toDelete.id, {
-            tab: query.tab,
-            page,
-          })}
-          title={tDelete("title")}
-          message={tDelete("body", {
-            name: toDelete.childName ?? t("childFallback"),
-          })}
-          confirmLabel={tDelete("confirm")}
-          cancelHref={applicationsHref({ tab: query.tab, page })}
+      {dialog ? (
+        <ApplicationDialogModal
+          loaded={dialog}
+          view={{ tab: query.tab, page }}
+          blocked={params.blocked ?? null}
         />
       ) : null}
     </>

@@ -32,8 +32,10 @@ const VARIANTS: Record<StartApplicationVariant, string> = {
     PILL,
     "w-[235px] gap-2.5 text-base font-medium",
   ),
+  // One line: beside a long filter on a phone it would otherwise break
+  // between «Подати» and «заявку».
   panel:
-    "text-primary hover:text-primary-hover inline-flex items-center gap-2 rounded text-base leading-6 font-medium",
+    "text-primary hover:text-primary-hover inline-flex items-center gap-2 rounded text-base leading-6 font-medium whitespace-nowrap",
 };
 
 export function StartApplicationButton({

@@ -7,7 +7,8 @@ import {
   applicationsHref,
   applicationsPageCount,
   APPLICATIONS_PAGE_SIZE,
-  confirmDeleteHref,
+  dialogHref,
+  parseDialog,
   parseApplicationsQuery,
   tabStatuses,
 } from "../applicationTabs";
@@ -69,14 +70,31 @@ describe("applicationsHref", () => {
   });
 });
 
-describe("confirmDeleteHref", () => {
-  it("opens the confirmation over the view the bin was pressed on", () => {
-    expect(confirmDeleteHref({ tab: "all", page: 1 }, "a1")).toBe(
-      "/account/parent/applications?confirm=delete&id=a1",
+describe("dialogs", () => {
+  it("open over the view they were opened from", () => {
+    expect(dialogHref({ tab: "all", page: 1 }, "delete", "a1")).toBe(
+      "/account/parent/applications?dialog=delete&id=a1",
     );
-    expect(confirmDeleteHref({ tab: "draft", page: 3 }, "a1")).toBe(
-      "/account/parent/applications?tab=draft&page=3&confirm=delete&id=a1",
+    expect(dialogHref({ tab: "claimed", page: 3 }, "receive", "a1")).toBe(
+      "/account/parent/applications?tab=claimed&page=3&dialog=receive&id=a1",
     );
+    expect(
+      dialogHref({ tab: "all", page: 1 }, "receive", "a1", {
+        blocked: "no_photo",
+      }),
+    ).toBe(
+      "/account/parent/applications?dialog=receive&id=a1&blocked=no_photo",
+    );
+  });
+
+  it("parses only a known dialog with an id", () => {
+    expect(parseDialog({ dialog: "review", id: "a1" })).toEqual({
+      dialog: "review",
+      id: "a1",
+    });
+    expect(parseDialog({ dialog: "review" })).toBeNull();
+    expect(parseDialog({ dialog: "drop-table", id: "a1" })).toBeNull();
+    expect(parseDialog({})).toBeNull();
   });
 });
 

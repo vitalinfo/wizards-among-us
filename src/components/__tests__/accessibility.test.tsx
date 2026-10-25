@@ -52,7 +52,9 @@ function renderWithIntl(ui: React.ReactNode) {
 
 describe("accessibility smoke checks", () => {
   it("the review form has no violations", async () => {
-    const { container } = renderWithIntl(<ReviewForm applicationId="a1" />);
+    const { container } = renderWithIntl(
+      <ReviewForm applicationId="a1" view={{ tab: "all", page: 1 }} />,
+    );
     expect(await axe(container)).toHaveNoViolations();
   });
 

@@ -6,7 +6,7 @@ import { BillListIcon, EditIcon, EyeIcon, TrashIcon } from "@/components/icons";
 import { ApplicationStatusPill } from "@/components/parent/ApplicationStatusPill";
 import type { ApplicationStatus } from "@/db/enums";
 import {
-  confirmDeleteHref,
+  dialogHref,
   type ApplicationsQuery,
 } from "@/features/applications/applicationTabs";
 import type { MyApplicationRow } from "@/features/applications/queries";
@@ -45,12 +45,25 @@ export async function ApplicationsTable({
   const base = (row: MyApplicationRow) =>
     `/account/parent/applications/${row.id}`;
 
-  // The one next step a status has: say the gift arrived. («Продовжити» on a
-  // draft is drawn too, and held back for now — Vital.)
+  // The one next step a status has, each in a dialog over the list: say the
+  // gift arrived, and then — until it is left — the review. The review is
+  // offered straight after confirming, but closing that dialog must not be
+  // the last chance to write it. («Продовжити» on a draft is drawn too, and
+  // held back for now — Vital.)
   const nextStep = (row: MyApplicationRow): ReactNode =>
     row.status === "claimed" ? (
-      <Link href={`${base(row)}/confirm`} className={cn(STEP, "text-primary")}>
+      <Link
+        href={dialogHref(query, "receive", row.id)}
+        className={cn(STEP, "text-primary")}
+      >
         {t("confirmReceipt")}
+      </Link>
+    ) : row.status === "fulfilled" && !row.reviewed ? (
+      <Link
+        href={dialogHref(query, "review", row.id)}
+        className={cn(STEP, "text-primary")}
+      >
+        {t("leaveReview")}
       </Link>
     ) : null;
 
@@ -74,7 +87,7 @@ export async function ApplicationsTable({
       </Link>
       {row.status === "draft" ? (
         <Link
-          href={confirmDeleteHref(query, row.id)}
+          href={dialogHref(query, "delete", row.id)}
           aria-label={t("delete", { name: name(row) })}
           className={ICON}
         >
@@ -102,9 +115,13 @@ export async function ApplicationsTable({
       <div className="border-divider bg-surface hidden rounded-lg border px-[13px] lg:block">
         <table className="w-full table-fixed border-separate border-spacing-y-2 text-left">
           <caption className="sr-only">{t("tableCaption")}</caption>
+          {/* The status column has to hold its widest pill (177px,
+              «Чарівник знайшовся») over its link (183px). The design's 37/27
+              leaves it 315 from 2xl, enough; narrower, the first two give up
+              width so it keeps those 183. */}
           <colgroup>
-            <col className="w-[37%]" />
-            <col className="w-[27%]" />
+            <col className="w-[33%] 2xl:w-[37%]" />
+            <col className="w-[20%] 2xl:w-[27%]" />
             <col />
             <col className="w-[170px]" />
           </colgroup>
@@ -150,10 +167,10 @@ export async function ApplicationsTable({
                   {row.campaignTitle}
                 </td>
                 <td className={cell}>
-                  {/* Wraps below the 1920 frame: the pill and «Підтвердити
-                      отримання» need about 390px together, and the columns
-                      before this one keep the design's proportions. */}
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                  {/* The link UNDER its pill, centred on it, at every width
+                      (Vital, over the 1920 frame's side-by-side): the cell
+                      shrinks to the wider of the two and centres both. */}
+                  <div className="inline-flex flex-col items-center gap-2 text-center">
                     <ApplicationStatusPill status={row.status} />
                     {nextStep(row)}
                   </div>
@@ -176,8 +193,13 @@ export async function ApplicationsTable({
             key={row.id}
             className="border-divider bg-surface flex flex-col items-start gap-[18px] rounded-lg border px-[13px] py-5"
           >
-            <div className="flex flex-wrap items-center gap-x-[15px] gap-y-2">
-              <ApplicationStatusPill status={row.status} />
+            {/* No wrap: the link shrinks BESIDE the pill and breaks onto two
+                lines, centred on it, as the phone frame draws — wrapping
+                would drop it under the pill, flush left. */}
+            <div className="flex items-center gap-[15px]">
+              <span className="shrink-0">
+                <ApplicationStatusPill status={row.status} />
+              </span>
               {nextStep(row)}
             </div>
             <div className="flex flex-col gap-2">
@@ -202,8 +224,11 @@ export async function ApplicationsTable({
   );
 }
 
+// One line in the table: a wrapped «Підтвердити / отримання» beside a one-line
+// pill reads as two labels. On a phone the design wraps it beside the pill
+// instead, centred on it.
 const STEP =
-  "focus-visible:outline-ring rounded text-sm leading-[18px] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 lg:text-base";
+  "focus-visible:outline-ring rounded text-sm leading-[18px] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 lg:text-base lg:whitespace-nowrap";
 
 const ICON =
   "text-foreground hover:text-primary focus-visible:outline-ring inline-flex rounded transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";

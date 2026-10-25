@@ -1,96 +1,18 @@
-import { getTranslations } from "next-intl/server";
-import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
-import { ConfirmReceiptForm } from "@/components/parent/ConfirmReceiptForm";
-import { listApplicationFiles } from "@/features/applications/fileQueries";
-import { getMyApplication } from "@/features/applications/queries";
-import { isUser } from "@/lib/actor";
-import { signedOutRedirect } from "@/lib/auth/returnPath";
-import { getSessionActor } from "@/lib/auth/session";
+import { dialogHref } from "@/features/applications/applicationTabs";
 
 export const dynamic = "force-dynamic";
 
-export default async function ConfirmReceiptPage({
+// Confirming the gift is a dialog over «Мої заявки» now (Figma 142:5726). This
+// url stays as a redirect into it, so a link to the old page — a bookmark, an
+// earlier message — still lands somewhere that works. The dialog does the
+// checks; an id that is not this parent's opens nothing.
+export default async function ConfirmReceiptRedirect({
   params,
-  searchParams,
 }: {
   params: Promise<{ applicationId: string }>;
-  searchParams: Promise<{ blocked?: string }>;
 }) {
-  const [{ applicationId }, query] = await Promise.all([params, searchParams]);
-  const actor = await getSessionActor();
-  if (!isUser(actor)) {
-    redirect(
-      signedOutRedirect(
-        actor,
-        `/account/parent/applications/${applicationId}/confirm`,
-      ),
-    );
-  }
-
-  // Scoped to this parent: a wrong id 404s rather than revealing that someone
-  // else's application exists.
-  const application = await getMyApplication(applicationId, actor.id);
-  if (!application) {
-    notFound();
-  }
-
-  const t = await getTranslations("parent.confirm");
-  const tBack = await getTranslations("parent");
-  const files = await listApplicationFiles(applicationId);
-  const photo = files.find((file) => file.kind === "confirmation") ?? null;
-
-  return (
-    <>
-      <div className="mx-auto w-full max-w-lg py-10">
-        <Link
-          href="/account/parent/applications"
-          className="text-primary text-sm font-semibold underline underline-offset-4"
-        >
-          {tBack("backToApplications")}
-        </Link>
-        <h1 className="mt-4 text-3xl font-semibold">{t("title")}</h1>
-
-        {application.status === "fulfilled" ? (
-          <div className="border-border bg-surface-muted mt-6 rounded-lg border p-4">
-            <p className="font-semibold">{t("alreadyDone.title")}</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {t("alreadyDone.body")}
-            </p>
-            <Link
-              href={`/account/parent/review?application=${applicationId}`}
-              className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
-            >
-              {t("alreadyDone.reviewCta")}
-            </Link>
-          </div>
-        ) : application.status !== "claimed" ? (
-          // Nothing to confirm until a volunteer actually holds the child.
-          <p className="text-muted-foreground mt-6">{t("notClaimed")}</p>
-        ) : (
-          <>
-            <p className="text-body mt-2 text-sm leading-relaxed">
-              {t("body")}
-            </p>
-            <div className="mt-6">
-              <ConfirmReceiptForm
-                applicationId={applicationId}
-                photo={
-                  photo
-                    ? {
-                        id: photo.id,
-                        kind: photo.kind,
-                        contentType: photo.contentType,
-                      }
-                    : null
-                }
-                blocked={query.blocked ?? null}
-              />
-            </div>
-          </>
-        )}
-      </div>
-    </>
-  );
+  const { applicationId } = await params;
+  redirect(dialogHref({ tab: "all", page: 1 }, "receive", applicationId));
 }

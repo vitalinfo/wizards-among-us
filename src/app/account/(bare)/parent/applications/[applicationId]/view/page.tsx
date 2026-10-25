@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 
 import { ApplicationDetail } from "@/components/applications/ApplicationDetail";
+import { ApplicationPhoto } from "@/components/applications/ApplicationPhoto";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { latestByKind } from "@/features/applications/files";
 import {
@@ -52,21 +53,50 @@ export default async function ApplicationViewPage({
   }
 
   const t = await getTranslations("parent.applications");
+  const tConfirm = await getTranslations("parent.confirm");
   const [files, contactFields] = await Promise.all([
     listApplicationFiles(applicationId),
     getUserContactFields(actor.id),
   ]);
 
-  // The two portraits the design draws, and nothing else: the ВПО certificate
-  // is the family's own too, but it is a state document and this page is the
-  // one most likely to be shown to someone else over a shoulder.
+  // The two portraits, and — once the family has sent it — the photo of the
+  // gift arriving, under its own heading at the foot of the page, where the
+  // volunteer's card puts it too. Not the ВПО certificate: it is the family's
+  // own as well, but it is a state document and this page is the one most
+  // likely to be shown to someone else over a shoulder.
+  const portraits = latestByKind(files, [
+    "child_with_letter_photo",
+    "letter_photo",
+  ]);
+  const gift = latestByKind(files, ["confirmation"])[0];
+  const child = application.childName ?? "";
+
   return (
     <ApplicationDetail
       application={application}
-      photos={latestByKind(files, ["child_with_letter_photo", "letter_photo"])}
+      photos={portraits}
       contact={resolveUserContact(contactFields)}
       closeHref="/account/parent/applications"
       closeLabel={t("close")}
+      after={
+        gift ? (
+          <section className="mx-auto mt-12 max-w-[1066px]">
+            <h2 className="text-xl font-semibold tracking-[-0.03em]">
+              {tConfirm("photo.label")}
+            </h2>
+            <div className="mt-4 lg:w-[306px]">
+              <ApplicationPhoto
+                applicationId={application.id}
+                fileId={gift.id}
+                title={tConfirm("photo.label")}
+                alt={tConfirm("photo.alt", { child })}
+                height={340}
+                mobileHeight={443}
+              />
+            </div>
+          </section>
+        ) : null
+      }
     />
   );
 }

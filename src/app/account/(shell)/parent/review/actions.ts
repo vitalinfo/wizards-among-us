@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  applicationsHref,
+  parseApplicationsQuery,
+} from "@/features/applications/applicationTabs";
 import { getMyApplication } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
 import type { ReviewActionState } from "@/features/reviews/formState";
@@ -12,8 +16,12 @@ import { reviewFormSchema } from "@/features/reviews/validation";
 import { isUser } from "@/lib/actor";
 import { getSessionActor } from "@/lib/auth/session";
 
+// The review, from the dialog over «Мої заявки» that follows confirming the
+// gift. `view` is the list's tab and page, bound by the dialog; parsed down to
+// known values before the redirect is built from it.
 export async function submitReviewAction(
   applicationId: string,
+  view: { tab: string; page: number },
   _prev: ReviewActionState,
   formData: FormData,
 ): Promise<ReviewActionState> {
@@ -58,5 +66,12 @@ export async function submitReviewAction(
 
   // Unpublished until an admin says otherwise, so nothing changes publicly yet.
   revalidatePath("/admin/reviews");
-  redirect("/account/parent/applications?reviewed=1");
+  redirect(
+    applicationsHref(
+      parseApplicationsQuery({
+        tab: String(view.tab),
+        page: String(view.page),
+      }),
+    ),
+  );
 }
