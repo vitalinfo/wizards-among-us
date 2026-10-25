@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import { InertOutside } from "./InertOutside";
+
 // A modal confirmation that needs NO client JavaScript.
 //
 // The trigger is a plain <Link> carrying ?confirm=<action>&id=<id>. The page
@@ -35,7 +37,13 @@ export async function ConfirmModal({
   const t = await getTranslations("common.confirm");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div
+      data-confirm-overlay
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    >
+      {/* Containment for what the page cannot mark inert itself — a layout's
+          header and sidebar. An enhancement only; see InertOutside. */}
+      <InertOutside />
       {/* autoFocus + tabIndex -1 puts focus on the dialog itself when the page
           loads, so a keyboard or screen-reader user starts inside the question
           rather than at the top of an inert page. Deliberately NOT on the

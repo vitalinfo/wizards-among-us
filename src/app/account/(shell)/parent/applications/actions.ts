@@ -3,9 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { canStartApplication } from "@/features/applications/authz";
+import {
+  applicationsHref,
+  parseApplicationsQuery,
+} from "@/features/applications/applicationTabs";
+import {
+  canDeleteApplication,
+  canStartApplication,
+} from "@/features/applications/authz";
 import {
   createDraft,
+  deleteMyDraft,
   getMyApplication,
   markFulfilled,
 } from "@/features/applications/queries";
@@ -14,6 +22,7 @@ import { recordAuditLog } from "@/features/audit/log";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { getConfirmBlockReason } from "@/lib/authz";
+import { deleteStoredObjects } from "@/lib/storage/client";
 import { getSessionActor } from "@/lib/auth/session";
 import { isUser } from "@/lib/actor";
 
@@ -87,4 +96,48 @@ export async function confirmReceiptAction(
   // Straight to the review: it is the natural next thing to say, and reviews
   // are only offered once a wish is fulfilled (Vital, Phase 7).
   redirect(`/account/parent/review?application=${applicationId}`);
+}
+
+// The parent deletes one of their drafts, from the confirmation on «Мої
+// заявки».
+//
+// Re-checked here even though only a draft's row offers the bin: a server
+// action is a public endpoint. And re-checked AGAIN in the SQL (deleteMyDraft),
+// because a draft can be submitted in another tab between this check and the
+// delete.
+//
+// `view` is the tab and page the list was on, bound by the page. Bound
+// arguments make a round trip through the browser, so it is parsed down to
+// known values and the url rebuilt from them — never used as given, which
+// would make this an open redirect.
+export async function deleteDraftAction(
+  applicationId: string,
+  view: { tab: string; page: number },
+): Promise<void> {
+  const actor = await getSessionActor();
+  if (!isUser(actor)) {
+    redirect("/login");
+  }
+
+  const list = applicationsHref(
+    parseApplicationsQuery({ tab: String(view.tab), page: String(view.page) }),
+  );
+
+  const application = await getMyApplication(applicationId, actor.id);
+  if (!application || !canDeleteApplication(actor, application)) {
+    redirect(list);
+  }
+
+  const { deleted, storageKeys } = await deleteMyDraft(applicationId, actor.id);
+  await recordAuditLog({
+    actor,
+    action: deleted ? "application.draft_deleted" : "application.delete_noop",
+    targetType: "application",
+    targetId: applicationId,
+  });
+  // After the rows are gone, so nothing can serve these objects any more.
+  await deleteStoredObjects(storageKeys);
+
+  revalidatePath("/account/parent/applications");
+  redirect(list);
 }

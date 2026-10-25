@@ -1,4 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectsCommand, S3Client } from "@aws-sdk/client-s3";
 
 // S3-compatible object storage. Cloudflare R2 today; any S3 store by changing
 // credentials (portability is a hard rule — nothing here is R2-specific beyond
@@ -45,4 +45,39 @@ export function fileObjectKey(
   extension: string,
 ): string {
   return `applications/${applicationId}/${kind}/${crypto.randomUUID()}${extension}`;
+}
+
+// Removes stored objects. Best effort, and the caller's last step: by the time
+// this runs the rows that pointed at these keys are gone, so nothing can serve
+// them any more — what is left is a cleanup, and a storage outage must not
+// turn a finished delete into an error the person sees.
+//
+// A failure is logged with the COUNT, never the keys: a key carries the
+// application id, and the logs are not where an id belongs next to the word
+// "delete".
+export async function deleteStoredObjects(
+  keys: readonly string[],
+): Promise<void> {
+  if (keys.length === 0) {
+    return;
+  }
+  try {
+    const result = await getStorage().send(
+      new DeleteObjectsCommand({
+        Bucket: storageBucket(),
+        Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+      }),
+    );
+    if (result.Errors && result.Errors.length > 0) {
+      console.error("deleteStoredObjects: some objects were not removed", {
+        failed: result.Errors.length,
+        of: keys.length,
+      });
+    }
+  } catch (error) {
+    console.error("deleteStoredObjects failed:", {
+      count: keys.length,
+      error,
+    });
+  }
 }

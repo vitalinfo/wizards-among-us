@@ -161,13 +161,16 @@ export function AccountNav({
         </>
       ) : null}
 
-      {/* At the foot of the sidebar, where the design pins it — the sidebar is
-          stretched to the viewport by the shell, so `mt-auto` is what puts it
-          there. In the phone menu it follows the links instead, with the
-          menu's own sign-out below it. */}
+      {/* Pinned to the foot of the VIEWPORT, where the design draws it — not
+          to the foot of the page. The sidebar is at least the viewport's
+          height, so on a short page `mt-auto` puts it there; on a long one
+          the sidebar stretches with the page and `sticky` holds it 100px off
+          the bottom of the screen, the same 100 the shell's padding gives. In
+          the phone menu it follows the links instead, with the menu's own
+          sign-out below it. */}
       {current?.action ? (
         placement === "sidebar" ? (
-          <div className="mt-auto flex justify-center pt-12">
+          <div className="sticky bottom-[100px] mt-auto flex justify-center pt-12">
             {current.action.sidebar}
           </div>
         ) : (

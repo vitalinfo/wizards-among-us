@@ -34,6 +34,18 @@ export function canEditApplication(
   );
 }
 
+// A parent may delete their own application only while it is a DRAFT. Once
+// submitted it is in the moderation queue and on the two-day clock, and
+// whatever happens next — approval, a claim, a volunteer buying a gift — rests
+// on it existing. NOT an admin override either: admins moderate applications,
+// they do not delete families' work, and nothing here is built for them to.
+export function canDeleteApplication(
+  actor: MaybeActor,
+  application: Pick<Application, "parentId" | "status">,
+): boolean {
+  return ownsApplication(actor, application) && application.status === "draft";
+}
+
 // Any signed-in user may START an application — deliberately NOT gated on the
 // `parent` role. Roles are capabilities earned by what someone does, and
 // submitting an application is what earns `parent`; requiring it here would be

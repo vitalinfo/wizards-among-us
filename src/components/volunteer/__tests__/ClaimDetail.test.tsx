@@ -13,7 +13,9 @@ import { axe } from "@/test/axe";
 import { ClaimDetail } from "../ClaimDetail";
 
 const t = messages.volunteer.claims.card;
-const tPhotos = messages.volunteer.claims.photos;
+// The card's shared copy — fields, prices, the two portraits — lives with the
+// shared card, which the parent's view of their own application draws too.
+const tShared = messages.applicationCard;
 
 const application = {
   id: "a1",
@@ -77,14 +79,14 @@ describe("ClaimDetail", () => {
     // `price` key rendered «volunteer.children.card.price» on the page and this
     // spec still passed.
     expect(
-      screen.getByText(t.price.replace("{price}", "540")),
+      screen.getByText(tShared.price.replace("{price}", "540")),
     ).toBeInTheDocument();
   });
 
   it("labels every line, so a value is never a bare string", async () => {
     await renderDetail();
 
-    for (const label of Object.values(t.fields)) {
+    for (const label of Object.values(tShared.fields)) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
   });
@@ -111,7 +113,7 @@ describe("ClaimDetail", () => {
         screen.getByRole("link", {
           name: messages.common.lightbox.open.replace(
             "{title}",
-            tPhotos[kind].title,
+            tShared.photos[kind].title,
           ),
         }),
       ).toHaveAttribute("href", `/api/applications/a1/files/${fileId}`);

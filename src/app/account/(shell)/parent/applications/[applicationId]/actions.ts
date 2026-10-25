@@ -311,12 +311,7 @@ export async function submitApplicationAction(
   // To the LIST, not back into the form. Returning to the application left the
   // parent looking at the last step of a form they had just finished, which
   // reads as "nothing happened"; the list is where they can see the new status
-  // and get on with the next child.
-  //
-  // «Анкету подано — ми перевіримо протягом двох днів» is true once. For an
-  // edit it announces a submission that happened days ago and restates a
-  // promise whose clock did not restart, so the two cases say different things.
-  redirect(
-    `/account/parent/applications?${wasAlreadySubmitted ? "saved=1" : "submitted=1"}`,
-  );
+  // and get on with the next child. No banner there (Vital): the row's status
+  // says what happened.
+  redirect("/account/parent/applications");
 }

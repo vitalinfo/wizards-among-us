@@ -97,7 +97,12 @@ export function toBrowseCard(
 // type_fields is jsonb, so it is `unknown` as far as the type system is
 // concerned: anything in there has to be checked, not cast. A malformed value
 // yields no links rather than throwing on a page that lists children.
-function giftUrls(typeFields: Application["typeFields"]): readonly string[] {
+//
+// Exported for the full application card too, so there is ONE place that
+// decides which parent-written urls are safe to put in an href.
+export function giftUrls(
+  typeFields: Application["typeFields"],
+): readonly string[] {
   if (!typeFields || typeof typeFields !== "object") {
     return [];
   }

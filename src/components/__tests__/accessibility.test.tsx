@@ -28,8 +28,6 @@ vi.mock("@/app/auth/actions", () => ({ logout: vi.fn() }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/account/volunteer" }));
 
 const { ReviewForm } = await import("@/components/parent/ReviewForm");
-const { MyApplicationsList } =
-  await import("@/components/parent/MyApplicationsList");
 const { SiteHeaderClient } = await import("@/components/site/SiteHeaderClient");
 const { AccountShell } = await import("@/components/account");
 const { ApplicationStatusBadge } =
@@ -58,24 +56,9 @@ describe("accessibility smoke checks", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it("the applications list has no violations", async () => {
-    const { container } = renderWithIntl(
-      <MyApplicationsList
-        applications={[
-          {
-            id: "a1",
-            childName: "Софійка",
-            childAge: 7,
-            giftDescription: "Лялька",
-            status: "claimed",
-            submittedAt: new Date("2026-08-25T10:00:00Z"),
-            updatedAt: new Date("2026-08-25T10:00:00Z"),
-          },
-        ]}
-      />,
-    );
-    expect(await axe(container)).toHaveNoViolations();
-  });
+  // The applications list is swept in its own spec
+  // (components/parent/__tests__/ApplicationsTable.test.tsx): it is a server
+  // component now, and renders through the server-intl shim.
 
   it("the header has no violations, signed in and out", async () => {
     const out = renderWithIntl(<SiteHeaderClient account={null} />);
