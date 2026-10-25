@@ -2,6 +2,7 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   gte,
   inArray,
@@ -343,9 +344,10 @@ export async function listMyClaims(
       .innerJoin(applications, eq(applications.id, claims.applicationId))
       .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
       .where(myClaimConditions(volunteerId, campaignId, page.tab))
-      // Oldest claim first, with the application id as a tiebreaker: without a
-      // total order a row can swap between pages and one would never be shown.
-      .orderBy(asc(claims.claimedAt), asc(applications.id))
+      // Newest claim first (Vital), with the application id as a tiebreaker:
+      // without a total order a row can swap between pages and one would never
+      // be shown.
+      .orderBy(desc(claims.claimedAt), desc(applications.id))
       .limit(page.limit)
       .offset(page.offset)
   );
