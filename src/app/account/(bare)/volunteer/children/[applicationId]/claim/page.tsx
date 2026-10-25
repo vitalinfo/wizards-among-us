@@ -54,8 +54,9 @@ export default async function ClaimBriefingPage({
       ),
     );
   }
+  // Not joined yet: to the cabinet's front page, which offers the opt-in.
   if (!canBrowseChildren(actor)) {
-    redirect("/volunteer");
+    redirect("/account/volunteer");
   }
 
   const context = await getApplicationForFileAccess(applicationId);
