@@ -16,6 +16,29 @@ import { type NextRequest, NextResponse } from "next/server";
 
 const HSTS_MAX_AGE_SECONDS = 31_536_000; // 1 year
 
+// The app calling ITSELF. When a server action invoked from the browser ends in
+// redirect(), Next renders the target by fetching it from its own server —
+// http://localhost:$PORT, carrying the visitor's cookies. Sending that request
+// to the canonical host made fetch follow a cross-origin redirect, which drops
+// the Cookie header, so the target rendered signed-out and bounced through
+// /login: deleting a draft on staging landed on /account/parent (Oct 2026).
+//
+// Safe to let through: Heroku routes by Host, so an outside request cannot
+// reach the dyno addressed to localhost, and a cookie is never at risk on a
+// host it was not set for.
+const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+function isLoopback(host: string | null): boolean {
+  if (!host) {
+    return false;
+  }
+  // Drop the port: "localhost:9652", "[::1]:9652".
+  const hostname = host.startsWith("[")
+    ? host.slice(0, host.indexOf("]") + 1)
+    : host.split(":")[0];
+  return LOOPBACK_HOSTNAMES.has(hostname.toLowerCase());
+}
+
 export function middleware(request: NextRequest): NextResponse {
   // Only in a real deploy: local dev is plain http on localhost, and the tests
   // below cover both branches explicitly.
@@ -25,6 +48,9 @@ export function middleware(request: NextRequest): NextResponse {
 
   const forwardedProto = request.headers.get("x-forwarded-proto");
   const host = request.headers.get("host");
+  if (isLoopback(host)) {
+    return NextResponse.next();
+  }
   // Optional: set per environment (staging vs production) as a runtime config
   // var. Unset means "whatever host was requested is fine".
   const canonicalHost = process.env.CANONICAL_HOST;

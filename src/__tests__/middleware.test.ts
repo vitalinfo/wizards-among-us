@@ -77,6 +77,39 @@ describe("middleware in production", () => {
     );
   });
 
+  // Next's own fetch of a server action's redirect target, carrying the
+  // visitor's session. Redirected, fetch drops the cookie on the way to the
+  // public host and the page renders signed-out.
+  it("lets the app's own requests to itself through, whatever the host rule", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CANONICAL_HOST", "staging.wizards-among-us.pp.ua");
+    for (const host of ["localhost:9652", "127.0.0.1:9652", "[::1]:9652"]) {
+      for (const proto of ["https", "http"]) {
+        const response = middleware(
+          request(`http://${host}/account/parent/applications`, {
+            "x-forwarded-proto": proto,
+            host,
+            cookie: "wau_session=abc",
+          }),
+        );
+        expect(response.status, `${proto} ${host}`).toBe(200);
+        expect(response.headers.get("location")).toBeNull();
+      }
+    }
+  });
+
+  // Only the dyno itself: a look-alike host is still sent to the canonical one.
+  it("does not treat a host that merely starts with localhost as loopback", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CANONICAL_HOST", "staging.wizards-among-us.pp.ua");
+    for (const host of ["localhost.evil.example", "127.0.0.1.nip.io"]) {
+      const response = middleware(
+        request(`https://${host}/`, { "x-forwarded-proto": "https", host }),
+      );
+      expect(response.status, host).toBe(307);
+    }
+  });
+
   it("accepts any host when CANONICAL_HOST is unset", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("CANONICAL_HOST", "");
