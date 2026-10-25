@@ -39,9 +39,9 @@ export default async function BrowseChildrenPage({
     redirect(signedOutRedirect(actor, "/account/volunteer/children"));
   }
   // The role is self-serve, so someone without it is sent to opt in rather than
-  // shown a dead end.
+  // shown a dead end — the cabinet's front page, where the button is.
   if (!canBrowseChildren(actor)) {
-    redirect("/volunteer");
+    redirect("/account/volunteer");
   }
 
   const params = await searchParams;

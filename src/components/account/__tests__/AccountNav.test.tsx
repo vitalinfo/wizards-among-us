@@ -48,28 +48,18 @@ const PARENT_ACTION = {
   panel: <button type="button">panel action</button>,
 };
 
-function cabinets({
-  volunteer = true,
-  parent = false,
-  action = false,
-}: {
-  volunteer?: boolean;
-  parent?: boolean;
-  action?: boolean;
-} = {}): Cabinet[] {
+function cabinets({ action = false }: { action?: boolean } = {}): Cabinet[] {
   return [
     {
       key: "volunteer",
       href: "/account/volunteer",
       emoji: "🧙",
-      available: volunteer,
       links: VOLUNTEER_LINKS,
     },
     {
       key: "parent",
       href: "/account/parent",
       emoji: "👫",
-      available: parent,
       links: PARENT_LINKS,
       action: action ? PARENT_ACTION : undefined,
     },
@@ -89,41 +79,30 @@ function renderNav(
 }
 
 describe("AccountNav cabinets", () => {
-  // The design greys the cabinet you do not hold. A greyed LINK that still
-  // navigates is worse than no link — it would take a volunteer into a parent
-  // cabinet with no application in it — so the row must not be a link at all.
-  it("does not link a cabinet the person does not hold", () => {
-    renderNav(cabinets({ volunteer: true, parent: false }));
+  // Neither cabinet is gated on a role any more (Vital): both are links for
+  // everyone, and each cabinet's pages decide what you may do inside it.
+  it("links both cabinets", () => {
+    renderNav(cabinets());
 
     expect(
       screen.getByRole("link", { name: new RegExp(t.cabinets.volunteer) }),
     ).toHaveAttribute("href", "/account/volunteer");
     expect(
-      screen.queryByRole("link", { name: new RegExp(t.cabinets.parent) }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText(t.cabinets.parent)).toBeInTheDocument();
-  });
-
-  it("links both when the person holds both", () => {
-    renderNav(cabinets({ volunteer: true, parent: true }));
-
-    expect(
       screen.getByRole("link", { name: new RegExp(t.cabinets.parent) }),
     ).toHaveAttribute("href", "/account/parent");
   });
 
-  // The ✅ is gone (Vital, agreed with the designers). What separates the two
-  // rows for someone who cannot see the tint is that one is a link and the
-  // other is not — asserted above — so nothing here rests on colour alone.
+  // The ✅ is gone (Vital, agreed with the designers). The tint and
+  // aria-current say where you are, so nothing here rests on colour alone.
   it("no longer marks a held cabinet with a tick", () => {
-    renderNav(cabinets({ volunteer: true, parent: false }));
+    renderNav(cabinets());
 
     expect(screen.queryByText("✅")).not.toBeInTheDocument();
     expect(screen.queryAllByRole("img")).toHaveLength(0);
   });
 
   it("marks where you are with aria-current, not with a tick", () => {
-    renderNav(cabinets({ volunteer: true, parent: true }));
+    renderNav(cabinets());
 
     const current = screen.getByRole("link", {
       name: new RegExp(t.cabinets.volunteer),
@@ -181,7 +160,7 @@ describe("AccountNav sub-navigation", () => {
   // STARTS with the cabinet's path is not inside it.
   it("does not treat a path that merely shares the prefix as inside", () => {
     pathname = "/account/volunteers-elsewhere";
-    const { unmount } = renderNav(cabinets({ volunteer: true, parent: true }));
+    const { unmount } = renderNav(cabinets());
 
     expect(
       screen.getByRole("link", { name: new RegExp(t.cabinets.volunteer) }),
@@ -195,7 +174,7 @@ describe("AccountNav sub-navigation", () => {
 
   it("lights the cabinet the current page belongs to", () => {
     pathname = "/account/parent/applications";
-    renderNav(cabinets({ volunteer: true, parent: true }));
+    renderNav(cabinets());
 
     expect(
       screen.getByRole("link", { name: new RegExp(t.cabinets.parent) }),
@@ -244,10 +223,7 @@ describe("AccountNav profile row", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = renderNav(
-      cabinets({ volunteer: true, parent: true }),
-      "@olena",
-    );
+    const { container } = renderNav(cabinets(), "@olena");
     expect(await axe(container)).toHaveNoViolations();
   });
 });
@@ -287,7 +263,7 @@ describe("AccountNav current page", () => {
 describe("AccountNav cabinet action", () => {
   it("shows the current cabinet's action, in the sidebar's drawing", () => {
     pathname = "/account/parent";
-    renderNav(cabinets({ parent: true, action: true }));
+    renderNav(cabinets({ action: true }));
 
     expect(
       screen.getByRole("button", { name: "sidebar action" }),
@@ -300,7 +276,7 @@ describe("AccountNav cabinet action", () => {
 
   it("uses the phone menu's drawing in the panel", () => {
     pathname = "/account/parent/applications";
-    renderNav(cabinets({ parent: true, action: true }), null, "panel");
+    renderNav(cabinets({ action: true }), null, "panel");
 
     expect(
       screen.getByRole("button", { name: "panel action" }),
@@ -313,7 +289,7 @@ describe("AccountNav cabinet action", () => {
 
   it("does not show another cabinet's action", () => {
     pathname = "/account/volunteer";
-    renderNav(cabinets({ volunteer: true, parent: true, action: true }));
+    renderNav(cabinets({ action: true }));
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });

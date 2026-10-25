@@ -18,7 +18,6 @@ function renderShell() {
             key: "parent",
             href: "/account/parent",
             emoji: "👫",
-            available: true,
             links: [],
           },
         ]}

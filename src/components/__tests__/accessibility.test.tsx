@@ -91,7 +91,6 @@ describe("accessibility smoke checks", () => {
             key: "volunteer",
             href: "/account/volunteer",
             emoji: "🧙",
-            available: true,
             links: [
               {
                 key: "children",
@@ -105,7 +104,6 @@ describe("accessibility smoke checks", () => {
             key: "parent",
             href: "/account/parent",
             emoji: "👫",
-            available: false,
             links: [],
           },
         ]}

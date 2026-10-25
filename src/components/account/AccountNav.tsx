@@ -14,9 +14,6 @@ export type Cabinet = {
   key: CabinetKey;
   href: string;
   emoji: string;
-  // Whether this cabinet is open to this person. The design greys the one
-  // that is not.
-  available: boolean;
   // The cabinet's own sub-navigation, shown under the divider. Only the
   // CURRENT cabinet's links appear; the design lists «Знайти історію» and
   // «Мої підопічні» under the selected «Кабінет Чарівника».
@@ -44,15 +41,15 @@ export type Cabinet = {
 // in the same list as the actions under them, separated by a rule, so a screen
 // reader gets the grouping the divider draws.
 //
-// A cabinet you do NOT hold is not a link. The design greys it out, and a
-// greyed link that still navigates is worse than no link: it would take a
-// volunteer to a parent cabinet they have no application in.
+// Both cabinets are always links: neither is gated on a role (Vital). What a
+// cabinet lets you DO is its pages' business — the volunteer cabinet's front
+// page offers «Хочу стати Чарівником» to someone who has not joined, as the
+// parent cabinet's offers «Подати заявку».
 //
 // The ONE client component in the account chrome, and only because of
 // `usePathname`: a server layout cannot know which page is under it, and which
 // cabinet is current decides both the tinted row and which sub-navigation
-// shows. Everything else here — the roles, the shell, sign-out — stays on the
-// server.
+// shows. Everything else here — the shell, sign-out — stays on the server.
 export function AccountNav({
   cabinets,
   identity,
@@ -194,8 +191,6 @@ function CabinetRow({
   currentKind?: "page" | "location";
   label: string;
 }) {
-  const t = useTranslations("account");
-
   const row =
     "flex items-center gap-4 rounded-2xl px-4 py-3 text-base transition-colors";
   const disc =
@@ -207,9 +202,9 @@ function CabinetRow({
         aria-hidden="true"
         className={cn(
           disc,
-          // Blue marks the cabinet you are IN, not every cabinet you hold —
-          // someone with both roles would otherwise see two blue discs and no
-          // difference between them. A literal grey rather than a token: it
+          // Blue marks the cabinet you are IN — both are always open, so blue
+          // on every cabinet would say nothing. A literal grey rather than a
+          // token: it
           // appears exactly here, and the greys we do have are either lighter
           // (--divider) or blue (--primary-soft).
           current ? "bg-primary text-primary-foreground" : "bg-[#dddddd]",
@@ -218,24 +213,11 @@ function CabinetRow({
         {cabinet.emoji}
       </span>
       {/* No ✅. The tinted row says «you are here» and aria-current says it to
-          a screen reader; the cabinet you do NOT hold is distinguished by not
-          being a link at all, plus its muted label, so nothing
-          here rests on colour alone. Dropped on Vital's call, agreed with the
-          designers. */}
+          a screen reader, so nothing here rests on colour alone. Dropped on
+          Vital's call, agreed with the designers. */}
       <span>{label}</span>
     </>
   );
-
-  if (!cabinet.available) {
-    return (
-      <span
-        className={cn(row, "text-muted-faint")}
-        title={t("nav.unavailable")}
-      >
-        {body}
-      </span>
-    );
-  }
 
   return (
     <Link

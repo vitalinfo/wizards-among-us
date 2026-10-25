@@ -6,7 +6,7 @@ import { StartApplicationButton } from "@/components/parent/StartApplicationButt
 import { canStartApplication } from "@/features/applications/authz";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
 import { getResolvedSettings } from "@/features/settings/queries";
-import { hasRole, isUser } from "@/lib/actor";
+import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
 
@@ -33,19 +33,17 @@ export default async function AccountShellLayout({
   ]);
   const canStart = canStartApplication(actor, { campaign, settings });
 
-  // Which cabinets are open to this person; the design greys the other.
-  //
-  // The volunteer cabinet needs the role, which is opted into on «Волонтерам».
-  // The parent cabinet is open to everyone signed in: the parent ROLE is only
-  // granted on a first submit, so it cannot gate the place where that first
-  // application is started — and anyone may start one (canStartApplication),
-  // a volunteer with a child of their own included.
+  // Both cabinets, for everyone signed in — neither is gated on a role
+  // (Vital). The parent ROLE is only granted on a first submit, so it could
+  // never gate the place where that first application is started; the
+  // volunteer one is opted into on the cabinet's own front page. Each cabinet's
+  // PAGES still decide what you may do there: browsing and claiming children
+  // require the volunteer role (canBrowseChildren), unchanged.
   const cabinets: Cabinet[] = [
     {
       key: "volunteer",
       href: "/account/volunteer",
       emoji: "🔮",
-      available: hasRole(actor, "volunteer"),
       links: [
         {
           key: "children",
@@ -65,7 +63,6 @@ export default async function AccountShellLayout({
       key: "parent",
       href: "/account/parent",
       emoji: "👫",
-      available: true,
       links: [
         {
           key: "applications",
