@@ -32,6 +32,10 @@ export async function BrowseFilterForm({
   // Ukrainian label; the enum's slug order reads as random in Cyrillic.
   const regions = displacedFromRegionOptions(tRegions);
   const action = `/account/volunteer/children#${anchor}`;
+  // How many filters narrow the list right now. The control that opens them is
+  // coloured while any do (Vital): on a phone the pickers are hidden in the
+  // sheet, so without it nothing on screen says the list is not everyone.
+  const applied = [query.region, query.age].filter(Boolean).length;
 
   // appearance-none plus our own chevron. The platform's arrow sits in a
   // different place, at a different size, on every OS — on macOS it lands well
@@ -51,14 +55,16 @@ export async function BrowseFilterForm({
   // Both layouts render the same two controls, so the markup is written once
   // and placed twice. They are separate FORMS rather than one form shown twice,
   // because two copies of the same input name in one form would submit both.
-  const fields = (
+  // Each copy gets its own ids: with one id in both, the sheet's labels named
+  // the row's hidden selects and the phone's pickers had no name at all.
+  const fields = (layout: "row" | "sheet") => (
     <>
       <div className="relative w-full lg:w-[386px]">
-        <label htmlFor="region" className="sr-only">
+        <label htmlFor={`${layout}-region`} className="sr-only">
           {t("region")}
         </label>
         <select
-          id="region"
+          id={`${layout}-region`}
           name="region"
           defaultValue={query.region ?? ""}
           className={select}
@@ -74,11 +80,11 @@ export async function BrowseFilterForm({
       </div>
 
       <div className="relative w-full lg:w-[172px]">
-        <label htmlFor="age" className="sr-only">
+        <label htmlFor={`${layout}-age`} className="sr-only">
           {t("age")}
         </label>
         <select
-          id="age"
+          id={`${layout}-age`}
           name="age"
           defaultValue={query.age ?? ""}
           className={select}
@@ -103,8 +109,11 @@ export async function BrowseFilterForm({
         action={action}
         className="hidden items-center gap-4 lg:flex"
       >
-        <FiltersIcon aria-hidden="true" className="text-foreground size-6" />
-        {fields}
+        <FiltersIcon
+          aria-hidden="true"
+          className={cn("size-6", applied ? "text-primary" : "text-foreground")}
+        />
+        {fields("row")}
         <button type="submit" className={cn(apply, "h-12 rounded-full")}>
           {t("apply")}
         </button>
@@ -115,9 +124,21 @@ export async function BrowseFilterForm({
           control, so a second one in the panel would render a close button
           that does nothing. Open, it moves itself to the corner the design
           draws it in and swaps its contents, which also swaps its accessible
-          name from «Застосувати фільтр» to «Закрити фільтр». */}
+          name from «Застосувати фільтр» to «Закрити фільтр».
+
+          While a filter is applied it is a blue pill with the count (Vital) —
+          the same drawing as the phone status filter on «Мої заявки». The
+          count is the part that does not rest on colour, and it is read out in
+          words. Open, the fill is dropped and only the × is left. */}
       <details className="group lg:hidden">
-        <summary className="focus-visible:outline-ring flex w-fit cursor-pointer list-none items-center gap-3 text-sm font-medium tracking-[-0.06em] group-open:fixed group-open:top-4 group-open:right-4 group-open:z-60 group-open:size-10 group-open:justify-center group-open:gap-0 group-open:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
+        <summary
+          className={cn(
+            "focus-visible:outline-ring flex w-fit cursor-pointer list-none items-center text-sm font-medium tracking-[-0.06em] group-open:fixed group-open:top-4 group-open:right-4 group-open:z-60 group-open:size-10 group-open:justify-center group-open:gap-0 group-open:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden",
+            applied > 0
+              ? "bg-primary text-primary-foreground hover:bg-primary-hover group-open:text-muted-foreground h-10 gap-2 rounded-full px-4 transition-colors group-open:bg-transparent group-open:px-0 group-open:hover:bg-transparent"
+              : "gap-3",
+          )}
+        >
           <FiltersIcon
             aria-hidden="true"
             className="size-6 group-open:hidden"
@@ -127,6 +148,14 @@ export async function BrowseFilterForm({
             className="text-muted-foreground hidden size-6 group-open:block"
           />
           <span className="group-open:hidden">{t("openSheet")}</span>
+          {applied > 0 ? (
+            <span className="bg-primary-foreground text-primary flex size-5 items-center justify-center rounded-full text-xs font-semibold group-open:hidden">
+              <span aria-hidden="true">{applied}</span>
+              <span className="sr-only">
+                {t("appliedCount", { count: applied })}
+              </span>
+            </span>
+          ) : null}
           <span className="sr-only hidden group-open:inline">
             {t("closeSheet")}
           </span>
@@ -139,7 +168,7 @@ export async function BrowseFilterForm({
           </span>
 
           <form method="get" action={action} className="flex flex-col gap-4">
-            {fields}
+            {fields("sheet")}
             <button type="submit" className={cn(apply, "h-14 rounded-full")}>
               {t("apply")}
             </button>
