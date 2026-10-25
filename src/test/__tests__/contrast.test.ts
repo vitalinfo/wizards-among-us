@@ -47,14 +47,13 @@ describe("colour contrast (WCAG AA)", () => {
     // 1.85:1 and 1.74:1; these are what replaced them.
     ["primary", "status-progress-tint", AA_NORMAL],
     ["status-done", "status-done-tint", AA_NORMAL],
-    // The parent's application pills (Figma 139:4543), and «Продовжити».
+    // The parent's application pills (Figma 139:4543).
     ["status-draft", "status-draft-tint", AA_NORMAL],
     ["status-review", "status-review-tint", AA_NORMAL],
     ["foreground", "status-rejected-tint", AA_NORMAL],
     // The form's stepper numbers and «Назад» (Figma 147:7166).
     ["muted-foreground", "surface-idle", AA_NORMAL],
-    ["success", "surface", AA_NORMAL],
-    // «Видалити» on the delete-draft page: a white label on the draft red.
+    // «Видалити» in the delete-draft dialog: a white label on the draft red.
     ["primary-foreground", "status-draft", AA_NORMAL],
     // The 2026 redesign puts the public pages on a soft blue canvas rather than
     // white, so every foreground that was only ever checked against white needs
