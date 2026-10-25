@@ -19,16 +19,24 @@ const TONE: Record<ClaimState, string> = {
   completed: "bg-status-done-tint text-status-done",
 };
 
-export function ClaimStatusBadge({ state }: { state: ClaimState }) {
+export function ClaimStatusBadge({
+  state,
+  label,
+}: {
+  state: ClaimState;
+  // The same two states seen from the family's side read differently
+  // («Допомога в процесі» on «Мої Чарівники»); the pill does not.
+  label?: string;
+}) {
   const t = useTranslations("volunteer.claims.state");
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-4 py-2 text-xs font-medium tracking-[-0.03em]",
+        "inline-flex h-8 items-center rounded-full px-4 text-xs leading-4 font-medium whitespace-nowrap lg:h-11 lg:px-5 lg:text-sm",
         TONE[state],
       )}
     >
-      {t(state)}
+      {label ?? t(state)}
     </span>
   );
 }

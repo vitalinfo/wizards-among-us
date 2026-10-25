@@ -20,3 +20,4 @@ export { StarIcon } from "./StarIcon";
 export { TelegramIcon } from "./TelegramIcon";
 export { TrashIcon } from "./TrashIcon";
 export { UserIcon } from "./UserIcon";
+export { WizardHatIcon } from "./WizardHatIcon";

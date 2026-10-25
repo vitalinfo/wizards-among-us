@@ -1,14 +1,4 @@
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  isNull,
-  sql,
-} from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
@@ -19,6 +9,8 @@ import {
   reviews,
   users,
 } from "@/db/schema";
+
+import type { ClaimTab } from "@/features/claims/queries";
 
 import { tabStatuses, type ApplicationTab } from "./applicationTabs";
 
@@ -380,20 +372,79 @@ export async function markFulfilled(
   return rows.length > 0;
 }
 
-// The volunteer holding this parent's child, for "look up my volunteer".
+// The volunteers holding this parent's children — «Мої Чарівники».
 //
 // This is the ONLY place the disclosure runs the other way: everywhere else a
 // volunteer is shown the family's contact. A family that has handed over a
 // child's address deserves to know who has it and how to reach them.
-export async function getMyVolunteers(parentId: string, campaignId: string) {
+//
+// Only the CURRENT claim on each application (a released one is history, and
+// that volunteer no longer holds the child), and only the fields the page
+// shows: the volunteer's first name and the two contact fields
+// resolveUserContact chooses between.
+export type MyVolunteerRow = {
+  applicationId: string;
+  childName: string | null;
+  status: Application["status"];
+  campaignTitle: string;
+  claimedAt: Date;
+  volunteerFirstName: string | null;
+  volunteerUsername: string | null;
+  volunteerPhone: string | null;
+};
+
+// The tabs mirror «Мої підопічні» from the other side: a claimed child is help
+// in progress, a fulfilled one is help completed.
+const VOLUNTEER_TAB_STATUSES: Record<ClaimTab, Application["status"][]> = {
+  all: ["claimed", "fulfilled"],
+  active: ["claimed"],
+  completed: ["fulfilled"],
+};
+
+function myVolunteerConditions(
+  parentId: string,
+  campaignId: string,
+  tab: ClaimTab,
+) {
+  return and(
+    eq(applications.parentId, parentId),
+    eq(applications.campaignId, campaignId),
+    inArray(applications.status, VOLUNTEER_TAB_STATUSES[tab]),
+  );
+}
+
+export async function countMyVolunteers(
+  parentId: string,
+  campaignId: string,
+  tab: ClaimTab,
+): Promise<number> {
+  const [row] = await getDb()
+    .select({ total: count() })
+    .from(applications)
+    .innerJoin(
+      claims,
+      and(eq(claims.applicationId, applications.id), isNull(claims.releasedAt)),
+    )
+    .where(myVolunteerConditions(parentId, campaignId, tab));
+  return row?.total ?? 0;
+}
+
+// Newest claim first, as on «Мої підопічні», with the application id as a
+// tiebreaker so a page boundary never shows a row twice or skips one.
+export async function listMyVolunteers(
+  parentId: string,
+  campaignId: string,
+  page: { tab: ClaimTab; limit: number; offset: number },
+): Promise<MyVolunteerRow[]> {
   return getDb()
     .select({
       applicationId: applications.id,
       childName: applications.childName,
       status: applications.status,
+      campaignTitle: campaigns.title,
       claimedAt: claims.claimedAt,
-      volunteerUsername: users.username,
       volunteerFirstName: users.firstName,
+      volunteerUsername: users.username,
       volunteerPhone: users.phone,
     })
     .from(applications)
@@ -402,11 +453,9 @@ export async function getMyVolunteers(parentId: string, campaignId: string) {
       and(eq(claims.applicationId, applications.id), isNull(claims.releasedAt)),
     )
     .innerJoin(users, eq(users.id, claims.volunteerId))
-    .where(
-      and(
-        eq(applications.parentId, parentId),
-        eq(applications.campaignId, campaignId),
-      ),
-    )
-    .orderBy(asc(claims.claimedAt));
+    .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
+    .where(myVolunteerConditions(parentId, campaignId, page.tab))
+    .orderBy(desc(claims.claimedAt), desc(applications.id))
+    .limit(page.limit)
+    .offset(page.offset);
 }
