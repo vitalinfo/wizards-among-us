@@ -7,7 +7,7 @@ import { MyVolunteersTable } from "@/components/parent/MyVolunteersTable";
 import { StartApplicationButton } from "@/components/parent/StartApplicationButton";
 import { ctaVariants } from "@/components/ui/ctaStyles";
 import { FilterTabs } from "@/components/ui/FilterTabs";
-import { Pager } from "@/components/ui/Pager";
+import { ListPager } from "@/components/ui/ListPager";
 import { canStartApplication } from "@/features/applications/authz";
 import {
   countMyVolunteers,
@@ -16,17 +16,13 @@ import {
 import { myVolunteersHref } from "@/features/applications/volunteerTabs";
 import { recordAuditLog } from "@/features/audit/log";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
-import {
-  CLAIM_TABS,
-  CLAIMS_PAGE_SIZE,
-  claimsPageCount,
-  parseClaimsQuery,
-} from "@/features/claims/claimTabs";
+import { CLAIM_TABS, parseClaimsQuery } from "@/features/claims/claimTabs";
 import type { ClaimTab } from "@/features/claims/queries";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
+import { pageCount as countPages } from "@/lib/pageSize";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -46,7 +42,7 @@ export const dynamic = "force-dynamic";
 export default async function MyVolunteersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; page?: string }>;
+  searchParams: Promise<{ tab?: string; page?: string; per?: string }>;
 }) {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
@@ -73,14 +69,15 @@ export default async function MyVolunteersPage({
       : campaign
         ? (await countMyVolunteers(actor.id, campaign.id, "all")) > 0
         : false;
-  const pageCount = claimsPageCount(total);
+  const { per } = query;
+  const pageCount = countPages(total, per);
   const page = Math.min(query.page, pageCount);
   const rows =
     campaign && total > 0
       ? await listMyVolunteers(actor.id, campaign.id, {
           tab: query.tab,
-          limit: CLAIMS_PAGE_SIZE,
-          offset: (page - 1) * CLAIMS_PAGE_SIZE,
+          limit: per,
+          offset: (page - 1) * per,
         })
       : [];
 
@@ -116,7 +113,7 @@ export default async function MyVolunteersPage({
             tabs={CLAIM_TABS.map((tab) => ({
               key: tab,
               label: tTabs(tab),
-              href: myVolunteersHref({ tab }),
+              href: myVolunteersHref({ tab, per }),
             }))}
           />
           {canStart ? (
@@ -135,16 +132,18 @@ export default async function MyVolunteersPage({
           <div className="mt-6 lg:mt-8">
             <MyVolunteersTable rows={rows} />
           </div>
-          <Pager
+          <ListPager
             label={t("pager.label")}
             page={page}
             pageCount={pageCount}
             total={total}
-            from={(page - 1) * CLAIMS_PAGE_SIZE + 1}
-            to={(page - 1) * CLAIMS_PAGE_SIZE + rows.length}
+            from={(page - 1) * per + 1}
+            to={(page - 1) * per + rows.length}
+            per={per}
             hrefFor={(target) =>
-              myVolunteersHref({ tab: query.tab, page: target })
+              myVolunteersHref({ tab: query.tab, page: target, per })
             }
+            sizeHref={(size) => myVolunteersHref({ tab: query.tab, per: size })}
           />
         </>
       )}

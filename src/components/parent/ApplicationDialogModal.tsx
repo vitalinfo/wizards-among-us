@@ -21,7 +21,7 @@ export async function ApplicationDialogModal({
   blocked,
 }: {
   loaded: LoadedDialog;
-  // The list's tab and page — × goes back to it, and each action lands there.
+  // The list's tab, page and size — × goes back to it, and each action lands there.
   view: ApplicationsQuery;
   // A refusal the confirm action echoed back.
   blocked: string | null;

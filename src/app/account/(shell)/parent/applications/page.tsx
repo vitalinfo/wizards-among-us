@@ -6,12 +6,10 @@ import { ApplicationDialogModal } from "@/components/parent/ApplicationDialogMod
 import { ApplicationsTable } from "@/components/parent/ApplicationsTable";
 import { StartApplicationButton } from "@/components/parent/StartApplicationButton";
 import { FilterTabs } from "@/components/ui/FilterTabs";
-import { Pager } from "@/components/ui/Pager";
+import { ListPager } from "@/components/ui/ListPager";
 import {
   APPLICATION_TABS,
-  APPLICATIONS_PAGE_SIZE,
   applicationsHref,
-  applicationsPageCount,
   parseApplicationsQuery,
   parseDialog,
   type ApplicationTab,
@@ -27,6 +25,7 @@ import { getResolvedSettings } from "@/features/settings/queries";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
+import { pageCount as countPages } from "@/lib/pageSize";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("parent.applications");
@@ -51,6 +50,7 @@ export default async function MyApplicationsPage({
   searchParams: Promise<{
     tab?: string;
     page?: string;
+    per?: string;
     dialog?: string;
     id?: string;
     blocked?: string;
@@ -74,14 +74,18 @@ export default async function MyApplicationsPage({
   const total = campaign
     ? await countMyApplications(actor.id, campaign.id, query.tab)
     : 0;
-  const pageCount = applicationsPageCount(total);
+  const { per } = query;
+  const pageCount = countPages(total, per);
   const page = Math.min(query.page, pageCount);
+  // The view as it is actually shown — the page clamped to the last one — for
+  // every link and dialog drawn over it.
+  const view = { ...query, page };
   const rows =
     campaign && total > 0
       ? await listMyApplications(actor.id, campaign.id, {
           tab: query.tab,
-          limit: APPLICATIONS_PAGE_SIZE,
-          offset: (page - 1) * APPLICATIONS_PAGE_SIZE,
+          limit: per,
+          offset: (page - 1) * per,
         })
       : [];
 
@@ -119,7 +123,7 @@ export default async function MyApplicationsPage({
             tabs={APPLICATION_TABS.map((tab) => ({
               key: tab,
               label: t(`tabs.${tab}`),
-              href: applicationsHref({ tab }),
+              href: applicationsHref({ tab, per }),
             }))}
           />
           {canStart ? (
@@ -135,17 +139,19 @@ export default async function MyApplicationsPage({
         ) : (
           <>
             <div className="mt-6 lg:mt-8">
-              <ApplicationsTable rows={rows} query={{ tab: query.tab, page }} />
+              <ApplicationsTable rows={rows} query={view} />
             </div>
-            <Pager
+            <ListPager
               label={t("pager.label")}
               page={page}
               pageCount={pageCount}
               total={total}
-              from={(page - 1) * APPLICATIONS_PAGE_SIZE + 1}
-              to={(page - 1) * APPLICATIONS_PAGE_SIZE + rows.length}
-              hrefFor={(target) =>
-                applicationsHref({ tab: query.tab, page: target })
+              from={(page - 1) * per + 1}
+              to={(page - 1) * per + rows.length}
+              per={per}
+              hrefFor={(target) => applicationsHref({ ...view, page: target })}
+              sizeHref={(size) =>
+                applicationsHref({ tab: query.tab, per: size })
               }
             />
           </>
@@ -155,7 +161,7 @@ export default async function MyApplicationsPage({
       {dialog ? (
         <ApplicationDialogModal
           loaded={dialog}
-          view={{ tab: query.tab, page }}
+          view={view}
           blocked={params.blocked ?? null}
         />
       ) : null}

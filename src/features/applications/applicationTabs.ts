@@ -1,7 +1,13 @@
 import { APPLICATION_STATUSES, type ApplicationStatus } from "@/db/enums";
+import {
+  DEFAULT_PAGE_SIZE,
+  parsePageSize,
+  type PageSize,
+} from "@/lib/pageSize";
 
-// The url grammar for «Мої заявки» — the tab and the page, so every view is
-// addressable and the browser's back button returns to the one you were on.
+// The url grammar for «Мої заявки» — the tab, the page and the page size, so
+// every view is addressable and the browser's back button returns to the one
+// you were on.
 // Same approach as «Мої підопічні» (features/claims/claimTabs.ts).
 //
 // One tab per status, in the order an application moves through them — which
@@ -19,13 +25,16 @@ export const APPLICATION_TABS = [
   "fulfilled",
 ] as const satisfies readonly ApplicationTab[];
 
-export const APPLICATIONS_PAGE_SIZE = 10;
-
-export type ApplicationsQuery = { tab: ApplicationTab; page: number };
+export type ApplicationsQuery = {
+  tab: ApplicationTab;
+  page: number;
+  per: PageSize;
+};
 
 export function parseApplicationsQuery(params: {
   tab?: string;
   page?: string;
+  per?: string;
 }): ApplicationsQuery {
   const page = Number(params.page);
   return {
@@ -35,12 +44,13 @@ export function parseApplicationsQuery(params: {
       ? (params.tab as ApplicationTab)
       : "all",
     page: Number.isInteger(page) && page >= 1 ? page : 1,
+    per: parsePageSize(params.per),
   };
 }
 
 // Only ever builds a path under /account/parent/applications, from a tab that
-// is one of the known values and a page that is a positive integer — so it is
-// safe to redirect to with values that came off a form.
+// is one of the known values, a page that is a positive integer and a size from
+// PAGE_SIZES — so it is safe to redirect to with values that came off a form.
 export function applicationsHref(
   query: Partial<ApplicationsQuery> = {},
 ): string {
@@ -52,6 +62,11 @@ export function applicationsHref(
   // were on. The caller says which it means by passing one or the other.
   if (query.page && query.page > 1) {
     params.set("page", String(query.page));
+  }
+  // The size rides along on every link — tabs, pages, dialogs — so choosing
+  // one is not undone by the next click.
+  if (query.per && query.per !== DEFAULT_PAGE_SIZE) {
+    params.set("per", String(query.per));
   }
   const qs = params.toString();
   return `/account/parent/applications${qs ? `?${qs}` : ""}`;
@@ -84,10 +99,6 @@ export function parseDialog(params: {
     (APPLICATION_DIALOGS as readonly string[]).includes(params.dialog ?? "")
     ? { dialog: params.dialog as ApplicationDialog, id: params.id }
     : null;
-}
-
-export function applicationsPageCount(total: number): number {
-  return Math.max(1, Math.ceil(total / APPLICATIONS_PAGE_SIZE));
 }
 
 // Which statuses a tab lists. «Всі» is every status; each other tab is its own.

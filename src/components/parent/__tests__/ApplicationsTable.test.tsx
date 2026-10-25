@@ -35,7 +35,7 @@ function row(
 
 async function renderTable(
   rows: MyApplicationRow[],
-  query: ApplicationsQuery = { tab: "all", page: 1 },
+  query: ApplicationsQuery = { tab: "all", page: 1, per: 10 },
 ) {
   const ui = await ApplicationsTable({ rows, query });
   return render(
@@ -181,7 +181,7 @@ describe("ApplicationsTable actions by status", () => {
   // The confirmation opens over the view the bin was pressed on, and sends
   // the parent back to it.
   it("the bin keeps the tab and page it was pressed on", async () => {
-    await renderTable([row("draft")], { tab: "draft", page: 2 });
+    await renderTable([row("draft")], { tab: "draft", page: 2, per: 10 });
 
     expect(
       screen.getAllByRole("link", { name: fill(t.delete, "Дитина-draft") })[0],

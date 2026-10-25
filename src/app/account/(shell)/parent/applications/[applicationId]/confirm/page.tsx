@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 
-import { dialogHref } from "@/features/applications/applicationTabs";
+import {
+  dialogHref,
+  parseApplicationsQuery,
+} from "@/features/applications/applicationTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -14,5 +17,5 @@ export default async function ConfirmReceiptRedirect({
   params: Promise<{ applicationId: string }>;
 }) {
   const { applicationId } = await params;
-  redirect(dialogHref({ tab: "all", page: 1 }, "receive", applicationId));
+  redirect(dialogHref(parseApplicationsQuery({}), "receive", applicationId));
 }
