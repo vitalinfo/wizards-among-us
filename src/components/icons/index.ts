@@ -12,6 +12,7 @@ export { EyeIcon } from "./EyeIcon";
 export { FiltersIcon } from "./FiltersIcon";
 export { MenuIcon } from "./MenuIcon";
 export { InstagramIcon } from "./InstagramIcon";
+export { PaperClipIcon } from "./PaperClipIcon";
 export { PlusIcon } from "./PlusIcon";
 export { ShieldIcon } from "./ShieldIcon";
 export { SignOutIcon } from "./SignOutIcon";

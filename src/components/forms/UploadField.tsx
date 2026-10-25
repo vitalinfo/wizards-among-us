@@ -4,8 +4,10 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 
+import { PaperClipIcon } from "@/components/icons";
 import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { ALLOWED_UPLOAD_TYPES } from "@/features/applications/files";
+import { cn } from "@/lib/utils";
 
 export type UploadedFile = { id: string; kind: string; contentType: string };
 
@@ -22,6 +24,7 @@ export function UploadField({
   hint,
   existing,
   required,
+  variant = "button",
 }: {
   applicationId: string;
   kind: string;
@@ -29,6 +32,10 @@ export function UploadField({
   hint?: string;
   existing?: UploadedFile;
   required?: boolean;
+  // How the picker is drawn. `button` is the application form's, which has
+  // not been redrawn; `dropzone` is the redesign's dashed «Оберіть файл» box
+  // with a clip (Figma 142:5726). Only the look differs.
+  variant?: "button" | "dropzone";
 }) {
   const t = useTranslations("parent.form.upload");
   const tErrors = useTranslations("parent.form.upload.errors");
@@ -110,7 +117,13 @@ export function UploadField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-sm font-medium">
+      <label
+        htmlFor={inputId}
+        className={cn(
+          "text-sm",
+          variant === "button" ? "font-medium" : "tracking-[-0.06em]",
+        )}
+      >
         {label}
         {required ? (
           <span aria-hidden="true" className="text-muted-foreground ml-0.5">
@@ -170,10 +183,19 @@ export function UploadField({
         }}
         className="sr-only"
       />
+      {/* The dashed box takes the design's 44% blue for its border and NOT its
+          60% grey for the words, which would read 3.4:1: the words are what
+          says this is a control, so they are held to the text threshold. */}
       <label
         htmlFor={inputId}
-        className="border-border bg-surface hover:bg-surface-muted focus-within:outline-ring inline-flex w-fit cursor-pointer items-center rounded-md border px-4 py-2 text-sm font-medium"
+        className={cn(
+          "focus-within:outline-ring cursor-pointer items-center text-sm",
+          variant === "button"
+            ? "border-border bg-surface hover:bg-surface-muted inline-flex w-fit rounded-md border px-4 py-2 font-medium"
+            : "border-primary/44 text-muted-foreground hover:bg-surface-muted flex w-full justify-center gap-3.5 rounded-lg border border-dashed px-4 py-[15px] tracking-[-0.06em]",
+        )}
       >
+        {variant === "dropzone" ? <PaperClipIcon className="size-6" /> : null}
         {existing ? t("replace") : t("choose")}
       </label>
 

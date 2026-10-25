@@ -28,6 +28,7 @@ function row(
     status,
     submittedAt: status === "draft" ? null : new Date("2026-10-10T10:00:00Z"),
     campaignTitle: "Чарівний Миколай",
+    reviewed: false,
     ...overrides,
   };
 }
@@ -71,7 +72,7 @@ describe("ApplicationsTable actions by status", () => {
       screen.getAllByRole("link", { name: fill(t.delete, name) })[0],
     ).toHaveAttribute(
       "href",
-      "/account/parent/applications?confirm=delete&id=id-draft",
+      "/account/parent/applications?dialog=delete&id=id-draft",
     );
   });
 
@@ -115,11 +116,40 @@ describe("ApplicationsTable actions by status", () => {
     })) {
       expect(link).toHaveAttribute(
         "href",
-        "/account/parent/applications/id-claimed/confirm",
+        "/account/parent/applications?dialog=receive&id=id-claimed",
       );
     }
     expect(
       screen.queryByRole("link", { name: fill(t.edit, "Дитина-claimed") }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Closing the review dialog after confirming must not be the last chance to
+  // write one: a fulfilled row offers it until it is left.
+  it("a fulfilled row offers the review until it is left", async () => {
+    const { unmount } = await renderTable([row("fulfilled")]);
+    for (const link of screen.getAllByRole("link", { name: t.leaveReview })) {
+      expect(link).toHaveAttribute(
+        "href",
+        "/account/parent/applications?dialog=review&id=id-fulfilled",
+      );
+    }
+    unmount();
+
+    await renderTable([row("fulfilled", { reviewed: true })]);
+    expect(
+      screen.queryByRole("link", { name: t.leaveReview }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("no other status offers the review", async () => {
+    await renderTable(
+      (["draft", "submitted", "approved", "rejected", "claimed"] as const).map(
+        (status) => row(status),
+      ),
+    );
+    expect(
+      screen.queryByRole("link", { name: t.leaveReview }),
     ).not.toBeInTheDocument();
   });
 
@@ -132,7 +162,7 @@ describe("ApplicationsTable actions by status", () => {
       screen.getAllByRole("link", { name: fill(t.delete, "Дитина-draft") })[0],
     ).toHaveAttribute(
       "href",
-      "/account/parent/applications?tab=draft&page=2&confirm=delete&id=id-draft",
+      "/account/parent/applications?tab=draft&page=2&dialog=delete&id=id-draft",
     );
   });
 });

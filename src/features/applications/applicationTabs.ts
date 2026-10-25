@@ -57,16 +57,33 @@ export function applicationsHref(
   return `/account/parent/applications${qs ? `?${qs}` : ""}`;
 }
 
-// The list with the delete confirmation open over it, for one draft. The
-// dialog is page state rather than client script (see ConfirmModal): the bin
-// is a link to this, and the page draws the question.
-export function confirmDeleteHref(
+// The dialogs «Мої заявки» opens over itself, one application at a time:
+// deleting a draft, confirming the gift arrived, and the review that follows.
+// Each is page state rather than client script (see ui/Modal): the control
+// that opens one is a link to this, and the page draws the dialog.
+export const APPLICATION_DIALOGS = ["delete", "receive", "review"] as const;
+export type ApplicationDialog = (typeof APPLICATION_DIALOGS)[number];
+
+export function dialogHref(
   query: ApplicationsQuery,
+  dialog: ApplicationDialog,
   applicationId: string,
+  extra: Record<string, string> = {},
 ): string {
   const list = applicationsHref(query);
-  const params = new URLSearchParams({ confirm: "delete", id: applicationId });
+  const params = new URLSearchParams({ dialog, id: applicationId, ...extra });
   return `${list}${list.includes("?") ? "&" : "?"}${params.toString()}`;
+}
+
+// Which dialog the url asks for, if any. Unknown values open nothing.
+export function parseDialog(params: {
+  dialog?: string;
+  id?: string;
+}): { dialog: ApplicationDialog; id: string } | null {
+  return params.id &&
+    (APPLICATION_DIALOGS as readonly string[]).includes(params.dialog ?? "")
+    ? { dialog: params.dialog as ApplicationDialog, id: params.id }
+    : null;
 }
 
 export function applicationsPageCount(total: number): number {

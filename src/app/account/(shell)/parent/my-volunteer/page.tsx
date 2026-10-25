@@ -2,6 +2,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { dialogHref } from "@/features/applications/applicationTabs";
 import { getMyVolunteers } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
@@ -106,7 +107,11 @@ export default async function MyVolunteerPage() {
                   </p>
                   {row.status === "claimed" ? (
                     <Link
-                      href={`/account/parent/applications/${row.applicationId}/confirm`}
+                      href={dialogHref(
+                        { tab: "all", page: 1 },
+                        "receive",
+                        row.applicationId,
+                      )}
                       className="text-primary mt-1 w-fit text-sm font-semibold underline underline-offset-4"
                     >
                       {t("confirmCta")}

@@ -16,6 +16,7 @@ import {
   applications,
   campaigns,
   claims,
+  reviews,
   users,
 } from "@/db/schema";
 
@@ -41,6 +42,10 @@ export type MyApplicationRow = {
   status: Application["status"];
   submittedAt: Date | null;
   campaignTitle: string;
+  // Whether this parent has left the review for it — the same test as
+  // hasReviewed, so a fulfilled row offers «Залишити відгук» exactly when the
+  // review dialog would open.
+  reviewed: boolean;
 };
 
 function myApplicationConditions(
@@ -82,6 +87,11 @@ export async function listMyApplications(
       status: applications.status,
       submittedAt: applications.submittedAt,
       campaignTitle: campaigns.title,
+      reviewed: sql<boolean>`exists (
+        select 1 from ${reviews}
+        where ${reviews.applicationId} = ${applications.id}
+          and ${reviews.userId} = ${parentId}
+      )`,
     })
     .from(applications)
     .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))

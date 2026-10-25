@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import {
   applicationsHref,
+  dialogHref,
   parseApplicationsQuery,
 } from "@/features/applications/applicationTabs";
 import {
@@ -57,18 +58,26 @@ export async function startApplication(): Promise<void> {
 }
 
 // The parent closes the loop: the gift arrived. Re-checked here even though the
-// page hides the button — a server action is a public endpoint.
+// dialog hides the button — a server action is a public endpoint.
+//
+// `view` is the list's tab and page, bound by the dialog; parsed down to known
+// values before any url is built from it, as in deleteDraftAction.
 export async function confirmReceiptAction(
   applicationId: string,
+  view: { tab: string; page: number },
 ): Promise<void> {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     redirect("/login");
   }
 
+  const query = parseApplicationsQuery({
+    tab: String(view.tab),
+    page: String(view.page),
+  });
   const application = await getMyApplication(applicationId, actor.id);
   if (!application) {
-    redirect("/account/parent/applications");
+    redirect(applicationsHref(query));
   }
 
   const files = await listApplicationFiles(applicationId);
@@ -76,9 +85,8 @@ export async function confirmReceiptAction(
     hasConfirmationPhoto: files.some((file) => file.kind === "confirmation"),
   });
   if (blocked) {
-    redirect(
-      `/account/parent/applications/${applicationId}/confirm?blocked=${blocked}`,
-    );
+    // Back into the same dialog, saying why.
+    redirect(dialogHref(query, "receive", applicationId, { blocked }));
   }
 
   // Guarded on `claimed` in SQL too, so a double submit can't double-fire.
@@ -93,9 +101,10 @@ export async function confirmReceiptAction(
   revalidatePath("/account/parent/applications");
   revalidatePath(`/account/parent/applications/${applicationId}`);
   revalidatePath("/account/volunteer/claims");
-  // Straight to the review: it is the natural next thing to say, and reviews
-  // are only offered once a wish is fulfilled (Vital, Phase 7).
-  redirect(`/account/parent/review?application=${applicationId}`);
+  // Straight to the review, in the next dialog over the same list: it is the
+  // natural next thing to say, and reviews are only offered once a wish is
+  // fulfilled (Vital, Phase 7).
+  redirect(dialogHref(query, "review", applicationId));
 }
 
 // The parent deletes one of their drafts, from the confirmation on «Мої
