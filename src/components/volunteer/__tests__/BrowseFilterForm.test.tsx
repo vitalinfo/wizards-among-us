@@ -16,7 +16,7 @@ const t = messages.volunteer.children.filters;
 
 async function renderForm(query: Partial<BrowseQuery> = {}) {
   const ui = await BrowseFilterForm({
-    query: { region: null, age: null, page: 1, ...query },
+    query: { region: null, age: null, page: 1, per: 10, ...query },
     anchor: "children",
   });
   return render(
@@ -62,6 +62,24 @@ describe("BrowseFilterForm", () => {
       expect(select).toHaveValue("5-8");
     }
     expect(screen.getAllByLabelText(t.region)).toHaveLength(2);
+  });
+
+  // A GET form sends only its own fields, so the chosen page size has to be
+  // one of them or applying a filter would reset it.
+  it("keeps a chosen page size when a filter is applied", async () => {
+    const { container } = await renderForm({ per: 20 });
+    const sizes = container.querySelectorAll<HTMLInputElement>(
+      'input[type="hidden"][name="per"]',
+    );
+    expect(sizes).toHaveLength(2);
+    for (const size of sizes) {
+      expect(size.value).toBe("20");
+    }
+  });
+
+  it("sends no size at the default", async () => {
+    const { container } = await renderForm();
+    expect(container.querySelector('input[name="per"]')).toBeNull();
   });
 
   it("has no axe violations, with and without filters", async () => {

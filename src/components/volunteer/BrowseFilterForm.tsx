@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { ChevronRightIcon, CloseIcon, FiltersIcon } from "@/components/icons";
 import { AGE_BANDS, type BrowseQuery } from "@/features/claims/browseFilters";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pageSize";
 import { displacedFromRegionOptions } from "@/lib/regionOptions";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +60,11 @@ export async function BrowseFilterForm({
   // the row's hidden selects and the phone's pickers had no name at all.
   const fields = (layout: "row" | "sheet") => (
     <>
+      {/* The page size the volunteer chose rides along, or applying a filter
+          would quietly reset it. No page: a new filter starts at page 1. */}
+      {query.per !== DEFAULT_PAGE_SIZE ? (
+        <input type="hidden" name="per" value={query.per} />
+      ) : null}
       <div className="relative w-full lg:w-[386px]">
         <label htmlFor={`${layout}-region`} className="sr-only">
           {t("region")}
