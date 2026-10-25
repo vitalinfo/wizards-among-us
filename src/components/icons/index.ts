@@ -2,6 +2,7 @@ export { ArrowDownIcon } from "./ArrowDownIcon";
 export { ArrowRightIcon } from "./ArrowRightIcon";
 export { BillListIcon } from "./BillListIcon";
 export { CheckIcon } from "./CheckIcon";
+export { CaretDownIcon } from "./CaretDownIcon";
 export { ChildIcon } from "./ChildIcon";
 export { ChevronRightIcon } from "./ChevronRightIcon";
 export { ClockIcon } from "./ClockIcon";

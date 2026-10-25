@@ -138,13 +138,11 @@ describe("ApplicationForm", () => {
       screen.getByRole("button", { name: messages.parent.form.next }),
     );
 
+    // The stepper says where the parent is — aria-current on the step, not
+    // just its colour.
     expect(
-      await screen.findByText(
-        messages.parent.form.stepOf
-          .replace("{current}", "2")
-          .replace("{total}", "2"),
-      ),
-    ).toBeVisible();
+      await screen.findByRole("listitem", { current: "step" }),
+    ).toHaveTextContent(messages.parent.form.steps.delivery.title);
     expect(
       screen.queryByLabelText(new RegExp(gift.giftDescription.label)),
     ).toBeNull();

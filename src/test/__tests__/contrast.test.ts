@@ -51,6 +51,8 @@ describe("colour contrast (WCAG AA)", () => {
     ["status-draft", "status-draft-tint", AA_NORMAL],
     ["status-review", "status-review-tint", AA_NORMAL],
     ["foreground", "status-rejected-tint", AA_NORMAL],
+    // The form's stepper numbers and «Назад» (Figma 147:7166).
+    ["muted-foreground", "surface-idle", AA_NORMAL],
     ["success", "surface", AA_NORMAL],
     // «Видалити» on the delete-draft page: a white label on the draft red.
     ["primary-foreground", "status-draft", AA_NORMAL],

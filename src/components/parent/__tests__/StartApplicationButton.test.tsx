@@ -1,12 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { describe, expect, it, vi } from "vitest";
-
-// The server action is the boundary; what is under test is that every drawing
-// of the button actually posts it.
-vi.mock("@/app/account/(shell)/parent/applications/actions", () => ({
-  startApplication: vi.fn(),
-}));
+import { describe, expect, it } from "vitest";
 
 import messages from "../../../../messages/uk.json";
 import { axe } from "@/test/axe";
@@ -26,22 +20,16 @@ function renderButton(variant: StartApplicationVariant) {
 }
 
 describe("StartApplicationButton", () => {
-  // Starting an application creates the draft, so it is a POST — a form and a
-  // submit button — in every one of the three places the design draws it. A
-  // link here would be a GET that writes.
-  it.each(VARIANTS)(
-    "the %s drawing is a submit button inside a form",
-    (variant) => {
-      renderButton(variant);
+  // Every drawing leads to the briefing first — it is a LINK, and creates
+  // nothing. The draft is created by the briefing's own form.
+  it.each(VARIANTS)("the %s drawing links to the briefing", (variant) => {
+    renderButton(variant);
 
-      const button = screen.getByRole("button", {
-        name: messages.account.parent.cta,
-      });
-      expect(button).toHaveAttribute("type", "submit");
-      expect(button.closest("form")).not.toBeNull();
-      expect(screen.queryByRole("link")).not.toBeInTheDocument();
-    },
-  );
+    expect(
+      screen.getByRole("link", { name: messages.account.parent.cta }),
+    ).toHaveAttribute("href", "/account/parent/applications/new");
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
 
   // The arrow and the plus are decoration; the name is the words.
   it.each(VARIANTS)("the %s drawing has no violations", async (variant) => {

@@ -110,13 +110,25 @@ export function UploadField({
     }
   };
 
+  const hintNode = (
+    <p id={`${inputId}-hint`} className="text-muted-foreground text-xs">
+      {hint} {t("hint")}
+    </p>
+  );
+
   const describedBy =
     [hint ? `${inputId}-hint` : null, error ? `${inputId}-error` : null]
       .filter(Boolean)
       .join(" ") || undefined;
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div
+      className={
+        variant === "dropzone"
+          ? "flex flex-col gap-2 py-3"
+          : "flex flex-col gap-1.5"
+      }
+    >
       <label
         htmlFor={inputId}
         className={cn(
@@ -131,11 +143,7 @@ export function UploadField({
           </span>
         ) : null}
       </label>
-      {hint ? (
-        <p id={`${inputId}-hint`} className="text-muted-foreground text-xs">
-          {hint} {t("hint")}
-        </p>
-      ) : null}
+      {hint && variant === "button" ? hintNode : null}
 
       {existing ? (
         <div className="border-border bg-surface-muted flex flex-wrap items-center gap-3 rounded-md border p-3">
@@ -198,6 +206,9 @@ export function UploadField({
         {variant === "dropzone" ? <PaperClipIcon className="size-6" /> : null}
         {existing ? t("replace") : t("choose")}
       </label>
+
+      {/* Under the dashed box in the redesign, as the other fields' hints. */}
+      {hint && variant === "dropzone" ? hintNode : null}
 
       {busy ? (
         <p role="status" className="text-muted-foreground text-sm">
