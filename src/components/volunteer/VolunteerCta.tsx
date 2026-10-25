@@ -17,9 +17,8 @@ import { cn } from "@/lib/utils";
 //   volunteer → browse
 //
 // Resolved from the actor by the page, ONCE, and passed to each of the three
-// places the design repeats the button. getSessionActor is a database query
-// and is not request-cached, so an async component rendered three times would
-// be three round trips for one answer.
+// places the design repeats the button, which keeps this component plain (not
+// async) and renderable inside the page's tree.
 export type VolunteerCtaState = "anonymous" | "candidate" | "volunteer";
 
 export function volunteerCtaState(actor: Actor | null): VolunteerCtaState {
