@@ -12,6 +12,7 @@ import {
   parseApplicationsQuery,
   tabStatuses,
 } from "../applicationTabs";
+import { myVolunteersHref } from "../volunteerTabs";
 
 describe("parseApplicationsQuery", () => {
   it("reads a known tab and a positive page", () => {
@@ -116,5 +117,14 @@ describe("applicationsPageCount", () => {
     expect(applicationsPageCount(0)).toBe(1);
     expect(applicationsPageCount(APPLICATIONS_PAGE_SIZE)).toBe(1);
     expect(applicationsPageCount(APPLICATIONS_PAGE_SIZE + 1)).toBe(2);
+  });
+});
+
+describe("myVolunteersHref", () => {
+  it("keeps the default view bare and carries the tab and page", () => {
+    expect(myVolunteersHref()).toBe("/account/parent/my-volunteer");
+    expect(myVolunteersHref({ tab: "completed", page: 2 })).toBe(
+      "/account/parent/my-volunteer?tab=completed&page=2",
+    );
   });
 });
