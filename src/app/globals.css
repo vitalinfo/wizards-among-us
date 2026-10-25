@@ -73,8 +73,7 @@
      darkened to the lightest that clears AA on its own fill. Its red is #ff0000
      at 3.74:1 (and --danger only 4.46:1); its pink #ff6bd9 is 2.12:1. Approved
      and fulfilled take --status-done, claimed --primary, rejected the
-     foreground on #ddd, as drawn. --success is «Продовжити», 7.24:1 on white
-     as the design sets it. */
+     foreground on #ddd, as drawn. */
   --status-draft: #c62828;
   --status-draft-tint: #fff5f5;
   --status-review: #b0259a;
@@ -84,7 +83,6 @@
   /* A step not yet reached on the application form's stepper, and «Назад»
      beside «Далі» (Figma 147:7166). The muted foreground reads 4.81:1 on it. */
   --surface-idle: #e3e3e3;
-  --success: #006600;
 
   --border: #c5c7c7; /* 1.5px card borders */
   --divider: #e6e7e7; /* 1px section dividers */
@@ -153,7 +151,6 @@
   --color-status-review-tint: var(--status-review-tint);
   --color-status-rejected-tint: var(--status-rejected-tint);
   --color-surface-idle: var(--surface-idle);
-  --color-success: var(--success);
   --color-border: var(--border);
   --color-divider: var(--divider);
   --color-primary: var(--primary);

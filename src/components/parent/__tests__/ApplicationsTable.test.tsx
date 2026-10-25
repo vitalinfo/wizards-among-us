@@ -76,6 +76,31 @@ describe("ApplicationsTable actions by status", () => {
     );
   });
 
+  // The same form as the pencil, offered as the row's next step: a draft is
+  // the one status where the next move is the parent's.
+  it("a draft offers to continue it, and nothing else does", async () => {
+    await renderTable([row("draft")]);
+    const links = screen.getAllByRole("link", { name: t.continue });
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link).toHaveAttribute(
+        "href",
+        "/account/parent/applications/id-draft",
+      );
+    }
+  });
+
+  it("no other status offers to continue", async () => {
+    await renderTable(
+      (
+        ["submitted", "approved", "rejected", "claimed", "fulfilled"] as const
+      ).map((status) => row(status)),
+    );
+    expect(
+      screen.queryByRole("link", { name: t.continue }),
+    ).not.toBeInTheDocument();
+  });
+
   // Submitted is still inside the edit lock, so the pencil stays — but it is
   // in the moderation queue, so the bin does not.
   it("a submitted application can be edited and viewed, not deleted", async () => {

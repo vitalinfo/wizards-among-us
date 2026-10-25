@@ -45,13 +45,16 @@ export async function ApplicationsTable({
   const base = (row: MyApplicationRow) =>
     `/account/parent/applications/${row.id}`;
 
-  // The one next step a status has, each in a dialog over the list: say the
-  // gift arrived, and then — until it is left — the review. The review is
-  // offered straight after confirming, but closing that dialog must not be
-  // the last chance to write it. («Продовжити» on a draft is drawn too, and
-  // held back for now — Vital.)
+  // The one next step a status has: finish a draft, say the gift arrived,
+  // and then — until it is left — the review. The last two open in a dialog
+  // over the list. The review is offered straight after confirming, but
+  // closing that dialog must not be the last chance to write it.
   const nextStep = (row: MyApplicationRow): ReactNode =>
-    row.status === "claimed" ? (
+    row.status === "draft" ? (
+      <Link href={base(row)} className={cn(STEP, "text-primary")}>
+        {t("continue")}
+      </Link>
+    ) : row.status === "claimed" ? (
       <Link
         href={dialogHref(query, "receive", row.id)}
         className={cn(STEP, "text-primary")}
