@@ -1,7 +1,14 @@
+import {
+  DEFAULT_PAGE_SIZE,
+  parsePageSize,
+  type PageSize,
+} from "@/lib/pageSize";
+
 import type { ClaimTab } from "./queries";
 
-// The url grammar for «Мої підопічні» — the tab and the page, so every view is
-// addressable and the browser's back button returns to the one you were on.
+// The url grammar for «Мої підопічні» — the tab, the page and the page size,
+// so every view is addressable and the browser's back button returns to the
+// one you were on.
 // Same approach as the browse filters and the moderation queue.
 
 export const CLAIM_TABS = [
@@ -10,13 +17,12 @@ export const CLAIM_TABS = [
   "completed",
 ] as const satisfies readonly ClaimTab[];
 
-export const CLAIMS_PAGE_SIZE = 10;
-
-export type ClaimsQuery = { tab: ClaimTab; page: number };
+export type ClaimsQuery = { tab: ClaimTab; page: number; per: PageSize };
 
 export function parseClaimsQuery(params: {
   tab?: string;
   page?: string;
+  per?: string;
 }): ClaimsQuery {
   const page = Number(params.page);
   return {
@@ -26,6 +32,7 @@ export function parseClaimsQuery(params: {
       ? (params.tab as ClaimTab)
       : "all",
     page: Number.isInteger(page) && page >= 1 ? page : 1,
+    per: parsePageSize(params.per),
   };
 }
 
@@ -39,10 +46,11 @@ export function claimsHref(query: Partial<ClaimsQuery> = {}): string {
   if (query.page && query.page > 1) {
     params.set("page", String(query.page));
   }
+  // Kept on every link, tabs included, so a chosen size is not undone by the
+  // next click.
+  if (query.per && query.per !== DEFAULT_PAGE_SIZE) {
+    params.set("per", String(query.per));
+  }
   const qs = params.toString();
   return `/account/volunteer/claims${qs ? `?${qs}` : ""}`;
-}
-
-export function claimsPageCount(total: number): number {
-  return Math.max(1, Math.ceil(total / CLAIMS_PAGE_SIZE));
 }

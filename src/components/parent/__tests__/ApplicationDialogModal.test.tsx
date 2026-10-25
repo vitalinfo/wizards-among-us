@@ -38,7 +38,7 @@ async function renderDialog(
 ) {
   const ui = await ApplicationDialogModal({
     loaded,
-    view: { tab: "claimed", page: 2 },
+    view: { tab: "claimed", page: 2, per: 10 },
     blocked,
   });
   return render(

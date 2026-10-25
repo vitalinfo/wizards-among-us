@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   applicationsHref,
   dialogHref,
+  parseApplicationsQuery,
 } from "@/features/applications/applicationTabs";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function LeaveReviewRedirect({
   const { application } = await searchParams;
   redirect(
     application
-      ? dialogHref({ tab: "all", page: 1 }, "review", application)
+      ? dialogHref(parseApplicationsQuery({}), "review", application)
       : applicationsHref(),
   );
 }

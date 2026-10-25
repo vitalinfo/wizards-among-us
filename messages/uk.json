@@ -48,6 +48,12 @@
       "position": "Сторінка {page} з {pageCount}",
       "previous": "← Попередня",
       "next": "Наступна →"
+    },
+    "listPager": {
+      "perPage": "Записів на сторінці:",
+      "range": "{from}–{to} з {total}",
+      "previous": "Попередня сторінка",
+      "next": "Наступна сторінка"
     }
   },
   "landing": {

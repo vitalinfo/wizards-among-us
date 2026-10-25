@@ -60,11 +60,11 @@ export async function startApplication(): Promise<void> {
 // The parent closes the loop: the gift arrived. Re-checked here even though the
 // dialog hides the button — a server action is a public endpoint.
 //
-// `view` is the list's tab and page, bound by the dialog; parsed down to known
-// values before any url is built from it, as in deleteDraftAction.
+// `view` is the list's tab, page and size, bound by the dialog; parsed down to
+// known values before any url is built from it, as in deleteDraftAction.
 export async function confirmReceiptAction(
   applicationId: string,
-  view: { tab: string; page: number },
+  view: { tab: string; page: number; per: number },
 ): Promise<void> {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
@@ -74,6 +74,7 @@ export async function confirmReceiptAction(
   const query = parseApplicationsQuery({
     tab: String(view.tab),
     page: String(view.page),
+    per: String(view.per),
   });
   const application = await getMyApplication(applicationId, actor.id);
   if (!application) {
@@ -115,13 +116,13 @@ export async function confirmReceiptAction(
 // because a draft can be submitted in another tab between this check and the
 // delete.
 //
-// `view` is the tab and page the list was on, bound by the page. Bound
+// `view` is the tab, page and size the list was on, bound by the page. Bound
 // arguments make a round trip through the browser, so it is parsed down to
 // known values and the url rebuilt from them — never used as given, which
 // would make this an open redirect.
 export async function deleteDraftAction(
   applicationId: string,
-  view: { tab: string; page: number },
+  view: { tab: string; page: number; per: number },
 ): Promise<void> {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
@@ -129,7 +130,11 @@ export async function deleteDraftAction(
   }
 
   const list = applicationsHref(
-    parseApplicationsQuery({ tab: String(view.tab), page: String(view.page) }),
+    parseApplicationsQuery({
+      tab: String(view.tab),
+      page: String(view.page),
+      per: String(view.per),
+    }),
   );
 
   const application = await getMyApplication(applicationId, actor.id);

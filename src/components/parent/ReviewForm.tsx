@@ -20,7 +20,7 @@ export function ReviewForm({
   view,
 }: {
   applicationId: string;
-  // The list's tab and page, to land back on after sending.
+  // The list's tab, page and size, to land back on after sending.
   view: ApplicationsQuery;
 }) {
   const t = useTranslations("parent.review");

@@ -17,11 +17,11 @@ import { isUser } from "@/lib/actor";
 import { getSessionActor } from "@/lib/auth/session";
 
 // The review, from the dialog over «Мої заявки» that follows confirming the
-// gift. `view` is the list's tab and page, bound by the dialog; parsed down to
-// known values before the redirect is built from it.
+// gift. `view` is the list's tab, page and size, bound by the dialog; parsed
+// down to known values before the redirect is built from it.
 export async function submitReviewAction(
   applicationId: string,
-  view: { tab: string; page: number },
+  view: { tab: string; page: number; per: number },
   _prev: ReviewActionState,
   formData: FormData,
 ): Promise<ReviewActionState> {
@@ -71,6 +71,7 @@ export async function submitReviewAction(
       parseApplicationsQuery({
         tab: String(view.tab),
         page: String(view.page),
+        per: String(view.per),
       }),
     ),
   );

@@ -5,8 +5,6 @@ import { APPLICATION_STATUSES } from "@/db/enums";
 import {
   APPLICATION_TABS,
   applicationsHref,
-  applicationsPageCount,
-  APPLICATIONS_PAGE_SIZE,
   dialogHref,
   parseDialog,
   parseApplicationsQuery,
@@ -16,9 +14,12 @@ import { myVolunteersHref } from "../volunteerTabs";
 
 describe("parseApplicationsQuery", () => {
   it("reads a known tab and a positive page", () => {
-    expect(parseApplicationsQuery({ tab: "draft", page: "3" })).toEqual({
+    expect(
+      parseApplicationsQuery({ tab: "draft", page: "3", per: "20" }),
+    ).toEqual({
       tab: "draft",
       page: 3,
+      per: 20,
     });
   });
 
@@ -44,13 +45,13 @@ describe("parseApplicationsQuery", () => {
 describe("applicationsHref", () => {
   it("keeps the default view's url bare", () => {
     expect(applicationsHref()).toBe("/account/parent/applications");
-    expect(applicationsHref({ tab: "all", page: 1 })).toBe(
+    expect(applicationsHref({ tab: "all", page: 1, per: 10 })).toBe(
       "/account/parent/applications",
     );
   });
 
   it("carries the tab and the page", () => {
-    expect(applicationsHref({ tab: "claimed", page: 2 })).toBe(
+    expect(applicationsHref({ tab: "claimed", page: 2, per: 10 })).toBe(
       "/account/parent/applications?tab=claimed&page=2",
     );
   });
@@ -73,14 +74,16 @@ describe("applicationsHref", () => {
 
 describe("dialogs", () => {
   it("open over the view they were opened from", () => {
-    expect(dialogHref({ tab: "all", page: 1 }, "delete", "a1")).toBe(
+    expect(dialogHref({ tab: "all", page: 1, per: 10 }, "delete", "a1")).toBe(
       "/account/parent/applications?dialog=delete&id=a1",
     );
-    expect(dialogHref({ tab: "claimed", page: 3 }, "receive", "a1")).toBe(
+    expect(
+      dialogHref({ tab: "claimed", page: 3, per: 10 }, "receive", "a1"),
+    ).toBe(
       "/account/parent/applications?tab=claimed&page=3&dialog=receive&id=a1",
     );
     expect(
-      dialogHref({ tab: "all", page: 1 }, "receive", "a1", {
+      dialogHref({ tab: "all", page: 1, per: 10 }, "receive", "a1", {
         blocked: "no_photo",
       }),
     ).toBe(
@@ -112,19 +115,42 @@ describe("tab statuses", () => {
   });
 });
 
-describe("applicationsPageCount", () => {
-  it("is at least one page, and rounds up", () => {
-    expect(applicationsPageCount(0)).toBe(1);
-    expect(applicationsPageCount(APPLICATIONS_PAGE_SIZE)).toBe(1);
-    expect(applicationsPageCount(APPLICATIONS_PAGE_SIZE + 1)).toBe(2);
+// A chosen size must survive the next click — a tab, a page, a dialog and
+// the redirect after it are all built here.
+describe("page size", () => {
+  it("rides along on every link, and the default stays out of the url", () => {
+    expect(applicationsHref({ tab: "claimed", page: 2, per: 20 })).toBe(
+      "/account/parent/applications?tab=claimed&page=2&per=20",
+    );
+    expect(applicationsHref({ tab: "all", page: 1, per: 10 })).toBe(
+      "/account/parent/applications",
+    );
+    expect(dialogHref({ tab: "all", page: 1, per: 5 }, "delete", "a1")).toBe(
+      "/account/parent/applications?per=5&dialog=delete&id=a1",
+    );
+  });
+
+  it("round-trips through the url", () => {
+    const href = applicationsHref({ tab: "draft", page: 3, per: 5 });
+    const params = Object.fromEntries(
+      new URL(href, "http://x").searchParams.entries(),
+    );
+    expect(parseApplicationsQuery(params)).toEqual({
+      tab: "draft",
+      page: 3,
+      per: 5,
+    });
   });
 });
 
 describe("myVolunteersHref", () => {
-  it("keeps the default view bare and carries the tab and page", () => {
+  it("keeps the default view bare and carries the tab, page and size", () => {
     expect(myVolunteersHref()).toBe("/account/parent/my-volunteer");
-    expect(myVolunteersHref({ tab: "completed", page: 2 })).toBe(
+    expect(myVolunteersHref({ tab: "completed", page: 2, per: 10 })).toBe(
       "/account/parent/my-volunteer?tab=completed&page=2",
+    );
+    expect(myVolunteersHref({ tab: "all", per: 20 })).toBe(
+      "/account/parent/my-volunteer?per=20",
     );
   });
 });

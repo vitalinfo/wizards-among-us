@@ -3,20 +3,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ctaVariants } from "@/components/ui/ctaStyles";
-import { Pager } from "@/components/ui/Pager";
+import { ListPager } from "@/components/ui/ListPager";
 import { ClaimsTable } from "@/components/volunteer/ClaimsTable";
 import { ClaimTabs } from "@/components/volunteer/ClaimTabs";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
-import {
-  claimsHref,
-  claimsPageCount,
-  CLAIMS_PAGE_SIZE,
-  parseClaimsQuery,
-} from "@/features/claims/claimTabs";
+import { claimsHref, parseClaimsQuery } from "@/features/claims/claimTabs";
 import { countMyClaims, listMyClaims } from "@/features/claims/queries";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
+import { pageCount as countPages } from "@/lib/pageSize";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +27,7 @@ export const dynamic = "force-dynamic";
 export default async function MyClaimsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; page?: string }>;
+  searchParams: Promise<{ tab?: string; page?: string; per?: string }>;
 }) {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
@@ -53,14 +49,15 @@ export default async function MyClaimsPage({
       : campaign
         ? (await countMyClaims(actor.id, campaign.id, "all")) > 0
         : false;
-  const pageCount = claimsPageCount(total);
+  const { per } = query;
+  const pageCount = countPages(total, per);
   const page = Math.min(query.page, pageCount);
   const rows =
     campaign && total > 0
       ? await listMyClaims(actor.id, campaign.id, {
           tab: query.tab,
-          limit: CLAIMS_PAGE_SIZE,
-          offset: (page - 1) * CLAIMS_PAGE_SIZE,
+          limit: per,
+          offset: (page - 1) * per,
         })
       : [];
 
@@ -82,7 +79,7 @@ export default async function MyClaimsPage({
           «Всі». */}
       {holdsAny ? (
         <div className="mt-10">
-          <ClaimTabs current={query.tab} />
+          <ClaimTabs current={query.tab} per={per} />
         </div>
       ) : null}
 
@@ -93,14 +90,18 @@ export default async function MyClaimsPage({
           <div className="mt-8">
             <ClaimsTable rows={rows} />
           </div>
-          <Pager
+          <ListPager
             label={t("pager.label")}
             page={page}
             pageCount={pageCount}
             total={total}
-            from={(page - 1) * CLAIMS_PAGE_SIZE + 1}
-            to={(page - 1) * CLAIMS_PAGE_SIZE + rows.length}
-            hrefFor={(target) => claimsHref({ tab: query.tab, page: target })}
+            from={(page - 1) * per + 1}
+            to={(page - 1) * per + rows.length}
+            per={per}
+            hrefFor={(target) =>
+              claimsHref({ tab: query.tab, page: target, per })
+            }
+            sizeHref={(size) => claimsHref({ tab: query.tab, per: size })}
           />
         </>
       )}

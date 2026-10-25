@@ -36,7 +36,7 @@ export function ConfirmReceiptForm({
   blocked,
 }: {
   applicationId: string;
-  // The list's tab and page, so the review that follows opens over the same
+  // The list's tab, page and size, so the review that follows opens over the same
   // view.
   view: ApplicationsQuery;
   photo: UploadedFile | null;
