@@ -1,7 +1,25 @@
-import { and, asc, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  sql,
+} from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { applications, campaigns, claims, users } from "@/db/schema";
+import {
+  applicationFiles,
+  applications,
+  campaigns,
+  claims,
+  users,
+} from "@/db/schema";
+
+import { tabStatuses, type ApplicationTab } from "./applicationTabs";
 
 // Data access for the parent application flow. Deliberately thin: every
 // authorization decision is made by the pure predicates in ./authz and passed in
@@ -13,38 +31,114 @@ import { applications, campaigns, claims, users } from "@/db/schema";
 
 type Application = typeof applications.$inferSelect;
 
-export type MyApplicationSummary = {
+// One row of «Мої заявки» (Figma 139:4543). Only what the list draws: the list
+// is the parent's own data, but a row type that carries the whole application
+// invites the next screen to print all of it.
+export type MyApplicationRow = {
   id: string;
   childName: string | null;
   childAge: number | null;
-  giftDescription: string | null;
   status: Application["status"];
   submittedAt: Date | null;
-  updatedAt: Date;
+  campaignTitle: string;
 };
 
+function myApplicationConditions(
+  parentId: string,
+  campaignId: string,
+  tab: ApplicationTab,
+) {
+  return and(
+    eq(applications.parentId, parentId),
+    eq(applications.campaignId, campaignId),
+    inArray(applications.status, [...tabStatuses(tab)]),
+  );
+}
+
+export async function countMyApplications(
+  parentId: string,
+  campaignId: string,
+  tab: ApplicationTab,
+): Promise<number> {
+  const [row] = await getDb()
+    .select({ total: count() })
+    .from(applications)
+    .where(myApplicationConditions(parentId, campaignId, tab));
+  return row?.total ?? 0;
+}
+
+// Newest activity first, with the id as a tiebreaker so a page boundary never
+// shows one row twice or skips one.
 export async function listMyApplications(
   parentId: string,
   campaignId: string,
-): Promise<MyApplicationSummary[]> {
+  page: { tab: ApplicationTab; limit: number; offset: number },
+): Promise<MyApplicationRow[]> {
   return getDb()
     .select({
       id: applications.id,
       childName: applications.childName,
       childAge: applications.childAge,
-      giftDescription: applications.giftDescription,
       status: applications.status,
       submittedAt: applications.submittedAt,
-      updatedAt: applications.updatedAt,
+      campaignTitle: campaigns.title,
     })
     .from(applications)
-    .where(
-      and(
-        eq(applications.parentId, parentId),
-        eq(applications.campaignId, campaignId),
-      ),
-    )
-    .orderBy(desc(applications.updatedAt));
+    .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
+    .where(myApplicationConditions(parentId, campaignId, page.tab))
+    .orderBy(desc(applications.updatedAt), desc(applications.id))
+    .limit(page.limit)
+    .offset(page.offset);
+}
+
+// Deletes one of this parent's DRAFTS, and returns the storage keys of the
+// files it held so the caller can remove the objects too.
+//
+// Hard, not soft: a draft was never submitted, so nobody has reviewed,
+// claimed or relied on it, and what it may hold — a child's photos, a ВПО
+// certificate — is exactly the data we should not keep once the family has
+// said they do not want it. The file ROWS go by the FK's cascade; the objects
+// they point at are the caller's job, because storage is not in this
+// transaction.
+//
+// Every condition is in the SQL, not only in the caller: the row is locked
+// first, so an upload racing the delete waits for it (its insert needs the
+// row) and then fails on the FK instead of leaving an object nothing points
+// at; and the delete itself repeats owner + draft, so a draft submitted in
+// another tab a moment ago is not deleted from under its review.
+export async function deleteMyDraft(
+  id: string,
+  parentId: string,
+): Promise<{ deleted: boolean; storageKeys: string[] }> {
+  return getDb().transaction(async (tx) => {
+    const draft = and(
+      eq(applications.id, id),
+      eq(applications.parentId, parentId),
+      eq(applications.status, "draft"),
+    );
+    const [locked] = await tx
+      .select({ id: applications.id })
+      .from(applications)
+      .where(draft)
+      .for("update");
+    if (!locked) {
+      return { deleted: false, storageKeys: [] };
+    }
+
+    const files = await tx
+      .select({ storageKey: applicationFiles.storageKey })
+      .from(applicationFiles)
+      .where(eq(applicationFiles.applicationId, id));
+    const removed = await tx
+      .delete(applications)
+      .where(draft)
+      .returning({ id: applications.id });
+
+    return {
+      deleted: removed.length > 0,
+      storageKeys: removed.length > 0 ? files.map((f) => f.storageKey) : [],
+    };
+  });
 }
 
 // Full row for the edit form / detail view. Returns null when it doesn't exist

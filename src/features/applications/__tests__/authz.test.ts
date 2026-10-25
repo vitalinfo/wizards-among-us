@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Actor } from "@/lib/actor";
 
 import {
+  canDeleteApplication,
   canEditApplication,
   canStartApplication,
   canSubmitApplication,
@@ -35,6 +36,41 @@ const volunteer: Actor = {
   firstName: "Vira",
   roles: ["volunteer"],
 };
+
+// Deleting is the one destructive thing a parent can do, so every role is
+// asserted, not just the happy path.
+describe("canDeleteApplication", () => {
+  const own = { parentId: "p1" };
+
+  it("lets a parent delete their own draft", () => {
+    expect(canDeleteApplication(parent, { ...own, status: "draft" })).toBe(
+      true,
+    );
+  });
+
+  // Submitted is still EDITABLE (the edit lock is at approval), but it is in
+  // the moderation queue and on the two-day clock — deleting is not editing.
+  it("refuses once the application has been submitted, and after", () => {
+    for (const status of [
+      "submitted",
+      "approved",
+      "rejected",
+      "claimed",
+      "fulfilled",
+    ] as const) {
+      expect(canDeleteApplication(parent, { ...own, status })).toBe(false);
+    }
+  });
+
+  it("refuses another parent, a volunteer, an admin and nobody", () => {
+    const draft = { ...own, status: "draft" as const };
+    expect(canDeleteApplication(otherParent, draft)).toBe(false);
+    expect(canDeleteApplication(volunteer, draft)).toBe(false);
+    // No operational override, unlike editing.
+    expect(canDeleteApplication(admin, draft)).toBe(false);
+    expect(canDeleteApplication(null, draft)).toBe(false);
+  });
+});
 
 describe("canEditApplication (edit lock)", () => {
   const own = { parentId: "p1" };
