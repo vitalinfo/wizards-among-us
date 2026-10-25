@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 
-import { startApplication } from "@/app/account/(shell)/parent/applications/actions";
 import { ArrowDownIcon, PlusIcon } from "@/components/icons";
 import { ctaVariants } from "@/components/ui/ctaStyles";
 import { cn } from "@/lib/utils";
@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils";
 // arrow at the foot of the desktop sidebar, and a blue text link with a plus in
 // the phone menu.
 //
-// A <form> posting the server action, not a link: starting an application
-// creates the draft row, and a write belongs behind a POST. The action
-// re-checks intake itself, so a stale button that survives a campaign closing
-// lands the parent back on their anketas rather than in a form they cannot
-// submit. Rendering it at all is the caller's call — see canStartApplication.
+// A LINK to the briefing («Перед заповненням анкети», Figma 147:7166), not the
+// form that creates a draft: a family reads what an application needs before
+// one exists. The briefing's own button is that form, and startApplication
+// re-checks intake. Rendering this at all is the caller's call — see
+// canStartApplication.
 export type StartApplicationVariant = "hero" | "sidebar" | "panel";
 
 const FOCUS =
@@ -48,12 +48,13 @@ export function StartApplicationButton({
   const t = useTranslations("account.parent");
 
   return (
-    <form action={startApplication} className={className}>
-      <button type="submit" className={cn(VARIANTS[variant], FOCUS)}>
-        {variant === "panel" ? <PlusIcon className="size-5" /> : null}
-        {t("cta")}
-        {variant === "sidebar" ? <ArrowDownIcon className="size-6" /> : null}
-      </button>
-    </form>
+    <Link
+      href="/account/parent/applications/new"
+      className={cn(VARIANTS[variant], FOCUS, className)}
+    >
+      {variant === "panel" ? <PlusIcon className="size-5" /> : null}
+      {t("cta")}
+      {variant === "sidebar" ? <ArrowDownIcon className="size-6" /> : null}
+    </Link>
   );
 }

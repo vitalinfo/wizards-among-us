@@ -1,10 +1,8 @@
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { CloseIcon } from "@/components/icons";
+import { BarePageHeader } from "@/components/account/BarePageHeader";
 import { SITE_CONTAINER } from "@/components/site/layout";
-import { SiteLogo } from "@/components/site/SiteLogo";
 import type { ContactMethod } from "@/db/enums";
 import type { applications } from "@/db/schema";
 import { giftUrls } from "@/features/applications/mappers";
@@ -33,6 +31,7 @@ export async function ApplicationDetail({
   contact,
   closeHref,
   closeLabel,
+  notice,
   children,
   after,
 }: {
@@ -45,13 +44,15 @@ export async function ApplicationDetail({
   // Where × goes, and what it is called — back to whichever list this came from.
   closeHref: string;
   closeLabel: string;
+  // Something the reader must see first, under the child's name — the
+  // rejection note on the family's own card.
+  notice?: ReactNode;
   // More sections in the text column, after «Доставка».
   children?: ReactNode;
   // Below the photos and the text, across the page.
   after?: ReactNode;
 }) {
   const t = await getTranslations("applicationCard");
-  const tCommon = await getTranslations("common");
   const tRegions = await getTranslations("regions");
 
   const child = application.childName ?? "";
@@ -60,28 +61,7 @@ export async function ApplicationDetail({
 
   return (
     <>
-      <header className={cn(SITE_CONTAINER, "py-6")}>
-        <div className="flex items-start justify-between gap-4">
-          <Link
-            href="/"
-            aria-label={tCommon("brand")}
-            className="focus-visible:outline-ring shrink-0 rounded"
-          >
-            <SiteLogo
-              width={135}
-              height={135}
-              className="h-14 w-auto lg:h-20"
-            />
-          </Link>
-          <Link
-            href={closeHref}
-            aria-label={closeLabel}
-            className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring inline-flex size-10 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:size-[60px]"
-          >
-            <CloseIcon className="size-5 lg:size-6" />
-          </Link>
-        </div>
-      </header>
+      <BarePageHeader closeHref={closeHref} closeLabel={closeLabel} />
 
       <div className={cn(SITE_CONTAINER, "pb-16 lg:pb-24")}>
         {/* 1066 centred, which is where the design puts the pair: a 306 photo
@@ -123,6 +103,8 @@ export async function ApplicationDetail({
                 {t("age", { age: application.childAge })}
               </p>
             ) : null}
+
+            {notice ? <div className="mt-6">{notice}</div> : null}
 
             <dl className="mt-8 flex flex-col gap-[14px]">
               <DetailRow

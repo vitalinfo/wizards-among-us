@@ -80,6 +80,10 @@
   --status-review: #b0259a;
   --status-review-tint: #ffe4f8;
   --status-rejected-tint: #dddddd;
+
+  /* A step not yet reached on the application form's stepper, and «Назад»
+     beside «Далі» (Figma 147:7166). The muted foreground reads 4.81:1 on it. */
+  --surface-idle: #e3e3e3;
   --success: #006600;
 
   --border: #c5c7c7; /* 1.5px card borders */
@@ -148,6 +152,7 @@
   --color-status-review: var(--status-review);
   --color-status-review-tint: var(--status-review-tint);
   --color-status-rejected-tint: var(--status-rejected-tint);
+  --color-surface-idle: var(--surface-idle);
   --color-success: var(--success);
   --color-border: var(--border);
   --color-divider: var(--divider);

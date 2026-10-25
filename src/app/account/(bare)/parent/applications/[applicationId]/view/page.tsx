@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { ApplicationDetail } from "@/components/applications/ApplicationDetail";
@@ -54,6 +55,7 @@ export default async function ApplicationViewPage({
 
   const t = await getTranslations("parent.applications");
   const tConfirm = await getTranslations("parent.confirm");
+  const tRejected = await getTranslations("parent.applications.rejected");
   const [files, contactFields] = await Promise.all([
     listApplicationFiles(applicationId),
     getUserContactFields(actor.id),
@@ -78,6 +80,28 @@ export default async function ApplicationViewPage({
       contact={resolveUserContact(contactFields)}
       closeHref="/account/parent/applications"
       closeLabel={t("close")}
+      notice={
+        // Rejection is final (Phase 5): the parent cannot edit and resubmit,
+        // so the note is the only explanation they get, verbatim — and the way
+        // forward is a new application.
+        application.status === "rejected" ? (
+          <div
+            role="note"
+            className="border-border bg-surface-muted rounded-lg border p-4"
+          >
+            <h2 className="font-semibold">{tRejected("title")}</h2>
+            <p className="mt-1 text-sm whitespace-pre-wrap">
+              {application.rejectionNote ?? tRejected("noNote")}
+            </p>
+            <Link
+              href="/account/parent/applications/new"
+              className="text-primary mt-3 inline-block text-sm font-semibold underline underline-offset-4"
+            >
+              {tRejected("cta")}
+            </Link>
+          </div>
+        ) : null
+      }
       after={
         gift ? (
           <section className="mx-auto mt-12 max-w-[1066px]">

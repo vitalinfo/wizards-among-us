@@ -47,16 +47,14 @@ export function ConfirmReceiptForm({
 
   return (
     <div className="flex flex-col">
-      <div className="py-3">
-        <UploadField
-          applicationId={applicationId}
-          kind="confirmation"
-          label={t("photo.label")}
-          existing={photo ?? undefined}
-          required
-          variant="dropzone"
-        />
-      </div>
+      <UploadField
+        applicationId={applicationId}
+        kind="confirmation"
+        label={t("photo.label")}
+        existing={photo ?? undefined}
+        required
+        variant="dropzone"
+      />
 
       {blocked ? (
         <p role="alert" className="text-danger mt-2 text-sm font-medium">

@@ -308,10 +308,13 @@ export async function submitApplicationAction(
     targetId: id,
   });
   revalidatePath("/account/parent/applications");
-  // To the LIST, not back into the form. Returning to the application left the
-  // parent looking at the last step of a form they had just finished, which
-  // reads as "nothing happened"; the list is where they can see the new status
-  // and get on with the next child. No banner there (Vital): the row's status
-  // says what happened.
-  redirect("/account/parent/applications");
+  // Never back into the form: a parent left on the last step of a form they
+  // had just finished reads it as "nothing happened". A FIRST submission goes
+  // to «Вітаємо! Заявку успішно подано» (Figma 147:7166); an edit to one
+  // already sent goes to the list — announcing a submission would be untrue.
+  redirect(
+    wasAlreadySubmitted
+      ? "/account/parent/applications"
+      : `/account/parent/applications/${id}/submitted`,
+  );
 }

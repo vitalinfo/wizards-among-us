@@ -13,7 +13,6 @@ import {
   saveApplicationDraft,
   submitApplicationAction,
 } from "@/app/account/(shell)/parent/applications/[applicationId]/actions";
-import { Button } from "@/components/ui/Button";
 import type { ContactMethod } from "@/db/enums";
 import {
   initialSaveDraftState,
@@ -21,12 +20,15 @@ import {
 } from "@/features/applications/formState";
 
 import type { FileKind } from "@/db/enums";
+import { cn } from "@/lib/utils";
 
+import { FormStepper } from "./FormStepper";
 import { initialStep, type FormStep } from "./steps";
 import { toStepValues, type ApplicationRow, type StepValues } from "./types";
 
-// The multistep application form, mirroring the sections parents already know
-// from the paper/Google form.
+// The multistep application form (Figma 147:7166), mirroring the sections
+// parents already know from the paper/Google form: «Анкета дитини» over a
+// five-step stepper, the step's own one-line intro, the step, and «Далі».
 //
 // Every step is a real <form> posting to a server action, so each one SAVES A
 // DRAFT before the next appears — a parent can close the tab on a phone and
@@ -55,6 +57,7 @@ export function ApplicationForm({
   const tBlocked = useTranslations("parent.applications.blocked");
   const tConsent = useTranslations("parent.form.steps.consent");
   const tUploads = useTranslations("parent.form.upload");
+  const tSteps = useTranslations("parent.form.steps");
 
   const saved = toStepValues(application);
 
@@ -177,7 +180,7 @@ export function ApplicationForm({
     <form
       action={isLast ? submitAction : handleSaveStep}
       onSubmit={(event) => rememberPosted(event.currentTarget)}
-      className="flex flex-col gap-6"
+      className="mx-auto flex w-full max-w-[1022px] flex-col"
     >
       <input type="hidden" name="applicationId" value={application.id} />
       {/* Which step is being saved. The save action needs it to know which
@@ -185,8 +188,22 @@ export function ApplicationForm({
           silently matched no step and let everything through. */}
       <input type="hidden" name="step" value={steps[stepIndex].key} />
 
-      <p className="text-muted-foreground text-sm">
-        {t("stepOf", { current: stepIndex + 1, total: steps.length })}
+      <h1 className="font-display text-center text-[46px] leading-[44px] font-bold tracking-[-0.06em] lg:text-[74px] lg:leading-[60px]">
+        {t.rich("pageTitle", {
+          em: (chunks) => <span className="text-primary">{chunks}</span>,
+        })}
+      </h1>
+
+      <div className="mt-6 lg:mt-11">
+        <FormStepper
+          label={t("stepsLabel")}
+          current={stepIndex}
+          steps={steps.map((step) => tSteps(`${step.key}.title`))}
+        />
+      </div>
+
+      <p className="text-muted-foreground mx-auto mt-6 max-w-[537px] text-center text-sm leading-5 font-medium tracking-[-0.03em] lg:mt-11 lg:text-base">
+        {tSteps(`${steps[stepIndex].key}.intro`)}
       </p>
 
       {failed ? (
@@ -194,7 +211,7 @@ export function ApplicationForm({
           ref={alertRef}
           tabIndex={-1}
           role="alert"
-          className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800"
+          className="border-danger/30 bg-status-draft-tint text-status-draft mt-6 rounded-lg border p-3 text-sm"
         >
           {/* Name the actual problem. "Check the highlighted fields" is
               actively misleading when nothing is highlighted — as with a failed
@@ -215,47 +232,66 @@ export function ApplicationForm({
         </div>
       ) : null}
 
-      <Component
-        values={values}
-        errors={errors}
-        contact={contact}
-        defaultParentName={defaultParentName}
-        giftPriceCap={giftPriceCap}
-        applicationId={application.id}
-        files={files}
-        turnstileSiteKey={turnstileSiteKey}
-      />
+      <div className="mt-6 lg:mt-[31px]">
+        <Component
+          values={values}
+          errors={errors}
+          contact={contact}
+          defaultParentName={defaultParentName}
+          giftPriceCap={giftPriceCap}
+          applicationId={application.id}
+          files={files}
+          turnstileSiteKey={turnstileSiteKey}
+        />
+      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      {/* «Назад» on the left, «Далі» on the right (Vital). «Назад» is a
+          plain button, so Enter still submits «Далі». */}
+      <div className="mt-8 flex flex-wrap items-center gap-2 lg:mt-[34px]">
         {stepIndex > 0 ? (
-          <Button
+          <button
             type="button"
-            variant="outline"
             onClick={() => {
               setPosted({});
               setStepIndex((current) => current - 1);
             }}
+            className={cn(
+              PILL,
+              "text-muted-foreground bg-surface-idle hover:text-foreground",
+            )}
           >
             {t("back")}
-          </Button>
+          </button>
         ) : null}
 
         {/* Two different pending signals now: useTransition for the per-step
             saves, useActionState for the submit. Using only the first would
             leave the submit button live while the application is being sent. */}
-        <Button type="submit" disabled={isLast ? submitting : pending}>
+        <button
+          type="submit"
+          disabled={isLast ? submitting : pending}
+          className={cn(
+            PILL,
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
+          )}
+        >
           {isLast
             ? submitting
               ? tConsent("submitting")
               : // Already sent: the button saves an edit, it does not submit
-                // again. «Подати анкету» would suggest the first one never
+                // again. «Подати заявку» would suggest the first one never
                 // arrived.
                 tConsent(
                   application.status === "submitted" ? "resubmit" : "submit",
                 )
             : t("next")}
-        </Button>
+        </button>
       </div>
     </form>
   );
 }
+
+// 64 tall at both widths with 44 either side, as the design draws «Далі»
+// (132 wide on its label) and «Назад».
+const PILL =
+  "focus-visible:outline-ring inline-flex h-16 min-w-[132px] items-center justify-center rounded-full px-11 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60";
