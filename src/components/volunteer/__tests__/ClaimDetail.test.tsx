@@ -133,14 +133,18 @@ describe("ClaimDetail", () => {
   });
 
   it("thanks the volunteer only once the family has confirmed", async () => {
+    // The copy carries a <b> part (rendered through t.rich as <strong>); the
+    // bold sentence is what the volunteer reads.
+    const thanks = t.thanks.match(/<b>(.*)<\/b>/)![1];
     await renderDetail();
-    expect(screen.queryByText(t.thanks)).not.toBeInTheDocument();
+    expect(screen.queryByText(thanks)).not.toBeInTheDocument();
 
     await renderDetail({
       application: { ...application, status: "fulfilled" },
       photos: [{ id: "f3", kind: "confirmation" }],
     });
-    expect(screen.getByText(t.thanks)).toBeInTheDocument();
+    expect(screen.getByText(thanks)).toBeInTheDocument();
+    expect(screen.getByText(thanks).tagName).toBe("STRONG");
   });
 
   it("goes back to the list, and has no accessibility violations", async () => {
