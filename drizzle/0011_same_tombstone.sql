@@ -1,0 +1,1 @@
+ALTER TABLE "campaigns" DROP COLUMN "starts_at";

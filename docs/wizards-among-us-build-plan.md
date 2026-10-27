@@ -130,8 +130,8 @@ campaigns
   description   text
   status        text        -- 'draft' | 'active' | 'archived'  (at most one 'active' at a time — enforce via partial unique index)
   accepting_applications boolean default true   -- intake gate for the active campaign; false = live but closed to NEW applications
-  starts_at     timestamptz null
-  ends_at       timestamptz null
+  ends_at       timestamptz null   -- the gift deadline shown to volunteers, not an intake cut-off
+                                   -- (starts_at was dropped unused: intake is opened by hand — Vital, 2026-10-27)
   archived_at   timestamptz null
   created_at    timestamptz default now()
 ```
