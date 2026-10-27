@@ -68,7 +68,11 @@ export async function ClaimDetail({
       application.status === "fulfilled" ? (
         <DetailSection title={t("sections.details")} list={false}>
           <p className="text-primary text-sm tracking-[-0.03em]">
-            {t("thanks")}
+            {t.rich("thanks", {
+              b: (chunks) => (
+                <strong className="font-semibold">{chunks}</strong>
+              ),
+            })}
           </p>
         </DetailSection>
       ) : null,
