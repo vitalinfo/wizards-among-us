@@ -219,7 +219,6 @@ export const campaigns = pgTable(
     // Null = no cap. Enforced at submit in zod, not as a DB CHECK, so changing
     // the cap never needs a migration and never invalidates existing rows.
     giftPriceCap: numeric("gift_price_cap", { precision: 10, scale: 2 }),
-    startsAt: timestamp("starts_at", { withTimezone: true }),
     endsAt: timestamp("ends_at", { withTimezone: true }),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     ...timestamps(),

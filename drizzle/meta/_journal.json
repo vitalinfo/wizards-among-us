@@ -78,6 +78,13 @@
       "when": 1792767119126,
       "tag": "0010_powerful_elektra",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793128776684,
+      "tag": "0011_same_tombstone",
+      "breakpoints": true
     }
   ]
 }
