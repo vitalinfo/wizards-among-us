@@ -3,7 +3,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { claimAction } from "@/app/volunteer/actions";
-import { ClaimBriefing } from "@/components/volunteer/ClaimBriefing";
+import { ClaimBriefing } from "@/components/volunteer/claimBriefing";
 import { getApplicationForFileAccess } from "@/features/applications/queries";
 import { getCampaignById } from "@/features/campaigns/queries";
 import { getActiveClaim } from "@/features/claims/queries";
@@ -88,6 +88,11 @@ export default async function ClaimBriefingPage({
   return (
     <ClaimBriefing
       backHref={backHref}
+      // WHICH briefing, not just what is in it. The «Святий Миколай» copy talks
+      // about a letter to Миколай and a gift under the pillow, so a campaign of
+      // another type must not be shown it — the same reason the parent form
+      // picks its steps by type rather than defaulting to one.
+      campaignType={campaign?.type ?? null}
       // The budget and the deadline are the CAMPAIGN's, not a date typed into
       // the copy: the design says «до 699 грн» and «5 грудня», and both move
       // with the campaign row. A campaign without an end date simply does not

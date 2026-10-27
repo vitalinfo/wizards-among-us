@@ -48,6 +48,7 @@ export async function createCampaignAction(
     title: formData.get("title"),
     description: formData.get("description"),
     giftPriceCap: formData.get("giftPriceCap"),
+    endsAt: formData.get("endsAt"),
   });
   if (!parsed.success) {
     return { status: "invalid" };
@@ -86,6 +87,7 @@ export async function updateCampaignAction(
     title: formData.get("title"),
     description: formData.get("description"),
     giftPriceCap: formData.get("giftPriceCap"),
+    endsAt: formData.get("endsAt"),
   });
   if (!parsed.success) {
     return { status: "invalid" };
