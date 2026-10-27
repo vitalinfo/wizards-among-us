@@ -29,6 +29,7 @@ export async function createCampaign(values: {
   title: string;
   description: string | null;
   giftPriceCap: string | null;
+  endsAt: Date | null;
 }): Promise<string> {
   // Always born as a draft — activating is a separate, deliberate act, so
   // creating a campaign can never accidentally open intake to the public.
@@ -50,6 +51,7 @@ export async function updateCampaign(
     title: string;
     description: string | null;
     giftPriceCap: string | null;
+    endsAt: Date | null;
   },
 ): Promise<void> {
   await getDb().update(campaigns).set(values).where(eq(campaigns.id, id));

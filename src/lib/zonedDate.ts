@@ -16,7 +16,15 @@ export function parseDateOnly(value: string | undefined): string | null {
   if (!value || !DATE_ONLY.test(value)) {
     return null;
   }
-  return Number.isNaN(Date.parse(`${value}T00:00:00Z`)) ? null : value;
+  const at = new Date(`${value}T00:00:00Z`);
+  // The NaN check alone does not do what it looks like it does: V8 rejects an
+  // impossible MONTH ("2025-13-01" → NaN) but silently ROLLS OVER an impossible
+  // day — "2025-02-31" parses to 3 March. So an admin filtering «з 31.02» got a
+  // queue cut at a date they never named, and no error anywhere. Comparing the
+  // parsed instant back against the text is what actually catches it.
+  return Number.isNaN(at.getTime()) || at.toISOString().slice(0, 10) !== value
+    ? null
+    : value;
 }
 
 // Midnight on this calendar date in `zone`, as an instant.
@@ -43,6 +51,35 @@ export function zonedEndOfDayExclusive(
   const nextDate = next.toISOString().slice(0, 10);
   const end = zonedStartOfDay(nextDate, zone);
   return end > start ? end : new Date(start.getTime() + 86_400_000);
+}
+
+// The LAST instant of this calendar date in `zone`, for a value that is stored
+// and then read back as a day — a campaign's `ends_at`, which an admin types as
+// «5 грудня» and a volunteer reads as «не пізніше 5 грудня».
+//
+// Not `zonedStartOfDay`: stored as Kyiv midnight, a deadline would expire a full
+// day before the day it names. Not `zonedEndOfDayExclusive` either — that is the
+// NEXT day's midnight, which is right for a half-open range and wrong here,
+// because formatting it prints «6 грудня». Built from the exclusive end so the
+// DST arithmetic is the one already tested rather than a second copy of it.
+export function zonedEndOfDay(date: string, zone: string = timeZone): Date {
+  return new Date(zonedEndOfDayExclusive(date, zone).getTime() - 1);
+}
+
+// The inverse, for a `<input type="date">` that has to show a stored instant as
+// the day the admin meant. Reading `toISOString().slice(0, 10)` instead would
+// print the UTC day, which for a Kyiv end-of-day is the same date in winter and
+// the same date in summer only by luck — it is 21:59:59.999Z, two hours before
+// the boundary, so it happens to hold. It would NOT hold for a start-of-day
+// value, and a helper that is right by accident is one someone reuses.
+export function toZonedDateInput(at: Date, zone: string = timeZone): string {
+  // en-CA formats as YYYY-MM-DD, which is what the input element wants.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: zone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(at);
 }
 
 // How far `zone` is from UTC at this instant, in milliseconds.

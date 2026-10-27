@@ -14,6 +14,7 @@ import { TextField } from "@/components/forms/TextField";
 import { CAMPAIGN_TYPES, CREATABLE_CAMPAIGN_TYPES } from "@/db/enums";
 import type { AdminCampaign } from "@/features/campaigns/adminQueries";
 import { initialCampaignActionState } from "@/features/campaigns/formState";
+import { toZonedDateInput } from "@/lib/zonedDate";
 
 // Create and edit are the same fields, so they're the same form. A new campaign
 // is always created as a DRAFT — activating is a separate, deliberate act, so
@@ -106,6 +107,18 @@ export function CampaignForm({ campaign }: { campaign?: AdminCampaign }) {
         label={t("fields.giftPriceCap")}
         hint={t("fields.giftPriceCapHint")}
         defaultValue={campaign?.giftPriceCap ?? ""}
+      />
+      {/* The deadline a volunteer is shown on «Перед тим як стати Чарівником».
+          Stored as the END of this day in Kyiv, so it is rendered back through
+          the same zone rather than as whatever day the instant falls on in UTC.
+          Blank is a real answer: the briefing then drops its deadline block. */}
+      <TextField
+        id="endsAt"
+        name="endsAt"
+        type="date"
+        label={t("fields.endsAt")}
+        hint={t("fields.endsAtHint")}
+        defaultValue={campaign?.endsAt ? toZonedDateInput(campaign.endsAt) : ""}
       />
 
       <div className="flex flex-wrap items-center gap-3">

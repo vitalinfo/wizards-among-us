@@ -4,6 +4,7 @@ import {
   campaignTypeSchema,
   creatableCampaignTypeSchema,
 } from "@/lib/enumSchemas";
+import { parseDateOnly, zonedEndOfDay } from "@/lib/zonedDate";
 
 // Creating a campaign. The gift cap is optional (null = no ceiling) and arrives
 // from a form as a string; blank means "no cap", not zero.
@@ -28,6 +29,26 @@ export const campaignCreateSchema = z.object({
       .string()
       .regex(/^\d{1,8}(\.\d{1,2})?$/, "invalid_amount")
       .nullable(),
+  ),
+  // The last day of the campaign. A `<input type="date">` submits YYYY-MM-DD —
+  // a CALENDAR date, not an instant — and the column is a timestamptz, so the
+  // conversion has to name a zone or the stored value drifts by the server's.
+  //
+  // It is stored as the last millisecond of that day in Kyiv. Midnight would
+  // make «не пізніше 5 грудня» expire on the 4th, and the volunteer briefing
+  // formats this value straight back out as a day, so it must not spill into
+  // the next one.
+  //
+  // Blank means "no deadline", which is a real state: the claim briefing drops
+  // its whole deadline block rather than promising a date it does not have.
+  endsAt: z.preprocess(
+    (value) =>
+      typeof value !== "string" || value.trim() === "" ? null : value.trim(),
+    z
+      .string()
+      .refine((value) => parseDateOnly(value) !== null, "invalid_date")
+      .nullable()
+      .transform((value) => (value === null ? null : zonedEndOfDay(value))),
   ),
 });
 export type CampaignCreateInput = z.infer<typeof campaignCreateSchema>;
