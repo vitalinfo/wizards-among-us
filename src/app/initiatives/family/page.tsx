@@ -175,6 +175,14 @@ export default async function FamilyPage() {
           title={t("steps.title")}
           subtitle={t("steps.subtitle")}
           steps={steps}
+          // Semibold as well as blue: the phrase this band exists to deny
+          // («все підряд») is set apart by weight too, and it is the only
+          // `em` on the page that is.
+          footnote={t.rich("steps.footnote", {
+            em: (chunks) => (
+              <span className="text-primary font-semibold">{chunks}</span>
+            ),
+          })}
           tone="cream-soft"
         />
 

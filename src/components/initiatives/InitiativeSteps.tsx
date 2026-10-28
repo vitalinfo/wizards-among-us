@@ -54,6 +54,7 @@ export function InitiativeSteps({
   title,
   subtitle,
   steps,
+  footnote,
   tone = "cream",
   accentTone = "accent",
 }: {
@@ -63,6 +64,10 @@ export function InitiativeSteps({
   // subtitle in the brand blue.
   subtitle: ReactNode;
   steps: readonly Step[];
+  // A closing line under the cards. Only «Чарівник для родини» draws one —
+  // the band's last word on what the initiative is NOT — so it is optional
+  // rather than another required slot every page has to pass empty.
+  footnote?: ReactNode;
   // «Чарівний Миколай» sits this band on the solid cream; «Шкільний
   // Чарівник» on the lighter one; «Волонтерам» on the blue canvas.
   tone?: "cream" | "cream-soft" | "canvas";
@@ -128,6 +133,31 @@ export function InitiativeSteps({
             </li>
           ))}
         </ul>
+
+        {/* Centred on the desktop frame, but LEFT on the phone, where the
+            design sets the same sentence as two full lines of the measure —
+            a centred second line would sit a few pixels off the cards above
+            it for no reason.
+
+            The top margin carries the scroller's own `pb-[15px]` below lg:
+            the design leaves 22px between the card and this line, and that
+            padding is already 15 of it, so `mt-2` lands on 23.
+
+            16px on both frames — this one does NOT take the page's usual
+            `lg:text-lg` step. Measured: the drawn line's ink is 604 on the
+            1920 frame and the first phone line's is 303, and canvas puts
+            Raleway at 16px (with this tracking) at 597 and 295. At 18 it
+            would be 672.
+
+            Pure `text-black`, the one place on the site that goes darker than
+            `--foreground` (#403d3a). That is what the design draws and what
+            Vital asked for — a deliberate exception, not a missing token, so
+            don't "fix" it back to the token. */}
+        {footnote ? (
+          <p className="mt-2 text-base leading-[22px] tracking-[-0.03em] text-black lg:mt-15 lg:text-center">
+            {footnote}
+          </p>
+        ) : null}
       </div>
     </section>
   );
