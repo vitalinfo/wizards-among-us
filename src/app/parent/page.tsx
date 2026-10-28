@@ -175,7 +175,7 @@ export default async function ParentPage() {
           image="/parent-no-initiative.webp"
           imageAlt={t("noInitiative.imageAlt")}
           imageWidth={1720}
-          imageHeight={1377}
+          imageHeight={1373}
           mark
           label={t("noInitiative.label")}
           title={t("noInitiative.title")}
