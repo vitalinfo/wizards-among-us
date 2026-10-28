@@ -5,6 +5,7 @@ import { AccountShell, type Cabinet } from "@/components/account";
 import { StartApplicationButton } from "@/components/parent/StartApplicationButton";
 import { canStartApplication } from "@/features/applications/authz";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
+import { canBrowseChildren } from "@/features/claims/authz";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
@@ -32,32 +33,43 @@ export default async function AccountShellLayout({
     getResolvedSettings(),
   ]);
   const canStart = canStartApplication(actor, { campaign, settings });
+  // Whether the volunteer cabinet has anything to navigate TO yet. Browsing
+  // children redirects someone without the role straight back to the cabinet's
+  // front page — and since that is where the link is read from, it looks like
+  // a link that does nothing. So the cabinet is its front page and the
+  // «Хочу стати Чарівником» button on it until they join; the two links appear
+  // once they have. The pages keep their own guard — that is the boundary,
+  // this is only what we offer (CLAUDE.md).
+  const joinedAsVolunteer = canBrowseChildren(actor);
 
   // Both cabinets, for everyone signed in — neither is gated on a role
   // (Vital). The parent ROLE is only granted on a first submit, so it could
   // never gate the place where that first application is started; the
-  // volunteer one is opted into on the cabinet's own front page. Each cabinet's
-  // PAGES still decide what you may do there: browsing and claiming children
-  // require the volunteer role (canBrowseChildren), unchanged.
+  // volunteer one is opted into on the cabinet's own front page. What a role
+  // decides is what is offered INSIDE a cabinet: the volunteer links the way
+  // the parent cabinet's «Подати заявку» is decided by canStart just below.
+  // Each cabinet's PAGES still enforce it themselves (canBrowseChildren).
   const cabinets: Cabinet[] = [
     {
       key: "volunteer",
       href: "/account/volunteer",
       emoji: "🔮",
-      links: [
-        {
-          key: "children",
-          href: "/account/volunteer/children",
-          labelKey: "volunteer.links.children",
-          emoji: "🔍",
-        },
-        {
-          key: "claims",
-          href: "/account/volunteer/claims",
-          labelKey: "volunteer.links.claims",
-          emoji: "👧",
-        },
-      ],
+      links: joinedAsVolunteer
+        ? [
+            {
+              key: "children",
+              href: "/account/volunteer/children",
+              labelKey: "volunteer.links.children",
+              emoji: "🔍",
+            },
+            {
+              key: "claims",
+              href: "/account/volunteer/claims",
+              labelKey: "volunteer.links.claims",
+              emoji: "👧",
+            },
+          ]
+        : [],
     },
     {
       key: "parent",
