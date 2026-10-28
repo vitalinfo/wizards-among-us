@@ -4,6 +4,14 @@ import { redirect } from "next/navigation";
 
 import { startApplication } from "@/app/account/(shell)/parent/applications/actions";
 import { BarePageHeader } from "@/components/account/BarePageHeader";
+import {
+  Block,
+  BriefingBlocks,
+  BriefingTitle,
+  Bullets,
+  Lead,
+  Note,
+} from "@/components/briefing/parts";
 import { SITE_CONTAINER } from "@/components/site/layout";
 import { ctaVariants } from "@/components/ui/ctaStyles";
 import type { CampaignType } from "@/db/enums";
@@ -77,51 +85,53 @@ export default async function BriefingPage() {
         closeLabel={t("close")}
       />
       <div className={cn(SITE_CONTAINER, "pb-16 lg:pb-24")}>
-        <div className="mx-auto flex max-w-[1022px] flex-col">
-          <h1 className="font-display text-center text-[46px] leading-[44px] font-bold tracking-[-0.06em] lg:text-[74px] lg:leading-[60px]">
-            {t.rich("title", {
+        {/* 1116px, the design's measure — and the width Block's own 1016px text
+            column needs to break its long paragraphs where 147:7166 breaks
+            them. Narrower, and every body paragraph wraps a word early. */}
+        <div className="mx-auto flex max-w-[1116px] flex-col">
+          <BriefingTitle
+            title={t.rich("title", {
               em: (chunks) => <span className="text-primary">{chunks}</span>,
             })}
-          </h1>
-          <p className="mt-3 text-center text-base tracking-[-0.03em] lg:text-xl">
-            {t.rich("subtitle", {
+            subtitle={t.rich("subtitle", {
               strong: (chunks) => (
                 <strong className="text-danger font-bold">{chunks}</strong>
               ),
             })}
-          </p>
+          />
 
           {/* A list, because it is one: ten things to know, each with its
-              emoji as decoration — the words carry every point. */}
-          <ul className="mt-10 flex flex-col gap-7 lg:mt-12 lg:px-[30px]">
+              emoji as decoration — the words carry every point.
+
+              The blocks are the SAME component the volunteer's «Погодження»
+              is built from, because 147:7166 and 118:1806 draw the same one:
+              a 44px disc, 14px to a 1016px column, 16/20px text with its
+              statement in the foreground and whatever explains it muted
+              underneath. This screen used to redraw that at 14px with a 32px
+              disc, which is the mismatch that prompted the change. */}
+          <BriefingBlocks as="ul">
             {items.map((item, index) => (
-              <li key={item.title} className="flex items-start gap-3 lg:gap-4">
-                <span
-                  aria-hidden="true"
-                  className="bg-canvas flex size-8 shrink-0 items-center justify-center rounded-full text-sm"
-                >
-                  {item.emoji}
-                </span>
-                <div className="flex min-w-0 flex-col gap-2 pt-1.5 text-sm tracking-[-0.03em]">
-                  <p className="font-medium">
-                    {rich(`${type}.items.${index}.title`)}
-                  </p>
+              <li key={item.title}>
+                <Block emoji={item.emoji}>
+                  <Lead>{rich(`${type}.items.${index}.title`)}</Lead>
                   {item.body ? (
-                    <p className="text-muted-foreground">
-                      {rich(`${type}.items.${index}.body`)}
-                    </p>
+                    <Note>
+                      <p>{rich(`${type}.items.${index}.body`)}</p>
+                    </Note>
                   ) : null}
                   {item.list ? (
-                    <ul className="text-muted-foreground list-disc pl-5">
-                      {item.list.map((entry) => (
-                        <li key={entry}>{entry}</li>
-                      ))}
-                    </ul>
+                    <Note>
+                      <Bullets>
+                        {item.list.map((entry) => (
+                          <li key={entry}>{entry}</li>
+                        ))}
+                      </Bullets>
+                    </Note>
                   ) : null}
-                </div>
+                </Block>
               </li>
             ))}
-          </ul>
+          </BriefingBlocks>
 
           {/* The form that creates the draft — a POST, since starting writes
               a row. startApplication re-checks intake itself. */}

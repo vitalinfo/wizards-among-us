@@ -1,6 +1,5 @@
 import { getTranslations } from "next-intl/server";
 
-import type { BriefingBodyProps } from "./briefings";
 import {
   Block,
   BriefingBlocks,
@@ -9,7 +8,9 @@ import {
   Heading,
   Lead,
   Note,
-} from "./parts";
+} from "@/components/briefing/parts";
+
+import type { BriefingBodyProps } from "./briefings";
 
 // «Святий Миколай» — what a volunteer reads before taking a child, from Figma
 // 118:1806 «Погодження».
