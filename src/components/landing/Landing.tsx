@@ -13,6 +13,7 @@ import { ForVolunteers } from "./ForVolunteers";
 import { Hero } from "./Hero";
 import { Initiatives } from "./Initiatives";
 import { Manifesto } from "./Manifesto";
+import type { ManifestoHrefs } from "./manifestoHrefs";
 import { Stats } from "./Stats";
 
 // Composer for the public landing page. A thin server component that arranges
@@ -21,6 +22,7 @@ export function Landing({
   campaigns,
   settings,
   faqs,
+  manifestoHrefs,
 }: {
   // Which initiatives exist as campaigns, and which one is running.
   campaigns: CampaignStates;
@@ -30,6 +32,10 @@ export function Landing({
   // The active FAQ entries, in display order. Admin-managed, so they are data
   // loaded by the page rather than copy in messages/uk.json.
   faqs: readonly PublicFaq[];
+  // Where the two manifesto calls to action lead. Session-dependent, resolved
+  // by the page (see `manifestoHrefs`) — this component stays sync so it can
+  // be rendered whole in a test.
+  manifestoHrefs: ManifestoHrefs;
 }) {
   return (
     <main className="flex flex-1 flex-col">
@@ -37,9 +43,9 @@ export function Landing({
       <Stats years={yearsSince(SITE.foundedYear)} since={SITE.foundedYear} />
       <About />
       <ForFamilies />
-      <Manifesto namespace="families" href="/parent" />
+      <Manifesto namespace="families" href={manifestoHrefs.families} />
       <ForVolunteers />
-      <Manifesto namespace="volunteers" href="/volunteer" />
+      <Manifesto namespace="volunteers" href={manifestoHrefs.volunteers} />
       <FounderQuote />
       <Initiatives campaigns={campaigns} settings={settings} />
       <Faq items={faqs} />
