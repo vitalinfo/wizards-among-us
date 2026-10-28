@@ -12,6 +12,11 @@ import { SITE } from "@/lib/site";
 import { axe } from "@/test/axe";
 
 import { Landing } from "../Landing";
+import { manifestoHrefs } from "../manifestoHrefs";
+
+// The composer only passes these through; which href an actor gets is decided
+// by `manifestoHrefs` and covered by its own spec.
+const HREFS = manifestoHrefs(null);
 
 // The hero title carries an <em> tag that next-intl replaces with a coloured
 // span; the accessible name is the sentence with the markup taken out.
@@ -43,7 +48,12 @@ function renderLanding(
 ) {
   return render(
     <NextIntlClientProvider locale="uk" messages={messages}>
-      <Landing campaigns={campaigns} settings={settings} faqs={faqs} />
+      <Landing
+        campaigns={campaigns}
+        settings={settings}
+        faqs={faqs}
+        manifestoHrefs={HREFS}
+      />
     </NextIntlClientProvider>,
   );
 }
@@ -123,18 +133,22 @@ describe("Landing", () => {
     }
   });
 
-  it("sends each manifesto's call to action to its own audience", () => {
+  // The hero buttons open the explainers; these two are the action itself, so
+  // they go where the page resolved them to — the cabinet, or sign-in on the
+  // way to it. Asserting against the resolved values rather than literals
+  // keeps the destination in one place.
+  it("sends each manifesto's call to action where the page resolved it", () => {
     renderLanding();
     expect(
       screen.getByRole("link", {
         name: messages.landing.manifesto.families.cta,
       }),
-    ).toHaveAttribute("href", "/parent");
+    ).toHaveAttribute("href", HREFS.families);
     expect(
       screen.getByRole("link", {
         name: messages.landing.manifesto.volunteers.cta,
       }),
-    ).toHaveAttribute("href", "/volunteer");
+    ).toHaveAttribute("href", HREFS.volunteers);
   });
 
   // The three initiative cards are static copy, but "is this one open?" is
