@@ -1,4 +1,4 @@
-import { NextIntlClientProvider } from "next-intl";
+import { NextIntlClientProvider, useTranslations } from "next-intl";
 import Link from "next/link";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
@@ -145,6 +145,46 @@ describe("InitiativeSteps", () => {
     expect(container.querySelector("ul")?.className).toContain(
       "lg:grid-cols-4",
     );
+  });
+
+  // Only «Чарівник для родини» draws a line under the cards, and it picks
+  // «все підряд» out in the brand blue — so the footnote arrives as a node
+  // the page has already translated, not a key this component looks up.
+  it("closes the band with the footnote it is given", () => {
+    const s = messages.initiatives.family.steps;
+    function Footnote() {
+      const t = useTranslations("initiatives.family.steps");
+      return (
+        <>
+          {t.rich("footnote", {
+            em: (chunks) => <span className="text-primary">{chunks}</span>,
+          })}
+        </>
+      );
+    }
+    wrap(
+      <InitiativeSteps
+        label={s.label}
+        title={s.title}
+        subtitle={s.subtitle}
+        steps={STEPS}
+        footnote={<Footnote />}
+      />,
+    );
+    // Queried as its OWN element: that is what proves the `em` chunk came
+    // through as a node. Its colour and weight are the page's choice, and
+    // asserting the class here would only assert the markup this test wrote.
+    const emphasis = screen.getByText("«все підряд».");
+    expect(emphasis.closest("p")).toHaveTextContent(
+      s.footnote.replace(/<\/?em>/g, ""),
+    );
+  });
+
+  // Every other page passes none, and an empty paragraph under the cards is
+  // a stop a screen reader would announce for nothing.
+  it("draws nothing under the cards without one", () => {
+    const { container } = renderSteps();
+    expect(container.querySelector("ul")?.nextElementSibling).toBeNull();
   });
 
   // «Про нас» draws its cards as a line each — «Хтось віддавав одяг» — so a
