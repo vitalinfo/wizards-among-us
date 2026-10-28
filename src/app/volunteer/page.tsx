@@ -142,6 +142,12 @@ export default async function VolunteerPage() {
           }
         >
           {t.rich("quote", {
+            // The closing sentence sits on its own line in the design, on both
+            // the 1440 and the 390 frame — a TYPED break, not a wrap: at 1440
+            // the preceding line ends well short of the band, and at 390 «У»
+            // would still fit where the line breaks. next-intl needs paired
+            // tags, which is why the message reads `<br></br>`.
+            br: () => <br />,
             em: (chunks) => <span className="text-primary">{chunks}</span>,
             faint: (chunks) => (
               <span className="text-muted-faint">{chunks}</span>
