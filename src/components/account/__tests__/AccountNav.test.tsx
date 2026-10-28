@@ -126,6 +126,29 @@ describe("AccountNav sub-navigation", () => {
     ).toHaveAttribute("href", "/account/volunteer/claims");
   });
 
+  // The layout hands over no volunteer links until the person has opted in as
+  // one — /account/volunteer/children would redirect them straight back here,
+  // which from this very sidebar reads as a link that does nothing. The
+  // cabinet is then its front page and the button on it, so the divider the
+  // sub-navigation sits under must go too.
+  it("renders no sub-navigation for a cabinet with no links", () => {
+    const list = cabinets();
+    renderNav([{ ...list[0], links: [] }, list[1]]);
+
+    expect(
+      screen.queryByRole("link", { name: t.volunteer.links.children }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: t.volunteer.links.claims }),
+    ).not.toBeInTheDocument();
+    // The cabinet itself is still there to be opened — only what is under it
+    // is gone.
+    expect(
+      screen.getByRole("link", { name: new RegExp(t.cabinets.volunteer) }),
+    ).toHaveAttribute("href", "/account/volunteer");
+    expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+  });
+
   // A page inside the cabinet is still in the cabinet — the row stays lit and
   // its links stay up, which is what the design shows for «Знайти історію».
   //
