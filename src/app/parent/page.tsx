@@ -210,8 +210,7 @@ export default async function ParentPage() {
             the design — removed on Vital's call. The tier-1 promise it stated
             is still made publicly by the FAQ row «Чи побачать волонтери
             адресу моєї дитини?», which CLAUDE.md names as its public
-            statement, so the invariant is not left unstated. The key is kept
-            for the same reason: it is text a parent consents on. */}
+            statement, so the invariant is not left unstated. */}
 
         <InitiativeQuote
           cta={
