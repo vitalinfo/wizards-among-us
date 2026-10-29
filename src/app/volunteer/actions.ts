@@ -36,6 +36,12 @@ export async function becomeVolunteerAction(formData: FormData): Promise<void> {
     targetId: actor.id,
   });
   revalidatePath("/volunteer");
+  // The cabinet's sidebar is drawn by the account LAYOUT, and its volunteer
+  // links are now decided by this role — so the layout has to be re-rendered
+  // for them to appear, which a navigation between two pages that share it
+  // will not do on its own. Otherwise someone who just joined lands on the
+  // children page beside a sidebar still saying they have not.
+  revalidatePath("/account", "layout");
   redirect(
     safeReturnPath(String(formData.get("next") ?? "")) ||
       "/account/volunteer/children",
