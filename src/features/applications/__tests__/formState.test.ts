@@ -33,7 +33,10 @@ const validSubmit = {
   giftDescription: "A school backpack",
   giftPrice: 1200,
   deliveryInformation: "Nova Poshta #5, Lviv",
-  consent: true,
+  privacyConsent: true,
+  contactConsent: true,
+  confirmationConsent: true,
+  childWithLetterPhotoConsent: false,
   socialMediaConsent: false,
 } as const;
 

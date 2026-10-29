@@ -168,7 +168,14 @@ export async function submitApplicationAction(
     Object.fromEntries(
       [...formData.entries()].filter(
         ([key]) =>
-          !["applicationId", "step", "consent", "turnstileToken"].includes(key),
+          ![
+            "applicationId",
+            "step",
+            "privacyConsent",
+            "contactConsent",
+            "confirmationConsent",
+            "turnstileToken",
+          ].includes(key),
       ),
     ),
   );
@@ -261,7 +268,10 @@ export async function submitApplicationAction(
     giftPrice: fresh.giftPrice === null ? undefined : Number(fresh.giftPrice),
     deliveryInformation: fresh.deliveryInformation,
     typeFields,
-    consent: formData.get("consent") === "true",
+    privacyConsent: formData.get("privacyConsent") === "true",
+    contactConsent: formData.get("contactConsent") === "true",
+    confirmationConsent: formData.get("confirmationConsent") === "true",
+    childWithLetterPhotoConsent: fresh.childWithLetterPhotoConsent ?? undefined,
     socialMediaConsent: fresh.socialMediaConsent ?? undefined,
   });
 

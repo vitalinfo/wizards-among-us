@@ -168,6 +168,7 @@ export async function updateApplicationByAdmin(
     giftPrice?: number;
     deliveryInformation?: string;
     socialMediaConsent?: boolean;
+    childWithLetterPhotoConsent?: boolean;
     typeFields?: Record<string, unknown> | null;
   },
 ): Promise<void> {
@@ -190,6 +191,7 @@ export async function updateApplicationByAdmin(
         values.giftPrice === undefined ? null : String(values.giftPrice),
       deliveryInformation: values.deliveryInformation ?? null,
       socialMediaConsent: values.socialMediaConsent ?? null,
+      childWithLetterPhotoConsent: values.childWithLetterPhotoConsent ?? null,
       typeFields: values.typeFields ?? null,
     })
     .where(eq(applications.id, id));

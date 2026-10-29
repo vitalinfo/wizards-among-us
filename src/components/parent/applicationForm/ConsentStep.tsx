@@ -2,73 +2,81 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 import { TurnstileWidget } from "@/components/forms/TurnstileWidget";
 import { CheckIcon } from "@/components/icons";
 
 import type { StepProps } from "./types";
 
-// Step 5 — «Згода та підтвердження» (Figma 147:7166): two consents, each a
+type ConsentKey =
+  | "privacyConsent"
+  | "contactConsent"
+  | "childWithLetterPhotoConsent"
+  | "confirmationConsent"
+  | "socialMediaConsent";
+
+// Step 5 — «Згода та підтвердження» (Figma 147:7166): five consents, each a
 // round checkbox with its whole text under it, then the captcha.
 export function ConsentStep({ values, errors, turnstileSiteKey }: StepProps) {
   const t = useTranslations("parent.form.steps.consent");
+
+  // A string is a paragraph; a nested list is a bulleted list.
+  const body = (key: ConsentKey) =>
+    (t.raw(`${key}.body`) as (string | string[])[]).map((block) =>
+      typeof block === "string" ? (
+        <p key={block}>{block}</p>
+      ) : (
+        <ul key={block.join()} className="list-disc pl-5">
+          {block.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ),
+    );
+
+  // The three required ones are NOT persisted — they gate submit, so a
+  // submitted application has them by definition (submitted_at is the record).
+  // The two optional ones are stored, so the hidden «false» comes FIRST: the
+  // form keeps the last value of a repeated name, so a ticked box overrides it
+  // and an unticked one leaves it, and the answer is always recorded rather
+  // than left unknown.
+  const consent = (key: ConsentKey, required: boolean) => (
+    <Fragment key={key}>
+      {required ? null : <input type="hidden" name={key} value="false" />}
+      <Consent
+        id={key}
+        name={key}
+        label={t.rich(`${key}.label`, {
+          link: (chunks) => (
+            <Link
+              href="/privacy"
+              className="text-primary focus-visible:outline-ring rounded underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              {chunks}
+            </Link>
+          ),
+        })}
+        defaultChecked={required ? undefined : values[key] === "true"}
+        error={errors[key]}
+        required={required}
+      >
+        {body(key)}
+      </Consent>
+    </Fragment>
+  );
 
   return (
     <fieldset className="flex flex-col gap-8 border-0 p-0">
       <legend className="sr-only">{t("title")}</legend>
 
-      {/* SEPARATE and genuinely optional: an opt-in, unticked by default, as
-          drawn — leaving it is a «no», and either answer is valid. The hidden
-          «false» comes FIRST: the form keeps the last value of a repeated
-          name, so a ticked box overrides it and an unticked one leaves it,
-          and the answer is always recorded rather than left unknown. */}
-      <input type="hidden" name="socialMediaConsent" value="false" />
-      <Consent
-        id="socialMediaConsent"
-        name="socialMediaConsent"
-        label={t("socialMediaConsent.label")}
-        defaultChecked={values.socialMediaConsent === "true"}
-        error={errors.socialMediaConsent}
-      >
-        {(t.raw("socialMediaConsent.body") as string[]).map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-      </Consent>
-
-      {/* Required. Not persisted as a column — it gates submit, so a submitted
-          application has it by definition (submitted_at is the record). */}
-      <Consent
-        id="consent"
-        name="consent"
-        label={t("consent.label")}
-        error={errors.consent}
-        required
-      >
-        <div>
-          <p>{t("consent.lead")}</p>
-          <ul className="list-disc pl-5">
-            {(t.raw("consent.items") as string[]).map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
-        {(t.raw("consent.body") as string[]).map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-        <p>
-          {t.rich("consent.confirm", {
-            link: (chunks) => (
-              <Link
-                href="/privacy"
-                className="text-primary focus-visible:outline-ring rounded underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2"
-              >
-                {chunks}
-              </Link>
-            ),
-          })}
-        </p>
-      </Consent>
+      {consent("privacyConsent", true)}
+      {consent("contactConsent", true)}
+      {/* Optional: without it the claiming volunteer is never shown the
+          child-with-letter photo (canViewApplicationFile). */}
+      {consent("childWithLetterPhotoConsent", false)}
+      {consent("confirmationConsent", true)}
+      {consent("socialMediaConsent", false)}
 
       {/* Only on the final step — the captcha guards SUBMIT, not each draft
           save, so a parent isn't challenged repeatedly while filling the form.
@@ -94,7 +102,7 @@ function Consent({
 }: {
   id: string;
   name: string;
-  label: string;
+  label: ReactNode;
   defaultChecked?: boolean;
   required?: boolean;
   error?: string;

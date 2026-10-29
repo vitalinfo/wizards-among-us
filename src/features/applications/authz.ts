@@ -175,7 +175,9 @@ export function canUploadApplicationFile(
 //                             2026-10-23, from the Figma 118:420 card and the
 //                             §4.3 list he supplied with it). See below.
 //   child_with_letter_photo — admin, the owning parent, or the volunteer
-//   confirmation              holding the ACTIVE claim. The confirmation photo
+//   confirmation              holding the ACTIVE claim — for the child photo,
+//                             only if the parent consented to it
+//                             (childWithLetterPhotoConsent). The confirmation photo
 //                             deliberately reaches the claiming volunteer
 //                             (Vital, Phase 7): they bought the gift, and
 //                             seeing it arrive is the point of the whole thing.
@@ -196,7 +198,7 @@ export function canUploadApplicationFile(
 // widened by a change to the sensitive-field rule.
 export function canViewApplicationFile(
   actor: MaybeActor,
-  application: Pick<Application, "parentId">,
+  application: Pick<Application, "parentId" | "childWithLetterPhotoConsent">,
   claim: Pick<Claim, "volunteerId" | "releasedAt"> | null | undefined,
   kind: FileKind,
   ctx: {
@@ -211,6 +213,14 @@ export function canViewApplicationFile(
   }
   if (kind === "letter_photo" && ctx.browsable && hasRole(actor, "volunteer")) {
     return true;
+  }
+  if (
+    kind === "child_with_letter_photo" &&
+    application.childWithLetterPhotoConsent !== true &&
+    !isAdmin(actor) &&
+    !ownsApplication(actor, application)
+  ) {
+    return false;
   }
   return canViewSensitiveChildData(actor, application, claim);
 }

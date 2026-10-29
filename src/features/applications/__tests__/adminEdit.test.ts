@@ -214,6 +214,15 @@ describe("adminApplicationEditSchema", () => {
     const no = forDraft.safeParse({ socialMediaConsent: "false" });
     expect(no.success && no.data.socialMediaConsent).toBe(false);
   });
+
+  it("treats an unanswered child-photo consent as unset, not No", () => {
+    const result = forDraft.safeParse({ childWithLetterPhotoConsent: "" });
+    expect(result.success && result.data.childWithLetterPhotoConsent).toBe(
+      undefined,
+    );
+    const yes = forDraft.safeParse({ childWithLetterPhotoConsent: "true" });
+    expect(yes.success && yes.data.childWithLetterPhotoConsent).toBe(true);
+  });
 });
 
 // The audit trail records field NAMES, never values: these fields hold a child's

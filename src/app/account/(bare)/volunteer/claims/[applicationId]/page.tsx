@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 
 import { ClaimDetail } from "@/components/volunteer/ClaimDetail";
+import { canViewApplicationFile } from "@/features/applications/authz";
 import { recordAuditLog } from "@/features/audit/log";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import {
@@ -52,7 +53,17 @@ export default async function ClaimDetailPage({
   }
 
   const files = await listApplicationFiles(applicationId);
-  const photos = latestByKind(files, CLAIM_VISIBLE_KINDS);
+  // Through the same predicate as the file route, so the page never asks for
+  // a photo the route would refuse — the child photo without the parent's
+  // consent.
+  const photos = latestByKind(files, CLAIM_VISIBLE_KINDS).filter((file) =>
+    canViewApplicationFile(
+      actor,
+      claim.application,
+      { volunteerId: actor.id, releasedAt: null },
+      file.kind,
+    ),
+  );
 
   await recordAuditLog({
     actor,
