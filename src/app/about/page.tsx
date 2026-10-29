@@ -154,18 +154,23 @@ export default async function AboutPage() {
             // place on the site it overlaps a photograph — so it is placed
             // here rather than baked into the export, and a swapped portrait
             // keeps it.
-            <div className="relative mx-auto w-full">
-              <Image
-                src="/about-founder.webp"
-                alt={t("portraitAlt")}
-                width={1722}
-                height={1502}
-                priority
-                sizes="(min-width: 1024px) 50vw, 100vw"
-                className="h-auto w-full rounded-3xl"
-              />
-              <BrandMark className="absolute right-[4.9%] bottom-[4.9%] h-[12.3%] w-auto" />
-            </div>
+            <figure className="mx-auto w-full">
+              <div className="relative">
+                <Image
+                  src="/about-founder.webp"
+                  alt={t("portraitAlt")}
+                  width={1722}
+                  height={1502}
+                  priority
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="h-auto w-full rounded-3xl"
+                />
+                <BrandMark className="absolute right-[4.9%] bottom-[4.9%] h-[12.3%] w-auto" />
+              </div>
+              <figcaption className="text-muted-foreground mt-3 text-center text-base tracking-[-0.03em] lg:mt-4 lg:text-lg">
+                {t("portraitCaption")}
+              </figcaption>
+            </figure>
           }
         />
 
