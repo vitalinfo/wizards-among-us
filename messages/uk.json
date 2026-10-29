@@ -1404,6 +1404,7 @@
         "giftPrice": "Вартість, грн",
         "giftUrls": "Посилання на товар",
         "deliveryInformation": "Куди доставити",
+        "childWithLetterPhotoConsent": "Передача фото дитини Чарівнику",
         "socialMediaConsent": "Дозвіл на публікацію фото"
       },
       "empty_value": "—",
