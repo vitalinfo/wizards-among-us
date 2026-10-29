@@ -76,15 +76,14 @@ async function renderCard(
 }
 
 describe("ChildCard", () => {
-  it("shows the first name and age, never the surname", async () => {
+  it("shows the full name", async () => {
     await renderCard();
 
     // The icon's label rides inside the heading's accessible name, so match on
     // the name rather than against the whole string.
     expect(
-      screen.getByRole("heading", { name: /Марійка/ }),
+      screen.getByRole("heading", { name: /Марійка Коваль/ }),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Коваль/)).not.toBeInTheDocument();
   });
 
   // The card draws «Олена» and nothing beside it. An icon here was mine, not

@@ -121,7 +121,7 @@ export default async function PrivacyPage() {
                 "mt-8 underline decoration-1 underline-offset-4 lg:mt-11",
               )}
             >
-              <time dateTime="2026-10-12">{t("updated")}</time>
+              <time dateTime="2026-10-28">{t("updated")}</time>
             </p>
           </div>
         </section>
