@@ -167,8 +167,10 @@ export default async function AboutPage() {
                 />
                 <BrandMark className="absolute right-[4.9%] bottom-[4.9%] h-[12.3%] w-auto" />
               </div>
-              <figcaption className="text-muted-foreground mt-3 text-center text-base tracking-[-0.03em] lg:mt-4 lg:text-lg">
-                {t("portraitCaption")}
+              <figcaption className="text-muted-foreground mt-3 text-center text-sm leading-5 tracking-[-0.03em] lg:mt-4">
+                {t.rich("portraitCaption", {
+                  b: (chunks) => <b className="font-semibold">{chunks}</b>,
+                })}
               </figcaption>
             </figure>
           }
