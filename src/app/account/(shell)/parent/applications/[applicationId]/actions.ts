@@ -16,6 +16,7 @@ import {
 } from "@/features/applications/queries";
 import {
   applicationSubmitSchemaForCampaign,
+  exceedsGiftPriceCap,
   TYPE_FIELDS_SCHEMAS,
 } from "@/features/applications/validation";
 import {
@@ -84,6 +85,15 @@ export async function saveApplicationDraft(
     return { status: "invalid", errors };
   }
 
+  // The budget cap is checked on the step that asks for the price. Left to the
+  // final submit, it failed on the consent step, where the price isn't shown.
+  const campaign = await getCampaignById(application.campaignId);
+  if (
+    exceedsGiftPriceCap(parsed.data.giftPrice, campaign?.giftPriceCap ?? null)
+  ) {
+    return { status: "invalid", errors: { giftPrice: "gift_price_over_cap" } };
+  }
+
   // Save first, ALWAYS — a missing photo must never cost the parent the answers
   // they just typed into this step.
   await persistStep(id, actor.id, application, parsed.data);
@@ -94,7 +104,6 @@ export async function saveApplicationDraft(
   // instead of being sent back three steps at the end. Server-side, so it holds
   // whether or not the client JS is doing its job.
   const stepKey = String(formData.get("step") ?? "");
-  const campaign = await getCampaignById(application.campaignId);
   const step = campaign
     ? stepsForCampaignType(campaign.type)?.find((s) => s.key === stepKey)
     : undefined;
