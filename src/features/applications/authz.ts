@@ -253,3 +253,20 @@ export function canConfirmReceipt(
 export function canModerateApplications(actor: MaybeActor): boolean {
   return isAdmin(actor);
 }
+
+// Return a decided application to the moderation queue (admin only).
+//
+// Only the two states a human decision produced can be undone: `approved` and
+// `rejected`. Not `claimed` or `fulfilled` — a volunteer is holding that child,
+// or has already bought the gift, and pulling the application back under review
+// would strand them. Release the claim first; that is a separate, deliberate
+// step with its own confirmation.
+//
+// `draft` and `submitted` are excluded because there is no decision to undo.
+const REOPENABLE: readonly Application["status"][] = ["approved", "rejected"];
+export function canReopenApplication(
+  actor: MaybeActor,
+  application: Pick<Application, "status">,
+): boolean {
+  return isAdmin(actor) && REOPENABLE.includes(application.status);
+}

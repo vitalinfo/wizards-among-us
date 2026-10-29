@@ -92,6 +92,13 @@ Next.js (App Router) + TypeScript + Tailwind · Drizzle ORM + Postgres (Neon, Fr
 - **Rejection is final** (Vital). A parent can't edit and resubmit — they start a new
   application. The rejection note is therefore **required**, shown to the parent verbatim, and
   dropped on approval so a stale note can't ride along on an approved application.
+  **An ADMIN may return a decided application to the queue** (`reopenApplication`, Oct 2026):
+  final is a rule about the *parent*, not an absence of an undo for a decision made in error.
+  It is guarded in SQL to `approved`/`rejected` with **no active claim** — never `claimed` or
+  `fulfilled`, because a volunteer is already acting on that child; release the claim first.
+  The reopen **drops the rejection note** (same reason approval does — it is no longer an
+  answer to anything) and **keeps `submitted_at`**, so the queue's oldest-first order puts
+  something already late back at the front. Logged as `application.reopened`.
 - **Moderation queue is ordered oldest-submission-first.** We promise a review within two
   days, so newest-first would starve exactly the applications that are already late.
 - **Decisions are guarded in SQL** (`WHERE status = 'submitted'`), not only in the UI, so two

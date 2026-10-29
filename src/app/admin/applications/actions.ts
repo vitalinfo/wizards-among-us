@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import {
   decideApplication,
   getApplicationForAdmin,
+  reopenApplication,
   updateApplicationByAdmin,
 } from "@/features/applications/adminQueries";
 import { describeChangedFields } from "@/features/applications/adminEdit";
@@ -61,6 +62,40 @@ export async function decideApplicationAction(
   revalidatePath("/admin/applications");
   revalidatePath(`/admin/applications/${applicationId}`);
   return { status: "done" };
+}
+
+// Return a decided application to the moderation queue. The escape hatch for a
+// decision made in error — an approval that shouldn't have passed, or a
+// rejection the family has since explained away.
+//
+// Rejection stays final FOR THE PARENT: they still cannot edit and resubmit on
+// their own (Phase 5). This is an admin undoing their own call, and it takes
+// the rejection note with it — the application is awaiting review again, so the
+// old reason is not an answer to anything.
+export async function reopenApplicationAction(
+  applicationId: string,
+): Promise<void> {
+  const admin = await requireAdmin();
+
+  const reopened = await reopenApplication(applicationId);
+
+  // Logged either way. A refused reopen means the application moved under the
+  // admin (claimed in another tab), and "who tried to pull this child back out
+  // of a volunteer's hands" is worth a line.
+  await recordAuditLog({
+    actor: admin,
+    action: reopened ? "application.reopened" : "application.reopen_failed",
+    targetType: "application",
+    targetId: applicationId,
+  });
+
+  revalidatePath("/admin/applications");
+  revalidatePath(`/admin/applications/${applicationId}`);
+  // The parent's view changes too: the lock lifts and the rejection note goes.
+  revalidatePath(`/account/parent/applications/${applicationId}`);
+  redirect(
+    `/admin/applications/${applicationId}${reopened ? "" : "?reopenError=1"}`,
+  );
 }
 
 // Admin edit (operational override): a parent locked out by approval can't fix a

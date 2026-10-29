@@ -19,10 +19,14 @@ import {
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { recordAuditLog } from "@/features/audit/log";
 
-import { assignVolunteerAction, releaseClaimAction } from "../actions";
+import {
+  assignVolunteerAction,
+  releaseClaimAction,
+  reopenApplicationAction,
+} from "../actions";
 import { resolveUserContact } from "@/features/users/contact";
 import { getSessionActor } from "@/lib/auth/session";
-import { isAdmin } from "@/lib/authz";
+import { canReopenApplication, isAdmin } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +60,10 @@ export default async function AdminApplicationPage({
     assign?: string;
     release?: string;
     assignError?: string;
+    // Returning a decided application to the queue: the pending confirmation,
+    // and the failure the guard reported.
+    reopen?: string;
+    reopenError?: string;
   }>;
 }) {
   const [{ applicationId }, query] = await Promise.all([params, searchParams]);
@@ -108,8 +116,26 @@ export default async function AdminApplicationPage({
     : null;
   const holder =
     query.release === "1" ? await getClaimHolder(applicationId) : null;
-  const overlayOpen = assignTarget !== null || holder !== null;
+  // Re-derived from the application's own status, never from the url: a
+  // crafted ?reopen=1 on a claimed child must not raise a prompt for an action
+  // the write path would refuse anyway.
+  const reopenable = canReopenApplication(actor, application);
+  const confirmReopen = reopenable && query.reopen === "1";
+  const overlayOpen = assignTarget !== null || holder !== null || confirmReopen;
   const claimHref = `/admin/applications/${applicationId}${search ? `?volunteer=${encodeURIComponent(search)}` : ""}#claim`;
+  // Both the trigger and the modal's cancel land back on the decision section
+  // rather than the top of a long page.
+  const decisionAnchor = "decision";
+  const reopenHref = `/admin/applications/${applicationId}?reopen=1#${decisionAnchor}`;
+  const decisionHref = `/admin/applications/${applicationId}#${decisionAnchor}`;
+  // A refused reopen redirects back here, and the status it refused on decides
+  // which branch below renders — so the alert is built once and shown by both.
+  // (The refusal usually IS a status change: someone claimed the child.)
+  const reopenError = query.reopenError ? (
+    <p role="alert" className="text-sm font-medium text-red-700">
+      {t("reopen.error")}
+    </p>
+  ) : null;
   const giftUrls = Array.isArray(
     (application.typeFields as { giftUrls?: unknown } | null)?.giftUrls,
   )
@@ -348,13 +374,48 @@ export default async function AdminApplicationPage({
         {/* Only an application awaiting review can be decided; anything else is
             already final (the query guards this too). */}
         {application.status === "submitted" ? (
-          <section className="border-border bg-surface rounded-lg border p-4">
+          <section
+            id={decisionAnchor}
+            className="border-border bg-surface scroll-mt-4 rounded-lg border p-4"
+          >
             <ModerationDecision applicationId={applicationId} />
           </section>
+        ) : reopenable ? (
+          // Decided, and the decision can still be undone: an approval that
+          // shouldn't have passed, or a rejection the family has since
+          // explained. Confirms first — a reopen is visible to the parent and
+          // takes the rejection note with it.
+          <section
+            id={decisionAnchor}
+            className="border-border bg-surface scroll-mt-4 rounded-lg border p-4"
+          >
+            <h2 className="font-semibold">{t("decision.title")}</h2>
+            <p className="text-muted-foreground mt-2 text-sm">
+              {t("reopen.intro")}
+            </p>
+            {reopenError ? <div className="mt-2">{reopenError}</div> : null}
+            <Link
+              href={reopenHref}
+              className="border-border hover:bg-surface-muted focus-visible:outline-ring mt-3 inline-block rounded-md border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              {t("reopen.cta")}
+            </Link>
+          </section>
         ) : (
-          // NOT a repeat of the status badge above — this explains why there is
-          // no decision to make here.
-          <p className="text-muted-foreground text-sm">{t("alreadyDecided")}</p>
+          // Nothing an admin can move from here: a volunteer is already acting
+          // on this child (claimed/fulfilled), so release the claim first if
+          // the decision really has to change. NOT a repeat of the status badge
+          // above — it explains why there is no decision to make.
+          //
+          // A `draft` also lands here, where this copy reads wrong (nobody has
+          // reviewed it). Pre-existing, and left alone rather than fixed in
+          // passing — an admin reaching a draft at all is the rarer problem.
+          <div className="flex flex-col gap-2">
+            {reopenError}
+            <p className="text-muted-foreground text-sm">
+              {t("alreadyDecided")}
+            </p>
+          </div>
         )}
       </main>
 
@@ -373,6 +434,18 @@ export default async function AdminApplicationPage({
           message={t("claim.confirmAssign.body")}
           confirmLabel={t("claim.assignCta")}
           cancelHref={claimHref}
+        />
+      ) : confirmReopen ? (
+        <ConfirmModal
+          action={reopenApplicationAction.bind(null, applicationId)}
+          title={t("reopen.confirmTitle")}
+          message={
+            application.status === "rejected"
+              ? t("reopen.confirmRejected")
+              : t("reopen.confirmApproved")
+          }
+          confirmLabel={t("reopen.cta")}
+          cancelHref={decisionHref}
         />
       ) : holder ? (
         <ConfirmModal
