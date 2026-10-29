@@ -28,6 +28,7 @@ export {
   canDeleteApplication,
   canEditApplication,
   canModerateApplications,
+  canReopenApplication,
   canUploadApplicationFile,
   canViewApplicationFile,
   canStartApplication,

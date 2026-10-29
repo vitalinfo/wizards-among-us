@@ -1,8 +1,8 @@
-import { and, asc, count, desc, eq, gte, lt } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import type { ApplicationStatus } from "@/db/enums";
-import { applications, campaigns, users } from "@/db/schema";
+import { applications, campaigns, claims, users } from "@/db/schema";
 
 // Admin-side application data access. Authorization lives in the server actions
 // (requireAdmin); these execute, they don't adjudicate.
@@ -208,6 +208,42 @@ export async function decideApplication(
     .update(applications)
     .set({ status: decision, rejectionNote })
     .where(and(eq(applications.id, id), eq(applications.status, "submitted")))
+    .returning({ id: applications.id });
+  return rows.length > 0;
+}
+
+// Return a decided application to the moderation queue.
+//
+// The guards are in the WHERE clause for the same reason the decision's are: a
+// stale tab must not be able to drag an application backwards.
+//   status IN ('approved','rejected') — only a decision can be undone; a
+//     claimed or fulfilled child belongs to a volunteer who is acting on it.
+//   NOT EXISTS an active claim — a structural belt to the status braces. Today
+//     `approved` already implies nobody holds the child (claiming flips the
+//     status in the same transaction), and this keeps that true even if some
+//     later write path forgets to.
+//
+// `rejection_note` is dropped: the application is awaiting review again, so the
+// old reason is no longer the parent's answer — the same rule that drops a
+// stale note on approval. `submitted_at` is deliberately KEPT, both because it
+// is when the family actually asked and because the queue sorts on it: a
+// reopened application goes back to the front, where something already late
+// belongs.
+export async function reopenApplication(id: string): Promise<boolean> {
+  const rows = await getDb()
+    .update(applications)
+    .set({ status: "submitted", rejectionNote: null })
+    .where(
+      and(
+        eq(applications.id, id),
+        inArray(applications.status, ["approved", "rejected"]),
+        sql`not exists (
+          select 1 from ${claims}
+          where ${claims.applicationId} = ${applications.id}
+            and ${claims.releasedAt} is null
+        )`,
+      ),
+    )
     .returning({ id: applications.id });
   return rows.length > 0;
 }

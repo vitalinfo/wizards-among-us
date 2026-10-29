@@ -4,6 +4,7 @@ import type { Actor } from "@/lib/actor";
 
 import {
   canDeleteApplication,
+  canReopenApplication,
   canEditApplication,
   canStartApplication,
   canSubmitApplication,
@@ -501,5 +502,37 @@ describe("required uploads block submit", () => {
         missingUploads: ["letter_photo"],
       }),
     ).toBe("intake_closed");
+  });
+});
+
+// Returning a decided application to the moderation queue. The list of states
+// that can be undone is the whole rule, so every status is named here.
+describe("canReopenApplication", () => {
+  it("lets an admin undo a decision they made", () => {
+    for (const status of ["approved", "rejected"] as const) {
+      expect(canReopenApplication(admin, { status })).toBe(true);
+    }
+  });
+
+  // A volunteer is holding that child — or has already bought the gift. The
+  // claim is released first, as its own deliberate step.
+  it("refuses an application a volunteer is acting on", () => {
+    for (const status of ["claimed", "fulfilled"] as const) {
+      expect(canReopenApplication(admin, { status })).toBe(false);
+    }
+  });
+
+  it("refuses an application with no decision to undo", () => {
+    for (const status of ["draft", "submitted"] as const) {
+      expect(canReopenApplication(admin, { status })).toBe(false);
+    }
+  });
+
+  // Admin only. A parent whose application was rejected cannot put it back in
+  // the queue themselves — rejection stays final for them (Phase 5).
+  it("refuses every non-admin", () => {
+    for (const actor of [parent, otherParent, volunteer, null]) {
+      expect(canReopenApplication(actor, { status: "rejected" })).toBe(false);
+    }
   });
 });
