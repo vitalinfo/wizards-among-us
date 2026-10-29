@@ -258,7 +258,7 @@ describe("getSubmitBlockReason (the full submit gate)", () => {
 // The ВПО certificate is a state document about a child. Its rule is separate
 // from the sensitive-field rule on purpose, so widening one can't widen it.
 describe("canViewApplicationFile", () => {
-  const app = { parentId: "p1" };
+  const app = { parentId: "p1", childWithLetterPhotoConsent: true };
   const activeClaim = { volunteerId: "v1", releasedAt: null };
 
   it("never shows the ВПО certificate to a volunteer — even the claiming one", () => {
@@ -365,6 +365,46 @@ describe("canViewApplicationFile", () => {
           kind,
         ),
       ).toBe(false);
+    }
+  });
+
+  // The child photo reaches the claiming volunteer only with the parent's
+  // optional consent; the letter photo does not depend on it.
+  it("withholds the child photo from the claiming volunteer without consent", () => {
+    for (const consent of [false, null]) {
+      const declined = { parentId: "p1", childWithLetterPhotoConsent: consent };
+      expect(
+        canViewApplicationFile(
+          volunteer,
+          declined,
+          activeClaim,
+          "child_with_letter_photo",
+        ),
+      ).toBe(false);
+      expect(
+        canViewApplicationFile(
+          volunteer,
+          declined,
+          activeClaim,
+          "letter_photo",
+        ),
+      ).toBe(true);
+      expect(
+        canViewApplicationFile(
+          admin,
+          declined,
+          null,
+          "child_with_letter_photo",
+        ),
+      ).toBe(true);
+      expect(
+        canViewApplicationFile(
+          parent,
+          declined,
+          null,
+          "child_with_letter_photo",
+        ),
+      ).toBe(true);
     }
   });
 });

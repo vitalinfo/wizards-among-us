@@ -43,14 +43,18 @@ const applicationFields = {
   // Campaign-type-specific extras — e.g. the St Nicholas shop link. Validated
   // per campaign type (see stNicholasTypeFieldsSchema).
   typeFields: z.record(z.string(), z.unknown()).optional(),
-  // Required consent to share the application with volunteers (§11). A hard
-  // gate at submit, so it is NOT persisted — a submitted application has it by
-  // definition; applications.submitted_at is the timestamp that carries
-  // information.
-  consent: z.literal(true),
-  // SEPARATE, optional-in-substance consent (form Q20): may we use the letter /
-  // child photo on social media? The parent must answer, but either answer is
-  // valid — so it's a boolean, never a literal(true).
+  // Required consents — data processing, passing the contact to the chosen
+  // volunteer, and confirming receipt (§11). Hard gates at submit, so they are
+  // NOT persisted — a submitted application has them by definition;
+  // applications.submitted_at is the timestamp that carries information.
+  privacyConsent: z.literal(true),
+  contactConsent: z.literal(true),
+  confirmationConsent: z.literal(true),
+  // SEPARATE, optional-in-substance consents: may the claiming volunteer see
+  // the child-with-letter photo, and may we publish materials on social media?
+  // The parent must answer, but either answer is valid — so they're booleans,
+  // never a literal(true).
+  childWithLetterPhotoConsent: z.boolean(),
   socialMediaConsent: z.boolean(),
 };
 
@@ -85,7 +89,10 @@ export const applicationDraftSchema = z
   .object(applicationFields)
   .partial()
   .extend({
-    consent: z.boolean().optional(),
+    privacyConsent: z.boolean().optional(),
+    contactConsent: z.boolean().optional(),
+    confirmationConsent: z.boolean().optional(),
+    childWithLetterPhotoConsent: z.boolean().optional(),
     socialMediaConsent: z.boolean().optional(),
   });
 export type ApplicationDraftInput = z.infer<typeof applicationDraftSchema>;
@@ -181,6 +188,10 @@ export const applicationDraftFormSchema = z.object({
   // has no Telegram handle, and it's stored on `users` (one contact per person,
   // never a per-application snapshot).
   phone: text(userPhoneSchema),
+  childWithLetterPhotoConsent: z.preprocess(
+    (value) => (value === undefined ? undefined : value === "true"),
+    z.boolean().optional(),
+  ),
   socialMediaConsent: z.preprocess(
     (value) => (value === undefined ? undefined : value === "true"),
     z.boolean().optional(),
@@ -254,7 +265,11 @@ export function adminApplicationEditSchema(context: {
   currentGiftPrice: string | null;
 }) {
   const base = applicationDraftFormSchema
-    .omit({ phone: true, socialMediaConsent: true })
+    .omit({
+      phone: true,
+      socialMediaConsent: true,
+      childWithLetterPhotoConsent: true,
+    })
     .extend({
       socialMediaConsent: triStateBoolean,
       // Widened back to every oblast. The parent form offers only the occupied

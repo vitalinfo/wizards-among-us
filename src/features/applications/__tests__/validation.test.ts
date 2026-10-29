@@ -29,7 +29,10 @@ const validSubmit = {
   giftDescription: "A school backpack",
   giftPrice: 1200,
   deliveryInformation: "Nova Poshta #5, Lviv",
-  consent: true,
+  privacyConsent: true,
+  contactConsent: true,
+  confirmationConsent: true,
+  childWithLetterPhotoConsent: false,
   socialMediaConsent: false,
 } as const;
 
@@ -38,11 +41,17 @@ describe("applicationSubmitSchema", () => {
     expect(applicationSubmitSchema.safeParse(validSubmit).success).toBe(true);
   });
 
-  it("requires consent to be true", () => {
-    expect(
-      applicationSubmitSchema.safeParse({ ...validSubmit, consent: false })
-        .success,
-    ).toBe(false);
+  it("requires each required consent to be true", () => {
+    for (const key of [
+      "privacyConsent",
+      "contactConsent",
+      "confirmationConsent",
+    ]) {
+      expect(
+        applicationSubmitSchema.safeParse({ ...validSubmit, [key]: false })
+          .success,
+      ).toBe(false);
+    }
   });
 
   it("rejects an unknown region", () => {
@@ -235,23 +244,25 @@ describe("gift links (campaign type field) and social-media consent", () => {
 
   // Required to ANSWER, but "no" is a valid answer — it must never be a
   // literal(true) like the data-processing consent.
-  it("accepts either answer for social-media consent", () => {
-    for (const socialMediaConsent of [true, false]) {
-      expect(
-        applicationSubmitSchema.safeParse({
-          ...validSubmit,
-          socialMediaConsent,
-        }).success,
-      ).toBe(true);
+  it("accepts either answer for the optional consents", () => {
+    for (const key of ["socialMediaConsent", "childWithLetterPhotoConsent"]) {
+      for (const answer of [true, false]) {
+        expect(
+          applicationSubmitSchema.safeParse({ ...validSubmit, [key]: answer })
+            .success,
+        ).toBe(true);
+      }
     }
   });
 
-  it("still requires social-media consent to be answered", () => {
-    const withoutAnswer: Record<string, unknown> = { ...validSubmit };
-    delete withoutAnswer.socialMediaConsent;
-    expect(applicationSubmitSchema.safeParse(withoutAnswer).success).toBe(
-      false,
-    );
+  it("still requires the optional consents to be answered", () => {
+    for (const key of ["socialMediaConsent", "childWithLetterPhotoConsent"]) {
+      const withoutAnswer: Record<string, unknown> = { ...validSubmit };
+      delete withoutAnswer[key];
+      expect(applicationSubmitSchema.safeParse(withoutAnswer).success).toBe(
+        false,
+      );
+    }
   });
 });
 
@@ -326,5 +337,16 @@ describe("applicationDraftFormSchema (FormData coercion)", () => {
     expect(
       applicationDraftFormSchema.parse({}).socialMediaConsent,
     ).toBeUndefined();
+  });
+
+  it("reads the child-photo consent checkbox as a real boolean", () => {
+    expect(
+      applicationDraftFormSchema.parse({ childWithLetterPhotoConsent: "true" })
+        .childWithLetterPhotoConsent,
+    ).toBe(true);
+    expect(
+      applicationDraftFormSchema.parse({ childWithLetterPhotoConsent: "false" })
+        .childWithLetterPhotoConsent,
+    ).toBe(false);
   });
 });

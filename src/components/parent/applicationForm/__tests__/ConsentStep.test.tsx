@@ -33,41 +33,55 @@ const posted = () =>
     ).entries(),
   );
 
+const REQUIRED = [
+  "privacyConsent",
+  "contactConsent",
+  "confirmationConsent",
+] as const;
+const OPTIONAL = ["childWithLetterPhotoConsent", "socialMediaConsent"] as const;
+
+// The privacy label carries a link, so its accessible name is the label text
+// without the markup.
+const label = (key: (typeof REQUIRED)[number] | (typeof OPTIONAL)[number]) =>
+  t[key].label.replace(/<\/?link>/g, "");
+
 describe("ConsentStep", () => {
-  // The data consent gates submit; the social-media one never does.
-  it("requires the data consent and not the social-media one", () => {
+  // Three consents gate submit; the two optional ones never do.
+  it("requires the three required consents and not the optional ones", () => {
     renderStep();
 
-    expect(
-      screen.getByRole("checkbox", { name: new RegExp(t.consent.label) }),
-    ).toBeRequired();
-    expect(
-      screen.getByRole("checkbox", {
-        name: t.socialMediaConsent.label,
-      }),
-    ).not.toBeRequired();
+    for (const key of REQUIRED) {
+      expect(screen.getByRole("checkbox", { name: label(key) })).toBeRequired();
+    }
+    for (const key of OPTIONAL) {
+      expect(
+        screen.getByRole("checkbox", { name: label(key) }),
+      ).not.toBeRequired();
+    }
   });
 
   // An unticked opt-in must still RECORD a «no» — the form keeps the last
   // value of a repeated name, and the hidden «false» comes first.
-  it("posts «no» for social media when unticked, «yes» when ticked", async () => {
+  it("posts «no» for an optional consent when unticked, «yes» when ticked", async () => {
     const user = userEvent.setup();
     renderStep();
 
-    expect(posted().socialMediaConsent).toBe("false");
-
-    await user.click(
-      screen.getByRole("checkbox", { name: t.socialMediaConsent.label }),
-    );
-    expect(posted().socialMediaConsent).toBe("true");
+    for (const key of OPTIONAL) {
+      expect(posted()[key]).toBe("false");
+      await user.click(screen.getByRole("checkbox", { name: label(key) }));
+      expect(posted()[key]).toBe("true");
+    }
   });
 
-  it("remembers a social-media «yes» already given", () => {
-    renderStep({ socialMediaConsent: "true" });
+  it("remembers an optional «yes» already given", () => {
+    renderStep({
+      childWithLetterPhotoConsent: "true",
+      socialMediaConsent: "true",
+    });
 
-    expect(
-      screen.getByRole("checkbox", { name: t.socialMediaConsent.label }),
-    ).toBeChecked();
+    for (const key of OPTIONAL) {
+      expect(screen.getByRole("checkbox", { name: label(key) })).toBeChecked();
+    }
   });
 
   // What is agreed to is the box's description, so a screen reader hears the
@@ -76,14 +90,13 @@ describe("ConsentStep", () => {
     renderStep();
 
     expect(
-      screen.getByRole("checkbox", { name: t.socialMediaConsent.label }),
+      screen.getByRole("checkbox", { name: label("socialMediaConsent") }),
     ).toHaveAccessibleDescription(
-      expect.stringContaining(t.socialMediaConsent.body[2]),
+      expect.stringContaining(t.socialMediaConsent.body[2] as string),
     );
-    expect(screen.getByRole("link", { name: "згоду" })).toHaveAttribute(
-      "href",
-      "/privacy",
-    );
+    expect(
+      screen.getByRole("link", { name: "Політикою конфіденційності" }),
+    ).toHaveAttribute("href", "/privacy");
   });
 
   it("has no accessibility violations", async () => {
