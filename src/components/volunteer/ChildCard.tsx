@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 import { ChildPhoto } from "./ChildPhoto";
 
 // One browsable child (Figma 118:420). Photo of the letter on the left from lg,
-// under the button on a phone, with the family's own account of what happened
-// between them.
+// between the text and the button on a phone, with the family's own account of
+// what happened between them.
 //
 // Renders ONLY what BrowseRow carries (the projection from toBrowseCard), so
 // there is no path by which the delivery address, the parent's name or the
@@ -52,60 +52,65 @@ export async function ChildCard({
           // a screen reader is told a letter is here, which is all the photo
           // conveys to anyone who cannot see it. Never «фото Олени».
           alt={tCard("letterAlt")}
-          className="order-last w-full lg:order-first lg:w-[257px] lg:shrink-0"
+          className="order-2 w-full lg:order-first lg:w-[257px] lg:shrink-0"
         />
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          {/* The name alone. There is no icon here: the 118:420 card draws
+      {/* The text and the button are one column from lg, but on a phone the
+          column dissolves (`contents`) so the photo can sit between them —
+          the button comes after the letter, not before it. */}
+      <div className="contents lg:flex lg:min-w-0 lg:flex-1 lg:flex-col lg:gap-5">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            {/* The name alone. There is no icon here: the 118:420 card draws
               «Олена» and nothing beside it, and the gender the column was added
               for is not drawn on this card at all. It stays in the projection
               for the screen that does draw it; inventing a place for it here
               was mine, not the design's. */}
-          <h3 className="font-display text-[44px] leading-[44px] font-bold tracking-[-0.03em]">
-            {name}
-          </h3>
-          {row.childAge !== null ? (
-            <span className="text-base leading-5 tracking-[-0.03em]">
-              {tCard("age", { age: row.childAge })}
-            </span>
-          ) : null}
-        </div>
+            <h3 className="font-display text-[44px] leading-[44px] font-bold tracking-[-0.03em]">
+              {name}
+            </h3>
+            {row.childAge !== null ? (
+              <span className="text-base leading-5 tracking-[-0.03em]">
+                {tCard("age", { age: row.childAge })}
+              </span>
+            ) : null}
+          </div>
 
-        {/* Oblast with the town (Vital): «Маріуполь, Донецька область». The
+          {/* Oblast with the town (Vital): «Маріуполь, Донецька область». The
             label asks for a city, and the oblast is what the filter above is
             set to — a volunteer looking for families from their own region
             should see the region they matched on. */}
-        <Field label={tCard("homeTown")} value={homePlace} />
-        <Field label={tCard("story")} value={row.familyStory} stacked />
-        <Field label={tCard("gift")} value={row.giftDescription} />
+          <Field label={tCard("homeTown")} value={homePlace} />
+          <Field label={tCard("story")} value={row.familyStory} stacked />
+          <Field label={tCard("gift")} value={row.giftDescription} />
 
-        {row.giftUrls.length > 0 ? (
-          <Field label={tCard("giftUrls")}>
-            <ul className="flex flex-wrap gap-x-[21px] gap-y-1">
-              {row.giftUrls.map((url) => (
-                <li key={url}>
-                  <a
-                    href={url}
-                    target="_blank"
-                    // noreferrer as well as noopener: these are shops a parent
-                    // chose, and they have no business learning which page of
-                    // ours someone came from.
-                    rel="noreferrer noopener"
-                    className="text-primary focus-visible:outline-ring block max-w-[200px] truncate underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-                  >
-                    {shopLabel(url)}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </Field>
-        ) : null}
+          {row.giftUrls.length > 0 ? (
+            <Field label={tCard("giftUrls")}>
+              <ul className="flex flex-wrap gap-x-[21px] gap-y-1">
+                {row.giftUrls.map((url) => (
+                  <li key={url}>
+                    <a
+                      href={url}
+                      target="_blank"
+                      // noreferrer as well as noopener: these are shops a parent
+                      // chose, and they have no business learning which page of
+                      // ours someone came from.
+                      rel="noreferrer noopener"
+                      className="text-primary focus-visible:outline-ring block max-w-[200px] truncate underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                    >
+                      {shopLabel(url)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </Field>
+          ) : null}
+        </div>
 
         <Link
           href={claimHref}
-          className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring mt-2 inline-flex h-[47px] w-fit items-center justify-center rounded-full px-10 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:h-[51px]"
+          className="bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-ring order-3 inline-flex h-[47px] w-fit items-center justify-center rounded-full px-10 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:h-[51px]"
         >
           {t("claimCta")}
         </Link>
