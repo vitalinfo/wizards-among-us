@@ -1,4 +1,5 @@
 import { getFormatter, getTranslations } from "next-intl/server";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -26,8 +27,10 @@ import { isAdmin } from "@/lib/authz";
 export const dynamic = "force-dynamic";
 
 // A pending application still has empty columns (drafts persist), so every
-// value is rendered through the same "— when missing" path.
-function Field({ label, value }: { label: string; value: string | null }) {
+// value is rendered through the same "— when missing" path. The value is a
+// node, not a string, because the shop links are anchors — everything else
+// still arrives as plain text.
+function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="border-border border-b py-2 last:border-b-0">
       <dt className="text-muted-foreground text-xs">{label}</dt>
@@ -113,7 +116,7 @@ export default async function AdminApplicationPage({
     ? ((application.typeFields as { giftUrls: string[] }).giftUrls ?? [])
     : [];
 
-  const sections: { key: string; fields: [string, string | null][] }[] = [
+  const sections: { key: string; fields: [string, ReactNode][] }[] = [
     {
       key: "child",
       fields: [
@@ -168,7 +171,27 @@ export default async function AdminApplicationPage({
         [t("fields.giftPrice"), application.giftPrice],
         [
           t("fields.giftUrls"),
-          giftUrls.length > 0 ? giftUrls.join("\n") : null,
+          giftUrls.length > 0 ? (
+            // The same anchor the volunteer and the parent get: an admin
+            // checking a shop link shouldn't have to copy the text out.
+            <ul className="flex flex-col gap-1">
+              {giftUrls.map((url) => (
+                <li key={url}>
+                  <a
+                    href={url}
+                    target="_blank"
+                    // noreferrer as well as noopener: these are shops a parent
+                    // chose, and they have no business learning which page of
+                    // ours someone came from.
+                    rel="noreferrer noopener"
+                    className="text-primary focus-visible:outline-ring break-all underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  >
+                    {url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : null,
         ],
       ],
     },
