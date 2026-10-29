@@ -207,6 +207,22 @@ export function AdminApplicationForm({
           error={err("deliveryInformation")}
         />
         <SelectField
+          id="childWithLetterPhotoConsent"
+          name="childWithLetterPhotoConsent"
+          label={t("fields.childWithLetterPhotoConsent")}
+          placeholder={t("empty_value")}
+          options={[
+            { value: "true", label: t("yes") },
+            { value: "false", label: t("no") },
+          ]}
+          defaultValue={
+            application.childWithLetterPhotoConsent === null
+              ? ""
+              : String(application.childWithLetterPhotoConsent)
+          }
+          error={err("childWithLetterPhotoConsent")}
+        />
+        <SelectField
           id="socialMediaConsent"
           name="socialMediaConsent"
           label={t("fields.socialMediaConsent")}

@@ -272,6 +272,7 @@ export function adminApplicationEditSchema(context: {
     })
     .extend({
       socialMediaConsent: triStateBoolean,
+      childWithLetterPhotoConsent: triStateBoolean,
       // Widened back to every oblast. The parent form offers only the occupied
       // and front-line ones, but an application recorded before that narrowing
       // must stay editable — an admin fixing a delivery address should not be
