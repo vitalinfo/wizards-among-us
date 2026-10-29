@@ -26,7 +26,7 @@ export async function ChildCard({
   const tCard = await getTranslations("volunteer.children.card");
   const tRegions = await getTranslations("regions");
 
-  const name = row.childFirstName ?? t("noName");
+  const name = row.childName ?? t("noName");
   // Either part can be missing on an older application, so this is not a
   // template — it is whichever parts exist, joined.
   const homePlace =

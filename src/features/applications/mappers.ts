@@ -34,7 +34,7 @@ type Application = typeof applications.$inferSelect;
 // than in authz.ts (CLAUDE.md).
 export type BrowseCard = {
   id: Application["id"];
-  childFirstName: string | null;
+  childName: string | null;
   childAge: Application["childAge"];
   // On the card because it draws the child's icon (Vital). It discloses no
   // more than the first name beside it already does — Ukrainian given names
@@ -81,7 +81,7 @@ export function toBrowseCard(
 ): BrowseCard {
   return {
     id: application.id,
-    childFirstName: firstName(application.childName),
+    childName: application.childName,
     childAge: application.childAge,
     childGender: application.childGender,
     homeRegion: application.homeRegion,
@@ -127,9 +127,4 @@ function isHttpUrl(value: string): boolean {
   } catch {
     return false;
   }
-}
-
-function firstName(fullName: string | null): string | null {
-  const first = fullName?.trim().split(/\s+/)[0];
-  return first ? first : null;
 }

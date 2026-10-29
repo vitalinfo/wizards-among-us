@@ -45,7 +45,7 @@ const access = messages.policy.sections.access.body;
 // disjointness check below fail on fields that are correctly in both sections.
 const beforePostClaim = access.slice(0, access.indexOf("<h3>4.4."));
 const [, preClaim = "", postClaimStage = ""] = beforePostClaim.split(
-  /<p>До вибору дитини чарівники можуть бачити в анкеті:<\/p>|<p>На цьому етапі чарівники не бачать:<\/p>/,
+  /<p>У такому переліку їм можуть бути доступні:<\/p>|<p>На цьому етапі користувачі не бачать:<\/p>/,
 );
 
 // Fields the card carries that §4.3 deliberately does NOT enumerate.
@@ -56,7 +56,7 @@ const [, preClaim = "", postClaimStage = ""] = beforePostClaim.split(
 // does not learn the gender is visible — and was overruled. Recorded as a
 // decision so it does not read as an oversight, and kept out of DESCRIBED so
 // the guard below still fails for the NEXT field somebody adds.
-const UNDOCUMENTED = new Set(["childGender"]);
+const UNDOCUMENTED = new Set(["childGender", "giftDescription"]);
 
 // Which sentence in §4.3 accounts for each field the card carries. `id` and
 // `status` are not personal data — one is a row id, the other is whether the
@@ -64,17 +64,16 @@ const UNDOCUMENTED = new Set(["childGender"]);
 const DESCRIBED: Record<string, string | null> = {
   id: null,
   status: null,
-  childFirstName: "ім’я дитини без прізвища",
+  childName: "ім’я та прізвище дитини",
   childAge: "вік дитини",
   homeRegion: "родина була змушена залишити через війну",
   homeTown: "родина була змушена залишити через війну",
-  giftDescription: "опис бажаного подарунка",
   // Both moved INTO the pre-claim list with the 118:420 card (Vital): §4.3 used
   // to name them as things a charivnyk does not see, and the §4.3 he supplied
   // with the design names them as things they do.
   giftUrls: "посилання на бажаний подарунок",
-  letterPhotoId: "фотографію листа дитини Чарівному Миколаю",
-  familyStory: "історію родини",
+  letterPhotoId: "фотографія листа дитини Чарівному Миколаю",
+  familyStory: "історія родини",
 };
 
 describe("the policy's pre-claim list and the browse card", () => {
@@ -103,7 +102,6 @@ describe("the policy's pre-claim list and the browse card", () => {
       "parentName",
       "typeFields",
       "idpCertificate",
-      "childName",
     ]) {
       expect(card, `${field} must not reach a browse card`).not.toHaveProperty(
         field,
@@ -111,9 +109,8 @@ describe("the policy's pre-claim list and the browse card", () => {
     }
   });
 
-  it("lists the surnames, the documents and the child's photo as unseen", () => {
+  it("lists the documents and the child's photo as unseen", () => {
     for (const phrase of [
-      "прізвища дитини",
       "документів, наданих для перевірки анкети",
       "номера телефону батьків",
       "прізвища батьків або законного представника",
