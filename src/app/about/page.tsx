@@ -169,6 +169,7 @@ export default async function AboutPage() {
               </div>
               <figcaption className="text-muted-foreground mt-3 text-center text-sm leading-5 tracking-[-0.03em] lg:mt-4">
                 {t.rich("portraitCaption", {
+                  br: () => <br className="lg:hidden" />,
                   b: (chunks) => <b className="font-semibold">{chunks}</b>,
                 })}
               </figcaption>
