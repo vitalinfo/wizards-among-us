@@ -1,6 +1,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 // Renders the real server component. See src/test/serverIntl.ts for why the
 // request-scoped half of next-intl/server has to be replaced — the translator
@@ -19,6 +20,20 @@ import { ChildCard } from "../ChildCard";
 const t = messages.volunteer.children;
 const genders = messages.genders;
 const card = messages.volunteer.children.card;
+const lightbox = messages.common.lightbox;
+// The thumbnail's alt is empty — the link around it is what carries the name.
+const openLetter = lightbox.open.replace("{title}", card.letterTitle);
+
+// jsdom implements <dialog> but not the modal behaviour; the component and
+// these assertions rely on the `open` attribute showModal() would set.
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.open = false;
+  };
+});
 
 // Built through the real projection, not hand-written: the card may only ever
 // render what toBrowseCard hands it (child-data invariant, tier 1), so the
@@ -114,19 +129,48 @@ describe("ChildCard letter photo and shop links", () => {
   it("shows the letter photo through the authorized route, named as a letter", async () => {
     await renderCard();
 
-    const photo = screen.getByRole("img", { name: card.letterAlt });
     // The proxying route, never a storage url: every read is checked against
     // the file kind and logged, which a signed url would defeat.
-    expect(photo).toHaveAttribute("src", "/api/applications/a1/files/file-1");
+    expect(screen.getByRole("link", { name: openLetter })).toHaveAttribute(
+      "href",
+      "/api/applications/a1/files/file-1",
+    );
     // Names the object, not the child.
+    expect(card.letterTitle).not.toContain("Марійка");
     expect(card.letterAlt).not.toContain("Марійка");
+  });
+
+  // 257px of handwriting is not readable, and the letter is one of the things
+  // a volunteer chooses on — so it opens over the page here as it does on the
+  // claim card, rather than only in another tab.
+  it("opens the letter in the lightbox instead of navigating away", async () => {
+    const user = userEvent.setup();
+    await renderCard();
+
+    await user.click(screen.getByRole("link", { name: openLetter }));
+
+    expect(
+      screen.getByRole("dialog", { name: card.letterTitle }),
+    ).toBeVisible();
+    // Full size, still through the authorized route, and still named as a
+    // letter rather than after the child.
+    expect(screen.getByAltText(card.letterAlt)).toHaveAttribute(
+      "src",
+      "/api/applications/a1/files/file-1",
+    );
+    expect(
+      screen.getByRole("link", { name: lightbox.openInTab }),
+    ).toHaveAttribute("href", "/api/applications/a1/files/file-1");
+
+    await user.click(screen.getByRole("button", { name: lightbox.close }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("renders without a photo when the application has none", async () => {
     await renderCard({ letterPhotoId: null });
 
     expect(
-      screen.queryByRole("img", { name: card.letterAlt }),
+      screen.queryByRole("link", { name: openLetter }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: /Марійка/ }),

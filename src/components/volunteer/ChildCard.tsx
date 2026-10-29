@@ -43,11 +43,16 @@ export async function ChildCard({
         <ChildPhoto
           applicationId={row.id}
           fileId={row.letterPhotoId}
+          // Opens over the page, as the claim card's photos do — a letter is
+          // unreadable at this size and is one of the things a volunteer is
+          // choosing on, so «відкрити в новій вкладці» should not be the only
+          // way to read it.
+          title={tCard("letterTitle")}
           // Names the OBJECT, not the child: a volunteer reading this card with
           // a screen reader is told a letter is here, which is all the photo
           // conveys to anyone who cannot see it. Never «фото Олени».
           alt={tCard("letterAlt")}
-          className="order-last h-[275px] w-full rounded-xl object-cover lg:order-first lg:h-[346px] lg:w-[257px] lg:shrink-0"
+          className="order-last w-full lg:order-first lg:w-[257px] lg:shrink-0"
         />
       ) : null}
 

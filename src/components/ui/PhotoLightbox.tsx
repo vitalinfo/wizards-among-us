@@ -3,6 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useRef, type ReactNode } from "react";
 
+import { cn } from "@/lib/utils";
+
 // Opens a photo in an overlay instead of a new tab.
 //
 // The trigger is a real <a href> to the file, so with no JavaScript — or before
@@ -18,12 +20,19 @@ export function PhotoLightbox({
   href,
   title,
   alt,
+  className,
   children,
 }: {
   href: string;
   // Names the dialog for a screen reader, and captions the photo.
   title: string;
   alt: string;
+  // Placement for the trigger itself. A thumbnail that is a flex item in the
+  // caller's layout needs the layout classes on the LINK, not on the <img>
+  // inside it — the link is what the parent lays out. Appended, so don't pass
+  // a radius: the focus ring's own `rounded-md` would fight it (`cn` joins,
+  // it does not merge).
+  className?: string;
   // The trigger — a thumbnail, or a plain text link.
   children: ReactNode;
 }) {
@@ -56,7 +65,10 @@ export function PhotoLightbox({
           event.preventDefault();
           dialog.current.showModal();
         }}
-        className="focus-visible:outline-primary rounded-md focus-visible:outline-2 focus-visible:outline-offset-2"
+        className={cn(
+          "focus-visible:outline-primary rounded-md focus-visible:outline-2 focus-visible:outline-offset-2",
+          className,
+        )}
       >
         {children}
       </a>
