@@ -170,6 +170,14 @@ describe("GiftStep", () => {
     expect(wish).toHaveValue("Лялька\nі набір фарб");
   });
 
+  // The cap is enforced where the price is typed, not only at the final submit.
+  it("will not take a price over the campaign's budget cap", () => {
+    wrap(<GiftStep values={{}} errors={{}} giftPriceCap="700.00" />);
+    expect(
+      screen.getByLabelText(new RegExp(gift.giftPrice.label)),
+    ).toHaveAttribute("max", "700");
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = wrap(<GiftStep values={{}} errors={{}} />);
     expect(await axe(container)).toHaveNoViolations();

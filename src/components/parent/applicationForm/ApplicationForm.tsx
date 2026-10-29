@@ -98,14 +98,34 @@ export function ApplicationForm({
   );
   const alertRef = useRef<HTMLDivElement>(null);
 
+  // The submit validates the WHOLE application, so a field from an earlier step
+  // can fail it — and on the consent step that field isn't on screen, leaving
+  // «Перевірте виділені поля» with nothing highlighted. Take the parent to the
+  // step that holds it. Adjusted during render, when a new result arrives,
+  // rather than in an effect (which would render the wrong step first).
+  // `shownSubmit` is the result still on screen: a successful step save clears
+  // it, so a fixed error doesn't follow the parent forward.
+  const [seenSubmit, setSeenSubmit] = useState(submitState);
+  const [shownSubmit, setShownSubmit] = useState(submitState);
+  if (submitState !== seenSubmit) {
+    setSeenSubmit(submitState);
+    setShownSubmit(submitState);
+    const errorStep = steps.findIndex((step) =>
+      step.fields.some((field) => field in submitState.errors),
+    );
+    if (errorStep !== -1) {
+      setStepIndex(errorStep);
+    }
+  }
+
   const isLast = stepIndex === steps.length - 1;
   const { Component } = steps[stepIndex];
   const failed =
     saveState.status === "invalid" ||
     saveState.status === "missing_files" ||
-    submitState.status === "invalid" ||
-    submitState.status === "blocked" ||
-    submitState.status === "rate_limited";
+    shownSubmit.status === "invalid" ||
+    shownSubmit.status === "blocked" ||
+    shownSubmit.status === "rate_limited";
 
   // The step advances HERE, after the save resolves — not in an effect watching
   // the result, which would be a cascading render. It also means we only ever
@@ -119,6 +139,7 @@ export function ApplicationForm({
         // The server now holds these, so the snapshot would only shadow the
         // fresh values with identical stale ones.
         setPosted({});
+        setShownSubmit(initialSubmitState);
         setStepIndex((current) => Math.min(current + 1, steps.length - 1));
       }
     });
@@ -147,7 +168,7 @@ export function ApplicationForm({
     if (failed) {
       alertRef.current?.focus();
     }
-  }, [failed, saveState, submitState]);
+  }, [failed, saveState, shownSubmit]);
 
   // zod issue codes → Ukrainian copy. Mapped here, so no user-facing strings
   // are produced on the server.
@@ -171,7 +192,7 @@ export function ApplicationForm({
   };
 
   const errors = Object.fromEntries(
-    Object.entries({ ...saveState.errors, ...submitState.errors }).map(
+    Object.entries({ ...saveState.errors, ...shownSubmit.errors }).map(
       ([field, code]) => [field, messageFor(code)],
     ),
   );
@@ -222,11 +243,11 @@ export function ApplicationForm({
                   .map((kind) => tUploads(`kinds.${kind}`))
                   .join(", "),
               })
-            : submitState.status === "rate_limited"
+            : shownSubmit.status === "rate_limited"
               ? tErrors("rate_limited")
-              : submitState.blockReason
-                ? tBlocked(submitState.blockReason)
-                : submitState.errors.turnstileToken
+              : shownSubmit.blockReason
+                ? tBlocked(shownSubmit.blockReason)
+                : shownSubmit.errors.turnstileToken
                   ? tErrors("captcha")
                   : t("saveError")}
         </div>

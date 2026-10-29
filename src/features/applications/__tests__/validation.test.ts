@@ -11,6 +11,7 @@ import {
   applicationDraftSchema,
   applicationSubmitSchema,
   applicationSubmitSchemaForCampaign,
+  exceedsGiftPriceCap,
   splitGiftUrls,
   stNicholasTypeFieldsSchema,
 } from "../validation";
@@ -284,6 +285,20 @@ describe("applicationSubmitSchemaForCampaign (gift budget cap)", () => {
     expect(schema.safeParse({ ...validSubmit, giftPrice: 5000 }).success).toBe(
       true,
     );
+  });
+});
+
+// The step save and the final submit share this, so the gift step refuses what
+// the submit would.
+describe("exceedsGiftPriceCap", () => {
+  it("flags only a price above the cap", () => {
+    expect(exceedsGiftPriceCap(701, "700.00")).toBe(true);
+    expect(exceedsGiftPriceCap(700, "700.00")).toBe(false);
+  });
+
+  it("has nothing to check without a price or a cap", () => {
+    expect(exceedsGiftPriceCap(undefined, "700.00")).toBe(false);
+    expect(exceedsGiftPriceCap(5000, null)).toBe(false);
   });
 });
 

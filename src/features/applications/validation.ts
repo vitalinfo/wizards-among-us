@@ -64,16 +64,25 @@ export type ApplicationSubmitInput = z.infer<typeof applicationSubmitSchema>;
 // Per-campaign gift budget ceiling (St Nicholas 2025: 700 UAH). Applied as a
 // refinement rather than baked into the schema so the cap can change without a
 // migration and without invalidating already-submitted applications.
+export function exceedsGiftPriceCap(
+  giftPrice: number | undefined,
+  giftPriceCap: string | null,
+): boolean {
+  const cap = giftPriceCap === null ? null : Number(giftPriceCap);
+  if (giftPrice === undefined || cap === null || !Number.isFinite(cap)) {
+    return false;
+  }
+  return giftPrice > cap;
+}
+
 export function applicationSubmitSchemaForCampaign(campaign: {
   giftPriceCap: string | null;
 }) {
-  const cap =
-    campaign.giftPriceCap === null ? null : Number(campaign.giftPriceCap);
-  if (cap === null || !Number.isFinite(cap)) {
+  if (campaign.giftPriceCap === null) {
     return applicationSubmitSchema;
   }
   return applicationSubmitSchema.superRefine((value, ctx) => {
-    if (value.giftPrice > cap) {
+    if (exceedsGiftPriceCap(value.giftPrice, campaign.giftPriceCap)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["giftPrice"],

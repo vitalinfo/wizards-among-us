@@ -75,6 +75,7 @@ export function GiftStep({
           inputMode="decimal"
           step="0.01"
           min={0}
+          max={cap !== null && Number.isFinite(cap) ? cap : undefined}
           label={t("giftPrice.label")}
           placeholder={pricePlaceholder}
           defaultValue={values.giftPrice ?? ""}
