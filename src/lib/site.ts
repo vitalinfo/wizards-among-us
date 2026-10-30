@@ -7,7 +7,10 @@ export const SITE = {
   // January, and nobody is watching a marketing number for that.
   foundedYear: 2022,
   // Public contact channels (provided by the project owner).
-  telegramUrl: "https://t.me/+XlZ9JMfByQZhMTU6",
+  telegramUrl: "https://t.me/charivnyky_poruch",
+  telegramChatUrl: "https://t.me/+XlZ9JMfByQZhMTU6",
+  // /partners points its Telegram disc at a person rather than the channel.
+  partnersTelegramUrl: "https://t.me/helen_0104",
   instagramUrl: "https://www.instagram.com/wizards.among.us/",
   email: "charivnyky.org@gmail.com",
   // The consent line on /login and the footer's policy line both point here,

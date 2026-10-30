@@ -145,6 +145,7 @@ export default async function AboutPage() {
             <SocialLinks
               instagramLabel={tFooter("instagram")}
               telegramLabel={tFooter("telegram")}
+              telegramChatLabel={tFooter("telegramChat")}
               size={56}
               className="justify-center lg:justify-start"
             />

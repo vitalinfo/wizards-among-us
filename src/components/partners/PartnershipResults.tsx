@@ -6,6 +6,7 @@ import { SITE_CONTAINER } from "@/components/site/layout";
 
 import { BecomePartnerCta } from "./BecomePartnerCta";
 import { SocialLinks } from "@/components/site/SocialLinks";
+import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 import { SectionHeading } from "./SectionHeading";
@@ -58,6 +59,7 @@ export function PartnershipResults() {
             <SocialLinks
               instagramLabel={tFooter("instagram")}
               telegramLabel={tFooter("telegram")}
+              telegramUrl={SITE.partnersTelegramUrl}
               size={56}
             />
             <BrandMark className="h-[93px] w-auto" />
