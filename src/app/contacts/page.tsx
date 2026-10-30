@@ -76,6 +76,7 @@ export default async function ContactsPage() {
               <SocialLinks
                 instagramLabel={tFooter("instagram")}
                 telegramLabel={tFooter("telegram")}
+                telegramChatLabel={tFooter("telegramChat")}
                 size={56}
                 className="mt-6 lg:mt-8"
               />

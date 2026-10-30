@@ -1,4 +1,8 @@
-import { InstagramIcon, TelegramIcon } from "@/components/icons";
+import {
+  InstagramIcon,
+  TelegramChatIcon,
+  TelegramIcon,
+} from "@/components/icons";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -15,11 +19,18 @@ import { cn } from "@/lib/utils";
 export function SocialLinks({
   instagramLabel,
   telegramLabel,
+  telegramUrl = SITE.telegramUrl,
+  telegramChatLabel,
   size = 48,
   className,
 }: {
   instagramLabel: string;
   telegramLabel: string;
+  // /partners sends its Telegram disc to a person instead of the channel.
+  telegramUrl?: string;
+  // The third disc, the community chat, is drawn only where a label is passed —
+  // the footer, the mobile menu, /about and /contacts; /partners keeps a pair.
+  telegramChatLabel?: string;
   // The disc diameter in px — 44 in the mobile menu, 48 in the footer, 56 on
   // the contacts page. An arbitrary value rather than a `size-N` utility so a
   // caller can ask for the design's number without a lookup table here.
@@ -44,7 +55,7 @@ export function SocialLinks({
         <InstagramIcon className={glyph} />
       </a>
       <a
-        href={SITE.telegramUrl}
+        href={telegramUrl}
         target="_blank"
         rel="noopener noreferrer"
         aria-label={telegramLabel}
@@ -53,6 +64,18 @@ export function SocialLinks({
       >
         <TelegramIcon className={glyph} />
       </a>
+      {telegramChatLabel && (
+        <a
+          href={SITE.telegramChatUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={telegramChatLabel}
+          className={disc}
+          style={style}
+        >
+          <TelegramChatIcon className={glyph} />
+        </a>
+      )}
     </div>
   );
 }

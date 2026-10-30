@@ -18,6 +18,7 @@ export { PlusIcon } from "./PlusIcon";
 export { ShieldIcon } from "./ShieldIcon";
 export { SignOutIcon } from "./SignOutIcon";
 export { StarIcon } from "./StarIcon";
+export { TelegramChatIcon } from "./TelegramChatIcon";
 export { TelegramIcon } from "./TelegramIcon";
 export { TrashIcon } from "./TrashIcon";
 export { UserIcon } from "./UserIcon";

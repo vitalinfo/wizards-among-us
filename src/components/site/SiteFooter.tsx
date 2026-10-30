@@ -66,6 +66,7 @@ export function SiteFooter() {
             <SocialLinks
               instagramLabel={t("instagram")}
               telegramLabel={t("telegram")}
+              telegramChatLabel={t("telegramChat")}
             />
           </div>
         </div>

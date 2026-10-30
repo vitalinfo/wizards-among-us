@@ -168,6 +168,7 @@ export function SiteHeaderClient({
                 <SocialLinks
                   instagramLabel={t("footer.instagram")}
                   telegramLabel={t("footer.telegram")}
+                  telegramChatLabel={t("footer.telegramChat")}
                   size={44}
                 />
               </div>
