@@ -608,6 +608,7 @@ against production's own config vars.
 | `DATABASE_URL` | Postgres connection string. On Neon use the **pooled** (`-pooler`) string |
 | `DIRECT_DATABASE_URL` | *Recommended.* Neon's **direct** (non-`-pooler`) string. Used only by the release-phase migration — Neon recommends direct connections for schema changes, and transaction-mode poolers can break migration locks. Falls back to `DATABASE_URL` if unset |
 | `CANONICAL_HOST` | *Recommended.* The one host this app should be served on, no scheme (e.g. `staging.wizards-among-us.pp.ua`). Requests on any other host are redirected to it. Unset = accept whatever host was requested |
+| `MAINTENANCE_MODE` | Optional. `true` (or `1`) serves every page and API route as the maintenance screen (`/maintenance`, the 404/500 layout with its own copy) with a `503`. Static assets still load. Flip it with `heroku config:set MAINTENANCE_MODE=true -a <app>` and `heroku config:unset MAINTENANCE_MODE -a <app>` — a config change restarts the dyno, no rebuild |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `TELEGRAM_BOT_TOKEN` | BotFather token for **this** environment's bot |
 | `TELEGRAM_BOT_USERNAME` | That bot's @username (no `@`) |

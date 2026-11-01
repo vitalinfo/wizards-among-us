@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { isMaintenanceMode, MAINTENANCE_PATH } from "@/lib/maintenance";
+
 // Edge-of-app request hygiene: force HTTPS and a single canonical host.
 //
 // Why this exists: Heroku serves the same app on http:// and https://, and on
@@ -39,17 +41,29 @@ function isLoopback(host: string | null): boolean {
   return LOOPBACK_HOSTNAMES.has(hostname.toLowerCase());
 }
 
+// Where a request goes once it is allowed through: to the page it asked for,
+// or, in maintenance mode, to the maintenance screen.
+function proceed(request: NextRequest): NextResponse {
+  if (!isMaintenanceMode()) {
+    return NextResponse.next();
+  }
+  const url = request.nextUrl.clone();
+  url.pathname = MAINTENANCE_PATH;
+  url.search = "";
+  return NextResponse.rewrite(url, { status: 503 });
+}
+
 export function middleware(request: NextRequest): NextResponse {
   // Only in a real deploy: local dev is plain http on localhost, and the tests
   // below cover both branches explicitly.
   if (process.env.NODE_ENV !== "production") {
-    return NextResponse.next();
+    return proceed(request);
   }
 
   const forwardedProto = request.headers.get("x-forwarded-proto");
   const host = request.headers.get("host");
   if (isLoopback(host)) {
-    return NextResponse.next();
+    return proceed(request);
   }
   // Optional: set per environment (staging vs production) as a runtime config
   // var. Unset means "whatever host was requested is fine".
@@ -69,7 +83,7 @@ export function middleware(request: NextRequest): NextResponse {
     return NextResponse.redirect(url, isHttps ? 307 : 308);
   }
 
-  const response = NextResponse.next();
+  const response = proceed(request);
   // Tell browsers never to try http again — this is what actually prevents a
   // repeat of the dropped-cookie confusion. No `preload`, and no
   // `includeSubDomains` while we're on a shared *.herokuapp.com host.
