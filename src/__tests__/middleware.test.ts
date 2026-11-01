@@ -125,3 +125,55 @@ describe("middleware in production", () => {
     );
   });
 });
+
+describe("middleware in maintenance mode", () => {
+  it("serves every route as the maintenance screen, with a 503", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("MAINTENANCE_MODE", "true");
+    for (const path of ["/", "/parent?x=1", "/api/files/abc"]) {
+      const response = middleware(request(`http://localhost:3000${path}`));
+      expect(response.status, path).toBe(503);
+      expect(response.headers.get("x-middleware-rewrite"), path).toBe(
+        "http://localhost:3000/maintenance",
+      );
+    }
+  });
+
+  it("still upgrades http to https first in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("MAINTENANCE_MODE", "true");
+    const response = middleware(
+      request("http://wau-staging.herokuapp.com/login", {
+        "x-forwarded-proto": "http",
+        host: "wau-staging.herokuapp.com",
+      }),
+    );
+    expect(response.status).toBe(308);
+  });
+
+  it("keeps HSTS on the maintenance response in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("MAINTENANCE_MODE", "1");
+    vi.stubEnv("CANONICAL_HOST", "staging.wizards-among-us.pp.ua");
+    const response = middleware(
+      request("https://staging.wizards-among-us.pp.ua/", {
+        "x-forwarded-proto": "https",
+        host: "staging.wizards-among-us.pp.ua",
+      }),
+    );
+    expect(response.status).toBe(503);
+    expect(response.headers.get("strict-transport-security")).toBe(
+      "max-age=31536000",
+    );
+  });
+
+  it("is off unless the variable is set to true or 1", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    for (const value of ["", "0", "false", "off"]) {
+      vi.stubEnv("MAINTENANCE_MODE", value);
+      const response = middleware(request("http://localhost:3000/"));
+      expect(response.status, value).toBe(200);
+      expect(response.headers.get("x-middleware-rewrite"), value).toBeNull();
+    }
+  });
+});
