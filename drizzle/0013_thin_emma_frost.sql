@@ -1,0 +1,2 @@
+ALTER TABLE "applications" DROP CONSTRAINT "applications_status_valid";--> statement-breakpoint
+ALTER TABLE "applications" ADD CONSTRAINT "applications_status_valid" CHECK (status in ('draft', 'submitted', 'approved', 'rejected', 'claimed', 'processed', 'fulfilled'));

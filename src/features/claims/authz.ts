@@ -1,5 +1,5 @@
 import type { applications, claims } from "@/db/schema";
-import { hasRole, isAdmin, type MaybeActor } from "@/lib/actor";
+import { hasRole, isAdmin, isUser, type MaybeActor } from "@/lib/actor";
 
 type Application = typeof applications.$inferSelect;
 type Claim = typeof claims.$inferSelect;
@@ -68,4 +68,21 @@ export function canReleaseClaim(actor: MaybeActor): boolean {
 // transaction and unique index as a self-claim (invariant).
 export function canAssignVolunteer(actor: MaybeActor): boolean {
   return isAdmin(actor);
+}
+
+// The optional `processed` mark (Vital): only the volunteer holding the active
+// claim, and only on a `claimed` application — or, to take it off again, a
+// `processed` one. Never on a fulfilled child; the family has closed that.
+export function canToggleProcessed(
+  actor: MaybeActor,
+  application: Pick<Application, "status">,
+  claim: Pick<Claim, "volunteerId" | "releasedAt"> | null | undefined,
+): boolean {
+  return (
+    isUser(actor) &&
+    !!claim &&
+    isClaimed(claim) &&
+    claim.volunteerId === actor.id &&
+    (application.status === "claimed" || application.status === "processed")
+  );
 }

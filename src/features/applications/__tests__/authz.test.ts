@@ -11,6 +11,7 @@ import {
   canUploadApplicationFile,
   canViewApplicationFile,
   canViewSensitiveChildData,
+  getConfirmBlockReason,
   getSubmitBlockReason,
 } from "../authz";
 import { intakeOpen } from "@/features/campaigns/authz";
@@ -416,13 +417,12 @@ describe("canUploadApplicationFile", () => {
   const owned = { parentId: "p1" };
 
   it("lets the parent upload the confirmation only while a volunteer holds it", () => {
-    expect(
-      canUploadApplicationFile(
-        parent,
-        { ...owned, status: "claimed" },
-        "confirmation",
-      ),
-    ).toBe(true);
+    // `processed` is still held — the volunteer's mark must not block the family.
+    for (const status of ["claimed", "processed"] as const) {
+      expect(
+        canUploadApplicationFile(parent, { ...owned, status }, "confirmation"),
+      ).toBe(true);
+    }
     // Nothing to confirm before a claim, and nothing to add after it is done.
     for (const status of [
       "approved",
@@ -557,7 +557,7 @@ describe("canReopenApplication", () => {
   // A volunteer is holding that child — or has already bought the gift. The
   // claim is released first, as its own deliberate step.
   it("refuses an application a volunteer is acting on", () => {
-    for (const status of ["claimed", "fulfilled"] as const) {
+    for (const status of ["claimed", "processed", "fulfilled"] as const) {
       expect(canReopenApplication(admin, { status })).toBe(false);
     }
   });
@@ -573,6 +573,29 @@ describe("canReopenApplication", () => {
   it("refuses every non-admin", () => {
     for (const actor of [parent, otherParent, volunteer, null]) {
       expect(canReopenApplication(actor, { status: "rejected" })).toBe(false);
+    }
+  });
+});
+
+// Confirming receipt works whether or not the volunteer marked it processed:
+// the mark is optional, and a parent never sees it.
+describe("getConfirmBlockReason", () => {
+  const owned = { parentId: "p1" };
+  const withPhoto = { hasConfirmationPhoto: true };
+
+  it("allows the owning parent while a volunteer holds the child", () => {
+    for (const status of ["claimed", "processed"] as const) {
+      expect(
+        getConfirmBlockReason(parent, { ...owned, status }, withPhoto),
+      ).toBeNull();
+    }
+  });
+
+  it("refuses before a claim and after fulfilment", () => {
+    for (const status of ["approved", "fulfilled"] as const) {
+      expect(
+        getConfirmBlockReason(parent, { ...owned, status }, withPhoto),
+      ).toBe("not_claimed");
     }
   });
 });

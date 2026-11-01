@@ -7,8 +7,8 @@ vi.mock("next-intl/server", async () =>
 );
 
 import messages from "../../../../messages/uk.json";
-import type { ApplicationStatus } from "@/db/enums";
 import type { ApplicationsQuery } from "@/features/applications/applicationTabs";
+import type { ParentApplicationStatus } from "@/features/applications/mappers";
 import type { MyApplicationRow } from "@/features/applications/queries";
 import { formats, locale, timeZone } from "@/i18n/config";
 import { axe } from "@/test/axe";
@@ -18,7 +18,7 @@ import { ApplicationsTable } from "../ApplicationsTable";
 const t = messages.parent.applications;
 
 function row(
-  status: ApplicationStatus,
+  status: ParentApplicationStatus,
   overrides: Partial<MyApplicationRow> = {},
 ): MyApplicationRow {
   return {
@@ -218,9 +218,12 @@ describe("ApplicationsTable content", () => {
         ] as const
       ).map((status) => row(status)),
     );
-    for (const label of Object.values(t.status)) {
+    // `processed` is not a parent-facing status (they see it as `claimed`).
+    const { processed, ...parentFacing } = t.status;
+    for (const label of Object.values(parentFacing)) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
+    expect(screen.queryByText(processed)).not.toBeInTheDocument();
   });
 
   it("says when it was submitted, and that a draft has not been", async () => {

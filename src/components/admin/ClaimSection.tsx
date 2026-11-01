@@ -1,6 +1,7 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import { isHeldStatus } from "@/db/enums";
 import { getClaimHolder, searchVolunteers } from "@/features/claims/queries";
 import { resolveUserContact } from "@/features/users/contact";
 
@@ -29,7 +30,7 @@ export async function ClaimSection({
 
   // Only an approved or already-claimed application can be assigned — the same
   // states the write path accepts.
-  const assignable = status === "approved" || status === "claimed";
+  const assignable = status === "approved" || isHeldStatus(status);
 
   const base = `/admin/applications/${applicationId}`;
   // Every control here returns to THIS section rather than the top of a long

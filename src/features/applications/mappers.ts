@@ -1,6 +1,17 @@
+import type { ApplicationStatus } from "@/db/enums";
 import type { applications } from "@/db/schema";
 
 type Application = typeof applications.$inferSelect;
+
+// A status as the PARENT sees it. `processed` is the volunteer's own mark
+// (Vital: volunteer and admin only), so a parent reads it as `claimed`.
+export type ParentApplicationStatus = Exclude<ApplicationStatus, "processed">;
+
+export function toParentStatus(
+  status: ApplicationStatus,
+): ParentApplicationStatus {
+  return status === "processed" ? "claimed" : status;
+}
 
 // Browse-card projection: the ONLY child fields a volunteer may see before
 // claiming (guardrail). Sensitive fields are dropped here at the data layer, so

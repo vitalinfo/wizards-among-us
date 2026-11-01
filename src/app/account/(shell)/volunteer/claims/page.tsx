@@ -4,10 +4,18 @@ import { redirect } from "next/navigation";
 
 import { ctaVariants } from "@/components/ui/ctaStyles";
 import { ListPager } from "@/components/ui/ListPager";
+import { ClaimDialogModal } from "@/components/volunteer/ClaimDialogModal";
 import { ClaimsTable } from "@/components/volunteer/ClaimsTable";
 import { ClaimTabs } from "@/components/volunteer/ClaimTabs";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
-import { claimsHref, parseClaimsQuery } from "@/features/claims/claimTabs";
+import { getApplicationForFileAccess } from "@/features/applications/queries";
+import { canToggleProcessed } from "@/features/claims/authz";
+import {
+  claimsHref,
+  parseClaimDialog,
+  parseClaimsQuery,
+  type ClaimDialog,
+} from "@/features/claims/claimTabs";
 import { countMyClaims, listMyClaims } from "@/features/claims/queries";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
@@ -27,7 +35,13 @@ export const dynamic = "force-dynamic";
 export default async function MyClaimsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; page?: string; per?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    page?: string;
+    per?: string;
+    dialog?: string;
+    id?: string;
+  }>;
 }) {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
@@ -35,7 +49,8 @@ export default async function MyClaimsPage({
   }
 
   const t = await getTranslations("volunteer.claims");
-  const query = parseClaimsQuery(await searchParams);
+  const params = await searchParams;
+  const query = parseClaimsQuery(params);
   const campaign = await getActiveCampaignForIntake();
 
   const total = campaign
@@ -61,52 +76,93 @@ export default async function MyClaimsPage({
         })
       : [];
 
-  return (
-    <div className="pt-10 pb-10 lg:pt-11">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-xl leading-5 font-semibold tracking-[-0.03em]">
-          {t("title")}
-        </h1>
-        <p className="text-muted-foreground max-w-[839px] text-base leading-5 tracking-[-0.03em]">
-          {t("intro")}
-        </p>
-      </div>
+  const requested = parseClaimDialog(params);
+  const dialog = requested ? await loadDialog(actor, requested) : null;
+  const view = { ...query, page };
 
-      {/* No tabs for someone who holds nobody — there is nothing to filter,
+  return (
+    <>
+      {/* inert while a dialog is up: Tab must not walk into the list under
+          it. The header and sidebar are outside this page — InertOutside, in
+          the dialog, covers those. */}
+      <div className="pt-10 pb-10 lg:pt-11" inert={dialog !== null}>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-xl leading-5 font-semibold tracking-[-0.03em]">
+            {t("title")}
+          </h1>
+          <p className="text-muted-foreground max-w-[839px] text-base leading-5 tracking-[-0.03em]">
+            {t("intro")}
+          </p>
+        </div>
+
+        {/* No tabs for someone who holds nobody — there is nothing to filter,
           and the design draws the empty cabinet without them. They DO stay up
           when only one tab is empty: «Завершені» being empty is an answer, and
           losing the control that got you there would leave no way back to
           «Всі». */}
-      {holdsAny ? (
-        <div className="mt-10">
-          <ClaimTabs current={query.tab} per={per} />
-        </div>
-      ) : null}
-
-      {rows.length === 0 ? (
-        <Empty tab={query.tab} />
-      ) : (
-        <>
-          <div className="mt-8">
-            <ClaimsTable rows={rows} />
+        {holdsAny ? (
+          <div className="mt-10">
+            <ClaimTabs current={query.tab} per={per} />
           </div>
-          <ListPager
-            label={t("pager.label")}
-            page={page}
-            pageCount={pageCount}
-            total={total}
-            from={(page - 1) * per + 1}
-            to={(page - 1) * per + rows.length}
-            per={per}
-            hrefFor={(target) =>
-              claimsHref({ tab: query.tab, page: target, per })
-            }
-            sizeHref={(size) => claimsHref({ tab: query.tab, per: size })}
-          />
-        </>
-      )}
-    </div>
+        ) : null}
+
+        {rows.length === 0 ? (
+          <Empty tab={query.tab} />
+        ) : (
+          <>
+            <div className="mt-8">
+              <ClaimsTable rows={rows} query={view} />
+            </div>
+            <ListPager
+              label={t("pager.label")}
+              page={page}
+              pageCount={pageCount}
+              total={total}
+              from={(page - 1) * per + 1}
+              to={(page - 1) * per + rows.length}
+              per={per}
+              hrefFor={(target) =>
+                claimsHref({ tab: query.tab, page: target, per })
+              }
+              sizeHref={(size) => claimsHref({ tab: query.tab, per: size })}
+            />
+          </>
+        )}
+      </div>
+
+      {dialog ? (
+        <ClaimDialogModal
+          dialog={dialog.dialog}
+          applicationId={dialog.applicationId}
+          childName={dialog.childName ?? t("noName")}
+          view={view}
+        />
+      ) : null}
+    </>
   );
+}
+
+// The confirmation opens only when the action behind it would be allowed: the
+// volunteer holds this child, and its status is the one the dialog moves from.
+// Anything else — a stale or hand-edited url — opens nothing.
+async function loadDialog(
+  actor: Parameters<typeof canToggleProcessed>[0],
+  requested: { dialog: ClaimDialog; id: string },
+) {
+  const context = await getApplicationForFileAccess(requested.id);
+  if (
+    !context ||
+    !canToggleProcessed(actor, context.application, context.claim) ||
+    context.application.status !==
+      (requested.dialog === "process" ? "claimed" : "processed")
+  ) {
+    return null;
+  }
+  return {
+    dialog: requested.dialog,
+    applicationId: requested.id,
+    childName: context.application.childName,
+  };
 }
 
 // «Ваші підопічні ще попереду» — and a different sentence when it is a TAB that

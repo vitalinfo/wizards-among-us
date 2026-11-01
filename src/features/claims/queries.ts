@@ -12,7 +12,7 @@ import {
 } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import type { UkraineRegion } from "@/db/enums";
+import { HELD_STATUSES, type UkraineRegion } from "@/db/enums";
 import {
   applicationFiles,
   applications,
@@ -194,11 +194,12 @@ async function writeClaim(
       return "taken";
     }
 
-    // An admin may assign a child whose application is already `claimed` (that
-    // is a reassignment), so both states are acceptable targets. The guard
-    // still excludes draft/submitted/rejected/fulfilled.
+    // An admin may assign a child who is already held (that is a
+    // reassignment), so those states are acceptable targets too — and a
+    // `processed` mark is the previous volunteer's, so it goes back to
+    // `claimed`. The guard still excludes draft/submitted/rejected/fulfilled.
     const claimable = takeover
-      ? inArray(applications.status, ["approved", "claimed"])
+      ? inArray(applications.status, ["approved", ...HELD_STATUSES])
       : eq(applications.status, "approved");
 
     const updated = await tx
@@ -248,15 +249,15 @@ export async function releaseClaim(applicationId: string): Promise<boolean> {
     if (released.length === 0) {
       return false;
     }
-    // Back into the pool. Guarded on `claimed` so a fulfilled application is
-    // never dragged backwards by a release.
+    // Back into the pool. Guarded on the held statuses so a fulfilled
+    // application is never dragged backwards by a release.
     await tx
       .update(applications)
       .set({ status: "approved" })
       .where(
         and(
           eq(applications.id, applicationId),
-          eq(applications.status, "claimed"),
+          inArray(applications.status, [...HELD_STATUSES]),
         ),
       );
     return true;
@@ -282,8 +283,9 @@ export type MyClaimRow = {
   // boy, which is the first thing on the row that is not text.
   childGender: Application["childGender"];
   campaignTitle: string;
-  // `claimed` while the gift is on its way, `fulfilled` once the family has
-  // confirmed it arrived. Nothing else can be here: a claim only exists on an
+  // `claimed` while the gift is on its way (`processed` once the volunteer has
+  // marked it so), `fulfilled` once the family has confirmed it arrived.
+  // Nothing else can be here: a claim only exists on an
   // application that was approved, and releasing one puts it back to approved
   // while clearing the claim.
   status: Application["status"];
@@ -291,10 +293,10 @@ export type MyClaimRow = {
 };
 
 // `claimed` is «Допомога триває», `fulfilled` is «Допомогу завершено» — the two
-// tabs, and the two states the design draws.
+// tabs, and the two states the design draws. `processed` is still active help.
 const TAB_STATUSES: Record<ClaimTab, readonly Application["status"][]> = {
-  all: ["claimed", "fulfilled"],
-  active: ["claimed"],
+  all: [...HELD_STATUSES, "fulfilled"],
+  active: HELD_STATUSES,
   completed: ["fulfilled"],
 };
 
@@ -351,6 +353,34 @@ export async function listMyClaims(
       .limit(page.limit)
       .offset(page.offset)
   );
+}
+
+// Set or take off the volunteer's optional `processed` mark: claimed →
+// processed, or back. Guarded in SQL on the starting status AND on this
+// volunteer's own active claim, so a stale tab cannot move a fulfilled or
+// released child, and nobody can mark a child they do not hold.
+export async function setClaimProcessed(
+  volunteerId: string,
+  applicationId: string,
+  processed: boolean,
+): Promise<boolean> {
+  const rows = await getDb()
+    .update(applications)
+    .set({ status: processed ? "processed" : "claimed" })
+    .where(
+      and(
+        eq(applications.id, applicationId),
+        eq(applications.status, processed ? "claimed" : "processed"),
+        sql`exists (
+          select 1 from ${claims}
+          where ${claims.applicationId} = ${applications.id}
+            and ${claims.volunteerId} = ${volunteerId}
+            and ${claims.releasedAt} is null
+        )`,
+      ),
+    )
+    .returning({ id: applications.id });
+  return rows.length > 0;
 }
 
 // One child this volunteer holds, with the sensitive set — current town,

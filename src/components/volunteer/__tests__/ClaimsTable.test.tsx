@@ -37,7 +37,10 @@ const rows: MyClaimRow[] = [
 ];
 
 async function renderTable(list: MyClaimRow[] = rows) {
-  const ui = await ClaimsTable({ rows: list });
+  const ui = await ClaimsTable({
+    rows: list,
+    query: { tab: "active", page: 2, per: 10 },
+  });
   return render(
     <NextIntlClientProvider locale={locale} messages={messages}>
       {ui}
@@ -119,6 +122,54 @@ describe("ClaimsTable", () => {
     ]);
 
     expect(screen.getAllByText(t.noName)).toHaveLength(2);
+  });
+
+  // The optional mark: offered on a claimed child, taken off a processed one,
+  // never on a fulfilled one. Named with the child, like the details link, and
+  // each opens its confirmation over the same view of the list.
+  it("offers the processed mark on claimed rows and its undo on processed rows", async () => {
+    await renderTable([
+      rows[0]!,
+      {
+        ...rows[0]!,
+        applicationId: "a3",
+        childName: "Олег",
+        status: "processed",
+      },
+      rows[1]!,
+    ]);
+
+    const mark = screen.getAllByRole("link", {
+      name: t.markProcessedFor.replace("{name}", "Софійка"),
+    });
+    expect(mark).toHaveLength(2);
+    for (const link of mark) {
+      expect(link).toHaveAttribute(
+        "href",
+        "/account/volunteer/claims?tab=active&page=2&dialog=process&id=a1",
+      );
+    }
+    const unmark = screen.getAllByRole("link", {
+      name: t.unmarkProcessedFor.replace("{name}", "Олег"),
+    });
+    expect(unmark).toHaveLength(2);
+    for (const link of unmark) {
+      expect(link).toHaveAttribute(
+        "href",
+        "/account/volunteer/claims?tab=active&page=2&dialog=unprocess&id=a3",
+      );
+    }
+    expect(screen.getAllByText(t.state.processed)).toHaveLength(2);
+    expect(
+      screen.queryByRole("link", {
+        name: t.markProcessedFor.replace("{name}", "Максим"),
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", {
+        name: t.unmarkProcessedFor.replace("{name}", "Максим"),
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("has no accessibility violations", async () => {

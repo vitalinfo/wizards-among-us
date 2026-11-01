@@ -105,13 +105,21 @@ describe("dialogs", () => {
 describe("tab statuses", () => {
   it("«Всі» lists every status; each other tab lists only its own", () => {
     expect([...tabStatuses("all")]).toEqual([...APPLICATION_STATUSES]);
-    for (const status of APPLICATION_STATUSES) {
+    for (const status of APPLICATION_STATUSES.filter((s) => s !== "claimed")) {
       expect(tabStatuses(status)).toEqual([status]);
     }
   });
 
-  it("has a tab for every status, in the order an application moves", () => {
-    expect(APPLICATION_TABS).toEqual(["all", ...APPLICATION_STATUSES]);
+  // A parent sees `processed` as `claimed`, so that tab lists both.
+  it("«Чарівник знайшовся» also lists processed", () => {
+    expect(tabStatuses("claimed")).toEqual(["claimed", "processed"]);
+  });
+
+  it("has a tab for every parent-facing status, in the order an application moves", () => {
+    expect(APPLICATION_TABS).toEqual([
+      "all",
+      ...APPLICATION_STATUSES.filter((s) => s !== "processed"),
+    ]);
   });
 });
 

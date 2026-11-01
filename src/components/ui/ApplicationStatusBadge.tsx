@@ -13,6 +13,7 @@ const TONE: Record<Status, string> = {
   approved: "bg-primary/10 text-primary border-primary/30",
   rejected: "bg-surface-muted text-body border-border",
   claimed: "bg-primary/10 text-primary border-primary/30",
+  processed: "bg-primary/10 text-primary border-primary/30",
   fulfilled: "bg-primary/10 text-primary border-primary/30",
 };
 
