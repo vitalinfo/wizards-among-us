@@ -69,7 +69,16 @@ export async function GET(
     targetId: applicationId,
   });
 
-  return new NextResponse(object.Body.transformToWebStream(), {
+  // Buffered, not streamed: when the browser aborts mid-download, Node's
+  // stream-to-web bridge keeps writing into the cancelled stream and throws
+  // "Controller is already closed" as an uncaught exception. Uploads are
+  // capped at MAX_UPLOAD_BYTES, so holding one in memory is cheap.
+  // The SDK types this as possibly SharedArrayBuffer-backed, which BodyInit
+  // rejects; it allocates a plain ArrayBuffer.
+  const bytes =
+    (await object.Body.transformToByteArray()) as Uint8Array<ArrayBuffer>;
+
+  return new NextResponse(bytes, {
     headers: {
       "Content-Type": file.contentType,
       "Content-Length": String(file.sizeBytes),
