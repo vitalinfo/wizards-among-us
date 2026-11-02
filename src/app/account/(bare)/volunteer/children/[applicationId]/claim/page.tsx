@@ -6,6 +6,8 @@ import { claimAction } from "@/app/volunteer/actions";
 import { ClaimBriefing } from "@/components/volunteer/claimBriefing";
 import { getApplicationForFileAccess } from "@/features/applications/queries";
 import { getCampaignById } from "@/features/campaigns/queries";
+import { isHeldByAnother } from "@/features/claims/authz";
+import { claimTakenHref } from "@/features/claims/browseFilters";
 import { getActiveClaim } from "@/features/claims/queries";
 import { getUserContact } from "@/features/users/queries";
 import { isContactable } from "@/features/users/contact";
@@ -60,11 +62,23 @@ export default async function ClaimBriefingPage({
   }
 
   const context = await getApplicationForFileAccess(applicationId);
-  // `browsable` is the same test the card list uses — approved or claimed, in
-  // the active campaign — so a link to a draft, a rejected application or last
-  // year's child leads nowhere rather than to a briefing about it.
-  if (!context || !context.browsable) {
+  if (!context) {
     redirect(backHref);
+  }
+  const campaign = await getCampaignById(context.application.campaignId);
+  // `browsable` is the same test the card list uses — approved, in the active
+  // campaign — so a link to a draft, a rejected application or last year's
+  // child leads nowhere rather than to a briefing about it.
+  //
+  // The one exception that is SAID: a child another volunteer claimed after
+  // this volunteer's list was drawn. Their card was still on screen, so a
+  // silent bounce back to the list looked like the click did nothing.
+  if (!context.browsable) {
+    redirect(
+      campaign?.status === "active" && isHeldByAnother(actor.id, context.claim)
+        ? claimTakenHref(backHref)
+        : backHref,
+    );
   }
 
   const claim = await getActiveClaim(applicationId);
@@ -82,7 +96,6 @@ export default async function ClaimBriefingPage({
     );
   }
 
-  const campaign = await getCampaignById(context.application.campaignId);
   const format = await getFormatter();
 
   return (

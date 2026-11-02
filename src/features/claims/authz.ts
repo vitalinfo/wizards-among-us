@@ -10,6 +10,15 @@ export function isClaimed(
   return !!claim && claim.releasedAt === null;
 }
 
+// Held right now by a volunteer other than this one — what someone lands on
+// when they open a card from a list drawn before another volunteer claimed it.
+export function isHeldByAnother(
+  userId: string,
+  claim: Pick<Claim, "volunteerId" | "releasedAt"> | null | undefined,
+): boolean {
+  return !!claim && isClaimed(claim) && claim.volunteerId !== userId;
+}
+
 // Why a claim can be refused. Returned instead of a bare false so the UI can
 // say which gate failed — mirrors getSubmitBlockReason on the parent side.
 export type ClaimBlockReason =

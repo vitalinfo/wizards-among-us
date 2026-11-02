@@ -24,6 +24,7 @@ import { getSessionActor } from "@/lib/auth/session";
 import { isUser } from "@/lib/actor";
 import type { VolunteerActionState } from "@/features/claims/formState";
 import { claimsHref, type ClaimsQuery } from "@/features/claims/claimTabs";
+import { claimTakenHref } from "@/features/claims/browseFilters";
 
 // Opt in as a volunteer. Self-serve (Phase 6 decision) — nothing else grants
 // the role, and canBrowseChildren requires it.
@@ -112,6 +113,11 @@ export async function claimAction(
     // family must be able to reach them.
     redirect(`/account/volunteer/contact?next=${encodeURIComponent(returnTo)}`);
   }
+  // Taken between the briefing opening and this post — say so on the list,
+  // the same as losing the race below.
+  if (blocked === "not_available") {
+    redirect(claimTakenHref(returnTo));
+  }
   if (blocked) {
     redirect(safeReturnPath(returnTo));
   }
@@ -129,7 +135,7 @@ export async function claimAction(
   redirect(
     outcome === "claimed"
       ? "/account/volunteer/claims"
-      : safeReturnPath(returnTo),
+      : claimTakenHref(returnTo),
   );
 }
 
