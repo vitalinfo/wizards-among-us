@@ -133,8 +133,9 @@ export const CLAIM_VISIBLE_KINDS = [
 ] as const satisfies readonly FileKind[];
 
 // The newest file of each requested kind, in the order the kinds were asked
-// for. Nothing stops a parent uploading twice without removing the first (see
-// listApplicationFiles), and the newest is always the one they meant.
+// for. An upload now replaces the previous file of its kind
+// (recordApplicationFile), but the schema does not forbid two, and rows from
+// before that fix exist — the newest is always the one the parent meant.
 export function latestByKind<T extends { kind: string }>(
   files: readonly T[],
   kinds: readonly FileKind[],
