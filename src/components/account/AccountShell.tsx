@@ -7,6 +7,7 @@ import { CloseIcon, ExitIcon, MenuIcon, SignOutIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
 import { SiteLogo } from "@/components/site/SiteLogo";
 import { MenuDetails } from "@/components/ui/MenuDetails";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/utils";
 
 import { AccountNav, type Cabinet } from "./AccountNav";
@@ -34,11 +35,14 @@ export function AccountShell({
   const t = useTranslations("account");
   const tCommon = useTranslations("common");
 
+  // Below and flush right: the button is in the page's top-right corner.
   const signOut = (
     <form action={logout}>
-      <button type="submit" aria-label={tCommon("signOut")} className={ROUND}>
-        <SignOutIcon className="size-5 lg:size-6" />
-      </button>
+      <Tooltip label={tCommon("signOut")} side="bottom" align="end">
+        <button type="submit" aria-label={tCommon("signOut")} className={ROUND}>
+          <SignOutIcon className="size-5 lg:size-6" />
+        </button>
+      </Tooltip>
     </form>
   );
 

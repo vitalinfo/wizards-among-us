@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { CloseIcon } from "@/components/icons";
 
 import { InertOutside } from "./InertOutside";
+import { Tooltip } from "./Tooltip";
 
 // The cabinet's modal (Figma 142:5726): a 530px card over a blurred scrim on
 // desktop, a full-screen sheet on a phone.
@@ -50,14 +51,19 @@ export function Modal({
         className="bg-surface relative min-h-full px-4 pt-[88px] pb-10 focus:outline-none lg:min-h-0 lg:w-full lg:max-w-[530px] lg:rounded-xl lg:p-[50px]"
       >
         {/* Where the menu toggle sits on a phone (it is covered), and 24px in
-            from the card's corner on desktop. */}
-        <Link
-          href={closeHref}
-          aria-label={closeLabel}
-          className="text-muted-foreground hover:text-foreground focus-visible:outline-ring absolute top-[26px] right-4 inline-flex size-10 items-center justify-center rounded transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:top-4 lg:right-4"
-        >
-          <CloseIcon className="size-6" />
-        </Link>
+            from the card's corner on desktop. Positioned by its own box: the
+            tooltip's is relative, the anchor its bubble hangs from. */}
+        <span className="absolute top-[26px] right-4 lg:top-4 lg:right-4">
+          <Tooltip label={closeLabel} side="bottom" align="end">
+            <Link
+              href={closeHref}
+              aria-label={closeLabel}
+              className="text-muted-foreground hover:text-foreground focus-visible:outline-ring inline-flex size-10 items-center justify-center rounded transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              <CloseIcon className="size-6" />
+            </Link>
+          </Tooltip>
+        </span>
 
         <h2
           id="modal-title"
