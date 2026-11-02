@@ -144,19 +144,3 @@ export function latestByKind<T extends { kind: string }>(
     .map((kind) => files.findLast((file) => file.kind === kind))
     .filter((file): file is T => file !== undefined);
 }
-
-// The rows latestByKind passes over: every file of an application that a
-// newer file of the same kind replaced. Before uploads replaced (see
-// recordApplicationFile) each «Замінити» added one; nothing shows them except
-// the admin page, and photos:dedupe removes them. `files` oldest first, as
-// listApplicationFiles orders them.
-export function supersededFiles<
-  T extends { applicationId: string; kind: string },
->(files: readonly T[]): T[] {
-  const newest = new Map<string, T>();
-  for (const file of files) {
-    newest.set(`${file.applicationId}:${file.kind}`, file);
-  }
-  const kept = new Set(newest.values());
-  return files.filter((file) => !kept.has(file));
-}
