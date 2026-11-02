@@ -559,13 +559,24 @@ because the last cannot be undone:
 ```bash
 pnpm photos:normalize                              # dry run — reads, changes nothing
 pnpm photos:normalize --apply                      # new objects + rows; originals KEPT,
-                                                   # their keys saved to a file it names
-pnpm photos:normalize --delete-originals <file>    # after looking: removes the originals
+                                                   # their keys saved to a list it names
+pnpm photos:normalize --delete-originals <list>    # after looking: removes the originals
 ```
 
-It uses whatever `DATABASE_URL` / `S3_*` the shell has (`.env.local` otherwise). It runs on
-`tsx`, a dev dependency Heroku prunes, so run it from a checkout with the target app's config
-vars exported — choosing staging or production is a command-line decision, never a default.
+`--only <file id>` limits a run to one photo. The list is stored in the target's own bucket
+(`maintenance/photo-originals/…`), and the script prints the database host and bucket before
+it does anything.
+
+It runs from a checkout, not on a dyno (`tsx` is a dev dependency, which Heroku prunes). It
+reads `DATABASE_URL` and `S3_*` (`ENDPOINT`, `BUCKET`, `ACCESS_KEY_ID`, `SECRET_ACCESS_KEY`,
+`REGION`) from the shell and fills anything unset from `.env.local` — so pass **all** of the
+target's, never some. For one command against staging:
+
+```bash
+env $(heroku config -s -a wau-staging | grep -E '^(DATABASE_URL|S3_[A-Z_]+)=' | tr -d "'") pnpm photos:normalize
+```
+
+Swap the app for production, and append `--apply` or `--delete-originals <list>` as above.
 
 ### Project layout & scripts (Phase 0)
 

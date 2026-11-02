@@ -1,6 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { loadEnvConfig } from "@next/env";
@@ -36,38 +34,60 @@ import {
 //                                          and moves its row there (guarded on
 //                                          the old key, like the rotate route);
 //                                          the originals stay, and their keys
-//                                          are saved to a file it names
-//   pnpm photos:normalize --delete-originals <that file>
+//                                          are saved to a list it names
+//   pnpm photos:normalize --delete-originals <that list>
 //                                          once the photos have been looked
 //                                          at: deletes the originals — only
 //                                          those no row points at any more
 //
-// It uses whatever DATABASE_URL and S3_* the environment has (.env.local when
-// unset), so pointing it at staging or production is a choice made on the
-// command line, never a default. Not audit-logged: audit_logs has no actor
-// for "a script", and no person's view of a child's data is involved.
+// Add `--only <file id>` to any of the first two to work on one photo.
 //
-// The output names files by the first 8 characters of their id. It does not
-// print storage keys (they carry the application id) except into the
-// originals file, which exists to be fed back to this script.
+// Run from a checkout, not on a dyno: it needs tsx, a dev dependency Heroku
+// prunes (and that stays a dev dependency). To target another environment,
+// pass that app's DATABASE_URL and S3_* for the one command (README,
+// "Uploaded photos"). Anything left unset falls back to .env.local, so pass
+// ALL of them or none — half staging, half dev is how a run would write dev
+// objects for staging rows. It prints the database host and bucket before
+// touching anything.
+//
+// The originals list lives in the target's BUCKET (under ORIGINALS_PREFIX),
+// not on the machine that ran it: it belongs to that environment, and step
+// three can then only ever be fed a list from the bucket it deletes from.
+//
+// Not audit-logged: audit_logs has no actor for "a script", and no person's
+// view of a child's data is involved. The output names files by the first 8
+// characters of their id, never by storage key (it carries the application
+// id) — the keys go only into the originals list.
 loadEnvConfig(process.cwd());
 
+const ORIGINALS_PREFIX = "maintenance/photo-originals/";
+
 async function main() {
+  printTarget();
   const args = process.argv.slice(2);
   const deleteIndex = args.indexOf("--delete-originals");
   if (deleteIndex !== -1) {
-    const file = args[deleteIndex + 1];
-    if (!file) {
-      throw new Error("--delete-originals needs the file --apply wrote");
+    const list = args[deleteIndex + 1];
+    if (!list?.startsWith(ORIGINALS_PREFIX) && !(list && existsSync(list))) {
+      throw new Error(
+        `--delete-originals needs the list --apply named (${ORIGINALS_PREFIX}…, or a local file from an earlier run)`,
+      );
     }
-    await deleteOriginals(file);
+    await deleteOriginals(list);
     return;
   }
-  await normalizeAll(args.includes("--apply"));
+  // `--only <id>`: one file (an id or its first characters, as printed) —
+  // to try a single photo on an environment before all of them.
+  const onlyIndex = args.indexOf("--only");
+  const only = onlyIndex === -1 ? undefined : args[onlyIndex + 1];
+  if (onlyIndex !== -1 && !only) {
+    throw new Error("--only needs a file id");
+  }
+  await normalizeAll(args.includes("--apply"), only);
 }
 
-async function normalizeAll(apply: boolean) {
-  const rows = await getDb()
+async function normalizeAll(apply: boolean, only: string | undefined) {
+  const all = await getDb()
     .select({
       id: applicationFiles.id,
       applicationId: applicationFiles.applicationId,
@@ -76,6 +96,7 @@ async function normalizeAll(apply: boolean) {
     })
     .from(applicationFiles)
     .orderBy(asc(applicationFiles.createdAt));
+  const rows = only ? all.filter((row) => row.id.startsWith(only)) : all;
 
   console.log(
     `${apply ? "APPLYING" : "DRY RUN — nothing will change"}: ${rows.length} stored photos\n`,
@@ -84,112 +105,137 @@ async function normalizeAll(apply: boolean) {
   const originals: string[] = [];
   const counts = { rewrite: 0, already_normalized: 0, failed: 0, conflict: 0 };
 
-  for (const [index, row] of rows.entries()) {
-    const label = `${String(index + 1).padStart(3)}/${rows.length} ${row.id.slice(0, 8)} ${row.kind.padEnd(23)}`;
-    try {
-      const object = await getStorage().send(
-        new GetObjectCommand({ Bucket: storageBucket(), Key: row.storageKey }),
-      );
-      if (!object.Body) {
-        throw new Error("object has no body");
-      }
-      const bytes = await object.Body.transformToByteArray();
-      const before = await factsOf(bytes);
+  // Saved however the loop ends: if the run dies halfway, the originals
+  // already replaced still have to be findable.
+  try {
+    for (const [index, row] of rows.entries()) {
+      const label = `${String(index + 1).padStart(3)}/${rows.length} ${row.id.slice(0, 8)} ${row.kind.padEnd(23)}`;
+      try {
+        const object = await getStorage().send(
+          new GetObjectCommand({
+            Bucket: storageBucket(),
+            Key: row.storageKey,
+          }),
+        );
+        if (!object.Body) {
+          throw new Error("object has no body");
+        }
+        const bytes = await object.Body.transformToByteArray();
+        const before = await factsOf(bytes);
 
-      const photo = await normalizePhoto(bytes, {
-        detectTurn: true,
-      });
-      if (!photo.ok) {
-        // A HEIC from before HEIC was refused lands here: sharp cannot read it.
+        const photo = await normalizePhoto(bytes, {
+          detectTurn: true,
+        });
+        if (!photo.ok) {
+          // A HEIC from before HEIC was refused lands here: sharp cannot read it.
+          counts.failed += 1;
+          console.log(
+            `${label} ${describe(before, bytes)}  FAILED: ${photo.reason}`,
+          );
+          continue;
+        }
+
+        const turn = photo.orientation
+          ? ` text: ${photo.orientation.turn}° (${photo.orientation.confidence.toFixed(1)})${photo.orientation.applied ? " applied" : ""}`
+          : "";
+        const decision = before
+          ? decideStoredPhoto(before, photo.orientation?.applied ?? false)
+          : "rewrite";
+        if (decision === "already_normalized") {
+          counts.already_normalized += 1;
+          console.log(`${label} ${describe(before, bytes)}  ok as is${turn}`);
+          continue;
+        }
+
+        const after = await factsOf(photo.bytes);
+        console.log(
+          `${label} ${describe(before, bytes)}  → ${describe(after, photo.bytes)}${turn}`,
+        );
+        counts.rewrite += 1;
+        if (!apply) {
+          continue;
+        }
+
+        const storageKey = fileObjectKey(
+          row.applicationId,
+          row.kind,
+          extensionFor(photo.contentType),
+        );
+        await getStorage().send(
+          new PutObjectCommand({
+            Bucket: storageBucket(),
+            Key: storageKey,
+            Body: photo.bytes,
+            ContentType: photo.contentType,
+          }),
+        );
+        const moved = await replaceApplicationFileObject(
+          row.applicationId,
+          row.id,
+          row.storageKey,
+          {
+            storageKey,
+            contentType: photo.contentType,
+            sizeBytes: photo.bytes.byteLength,
+          },
+        );
+        if (!moved) {
+          // Turned, replaced or deleted while this ran: the row no longer
+          // points at what was read, so this result must not win.
+          await deleteStoredObjects([storageKey]);
+          counts.rewrite -= 1;
+          counts.conflict += 1;
+          console.log(`${label} changed while running — left as it is now`);
+          continue;
+        }
+        originals.push(row.storageKey);
+      } catch (error) {
         counts.failed += 1;
         console.log(
-          `${label} ${describe(before, bytes)}  FAILED: ${photo.reason}`,
+          `${label} FAILED: ${error instanceof Error ? error.message : String(error)}`,
         );
-        continue;
       }
-
-      const turn = photo.orientation
-        ? ` text: ${photo.orientation.turn}° (${photo.orientation.confidence.toFixed(1)})${photo.orientation.applied ? " applied" : ""}`
-        : "";
-      const decision = before
-        ? decideStoredPhoto(before, photo.orientation?.applied ?? false)
-        : "rewrite";
-      if (decision === "already_normalized") {
-        counts.already_normalized += 1;
-        console.log(`${label} ${describe(before, bytes)}  ok as is${turn}`);
-        continue;
-      }
-
-      const after = await factsOf(photo.bytes);
-      console.log(
-        `${label} ${describe(before, bytes)}  → ${describe(after, photo.bytes)}${turn}`,
-      );
-      counts.rewrite += 1;
-      if (!apply) {
-        continue;
-      }
-
-      const storageKey = fileObjectKey(
-        row.applicationId,
-        row.kind,
-        extensionFor(photo.contentType),
-      );
-      await getStorage().send(
-        new PutObjectCommand({
-          Bucket: storageBucket(),
-          Key: storageKey,
-          Body: photo.bytes,
-          ContentType: photo.contentType,
-        }),
-      );
-      const moved = await replaceApplicationFileObject(
-        row.applicationId,
-        row.id,
-        row.storageKey,
-        {
-          storageKey,
-          contentType: photo.contentType,
-          sizeBytes: photo.bytes.byteLength,
-        },
-      );
-      if (!moved) {
-        // Turned, replaced or deleted while this ran: the row no longer
-        // points at what was read, so this result must not win.
-        await deleteStoredObjects([storageKey]);
-        counts.rewrite -= 1;
-        counts.conflict += 1;
-        console.log(`${label} changed while running — left as it is now`);
-        continue;
-      }
-      originals.push(row.storageKey);
-    } catch (error) {
-      counts.failed += 1;
-      console.log(
-        `${label} FAILED: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    }
+  } finally {
+    if (originals.length > 0) {
+      await saveOriginals(originals);
     }
   }
 
   console.log(
     `\n${apply ? "Rewritten" : "Would rewrite"}: ${counts.rewrite} · already normalized: ${counts.already_normalized} · failed: ${counts.failed}${counts.conflict ? ` · changed while running: ${counts.conflict}` : ""}`,
   );
-
-  if (apply && originals.length > 0) {
-    const file = path.join(
-      os.tmpdir(),
-      `wau-photo-originals-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`,
-    );
-    writeFileSync(file, `${originals.join("\n")}\n`, { mode: 0o600 });
-    console.log(
-      `\nThe ${originals.length} originals are still in the bucket (with their GPS).` +
-        `\nLook at the photos, then remove them with:` +
-        `\n  pnpm photos:normalize --delete-originals ${file}`,
-    );
-  }
 }
 
-async function deleteOriginals(file: string) {
-  const keys = readFileSync(file, "utf8")
+async function saveOriginals(keys: string[]) {
+  const list = `${ORIGINALS_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.txt`;
+  await getStorage().send(
+    new PutObjectCommand({
+      Bucket: storageBucket(),
+      Key: list,
+      Body: `${keys.join("\n")}\n`,
+      ContentType: "text/plain; charset=utf-8",
+    }),
+  );
+  console.log(
+    `\nThe ${keys.length} originals are still in the bucket (with their GPS).` +
+      `\nLook at the photos, then remove them with:` +
+      `\n  pnpm photos:normalize --delete-originals ${list}`,
+  );
+}
+
+async function deleteOriginals(list: string) {
+  // In the bucket since the list moved there; a local file is what the first
+  // version of this script wrote (it is how the dev originals were listed).
+  const inBucket = list.startsWith(ORIGINALS_PREFIX);
+  const text = inBucket
+    ? ((await (
+        await getStorage().send(
+          new GetObjectCommand({ Bucket: storageBucket(), Key: list }),
+        )
+      ).Body?.transformToString()) ?? "")
+    : readFileSync(list, "utf8");
+  const keys = text
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
@@ -197,8 +243,7 @@ async function deleteOriginals(file: string) {
     console.log("Nothing listed.");
     return;
   }
-  // Never delete an object a row still points at — the file could be stale,
-  // or from another environment's run.
+  // Never delete an object a row still points at — the list could be stale.
   const stillUsed = new Set(
     (
       await getDb()
@@ -209,8 +254,23 @@ async function deleteOriginals(file: string) {
   );
   const orphaned = keys.filter((key) => !stillUsed.has(key));
   await deleteStoredObjects(orphaned);
+  if (inBucket && stillUsed.size === 0) {
+    // Done with: it named objects that no longer exist.
+    await deleteStoredObjects([list]);
+  }
   console.log(
-    `Deleted ${orphaned.length} originals.${stillUsed.size ? ` Kept ${stillUsed.size} that a row still uses.` : ""}`,
+    `Deleted ${orphaned.length} originals.${stillUsed.size ? ` Kept ${stillUsed.size} that a row still uses, and the list.` : ""}`,
+  );
+}
+
+// Which database and bucket this run is about to touch — the host only, never
+// a credential — so a wrong environment is visible before anything happens.
+function printTarget() {
+  const database = process.env.DATABASE_URL
+    ? new URL(process.env.DATABASE_URL).host
+    : "(DATABASE_URL not set)";
+  console.log(
+    `database: ${database}\nbucket:   ${process.env.S3_BUCKET ?? "(S3_BUCKET not set)"} at ${process.env.S3_ENDPOINT ? new URL(process.env.S3_ENDPOINT).host : "(S3_ENDPOINT not set)"}\n`,
   );
 }
 
