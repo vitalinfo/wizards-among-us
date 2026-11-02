@@ -13,12 +13,12 @@ export type ModerationRow = {
   id: string;
   childName: string | null;
   childAge: number | null;
-  currentRegion: Application["currentRegion"];
+  // Where the family left from («звідки виїхали»).
+  homeRegion: Application["homeRegion"];
   giftDescription: string | null;
   giftPrice: string | null;
   status: Application["status"];
   submittedAt: Date | null;
-  campaignTitle: string;
 };
 
 type ModerationFilterInput = {
@@ -76,15 +76,13 @@ export async function listForModeration(
         id: applications.id,
         childName: applications.childName,
         childAge: applications.childAge,
-        currentRegion: applications.currentRegion,
+        homeRegion: applications.homeRegion,
         giftDescription: applications.giftDescription,
         giftPrice: applications.giftPrice,
         status: applications.status,
         submittedAt: applications.submittedAt,
-        campaignTitle: campaigns.title,
       })
       .from(applications)
-      .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       // id is the tiebreaker: without a total order, two rows sharing a
       // submitted_at could swap between pages and one would never be seen.
