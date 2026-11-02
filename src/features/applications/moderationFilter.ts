@@ -55,9 +55,57 @@ export function moderationPageCount(total: number): number {
   return Math.max(1, Math.ceil(total / MODERATION_PAGE_SIZE));
 }
 
+// Which campaign the queue shows: one campaign's id, or "all".
+export type ModerationCampaign = string;
+
+// What the url's campaign is checked against. The default is the active
+// campaign, because that is the one whose applications are still moving; with
+// none active there is nothing to prefer, so the queue shows every campaign.
+export type ModerationCampaignScope = {
+  ids: readonly string[];
+  activeId: string | null;
+};
+
+const NO_CAMPAIGNS: ModerationCampaignScope = { ids: [], activeId: null };
+
+export function moderationCampaignScope(
+  campaigns: readonly { id: string; status: string }[],
+): ModerationCampaignScope {
+  return {
+    ids: campaigns.map((campaign) => campaign.id),
+    activeId: campaigns.find((c) => c.status === "active")?.id ?? null,
+  };
+}
+
+export function defaultModerationCampaign(
+  scope: ModerationCampaignScope,
+): ModerationCampaign {
+  return scope.activeId ?? "all";
+}
+
+// An id we don't know — a deleted campaign, a mangled link — falls back to the
+// default rather than to an empty queue that reads as "nothing to review".
+export function parseModerationCampaign(
+  value: string | undefined,
+  scope: ModerationCampaignScope = NO_CAMPAIGNS,
+): ModerationCampaign {
+  if (value === "all") {
+    return "all";
+  }
+  return value && scope.ids.includes(value)
+    ? value
+    : defaultModerationCampaign(scope);
+}
+
+// What to pass to the query: undefined means "no campaign constraint".
+export function campaignToId(campaign: ModerationCampaign): string | undefined {
+  return campaign === "all" ? undefined : campaign;
+}
+
 // Everything the queue is filtered by, parsed out of the url.
 export type ModerationQuery = {
   filter: ModerationFilter;
+  campaign: ModerationCampaign;
   // Calendar dates as YYYY-MM-DD, in Europe/Kyiv — the zone the whole app
   // renders in. Turned into instants at the query boundary (submittedRange), not
   // here: a date is not a point in time.
@@ -66,16 +114,21 @@ export type ModerationQuery = {
   page: number;
 };
 
-export function parseModerationQuery(params: {
-  status?: string;
-  from?: string;
-  to?: string;
-  page?: string;
-}): ModerationQuery {
+export function parseModerationQuery(
+  params: {
+    status?: string;
+    campaign?: string;
+    from?: string;
+    to?: string;
+    page?: string;
+  },
+  campaigns: ModerationCampaignScope = NO_CAMPAIGNS,
+): ModerationQuery {
   const from = parseDateOnly(params.from);
   const to = parseDateOnly(params.to);
   return {
     filter: parseModerationFilter(params.status),
+    campaign: parseModerationCampaign(params.campaign, campaigns),
     submittedFrom: from,
     // A backwards range returns nothing and reads as a bug in the page rather
     // than a typo in the form, so the later date wins and the range is dropped.
@@ -100,10 +153,12 @@ export function submittedRange(query: ModerationQuery): {
   };
 }
 
-// The queue url for a query. The status is spelled out rather than omitted so a
-// "back" link always returns to the view the admin left, even if the default
-// ever changes; everything else is omitted when unset, to keep the common url
-// clean and older links working.
+// The queue url for a query. The status and campaign are spelled out rather than
+// omitted so a "back" link always returns to the view the admin left, even if
+// the default changes — which, for the campaign, it does whenever another one
+// is activated. Everything else is omitted when unset, to keep the common url
+// clean and older links working. A bare filter carries no campaign, so the
+// queue it lands on picks the default.
 export function moderationQueueHref(
   query: ModerationQuery | ModerationFilter,
   page?: number,
@@ -118,11 +173,14 @@ export function moderationSearch(
   query: ModerationQuery | ModerationFilter,
   page?: number,
 ): string {
-  const q: ModerationQuery =
+  const q: Omit<ModerationQuery, "campaign"> & { campaign?: string } =
     typeof query === "string"
       ? { filter: query, submittedFrom: null, submittedTo: null, page: 1 }
       : query;
   const params = new URLSearchParams({ status: q.filter });
+  if (q.campaign) {
+    params.set("campaign", q.campaign);
+  }
   if (q.submittedFrom) {
     params.set("from", q.submittedFrom);
   }
@@ -138,9 +196,13 @@ export function moderationSearch(
 
 // Whether the admin has narrowed anything at all — drives whether a "reset"
 // control is worth showing.
-export function isDefaultModerationQuery(query: ModerationQuery): boolean {
+export function isDefaultModerationQuery(
+  query: ModerationQuery,
+  campaigns: ModerationCampaignScope = NO_CAMPAIGNS,
+): boolean {
   return (
     query.filter === DEFAULT_MODERATION_FILTER &&
+    query.campaign === defaultModerationCampaign(campaigns) &&
     query.submittedFrom === null &&
     query.submittedTo === null
   );

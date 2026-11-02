@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { moderationDecisionSchema } from "../moderation";
 import {
+  campaignToId,
   filterToStatus,
+  moderationCampaignScope,
   moderationPageCount,
   isDefaultModerationQuery,
   moderationQueueHref,
@@ -15,6 +17,12 @@ import {
 } from "../moderationFilter";
 
 const APPLICATION_ID = "11111111-2222-3333-4444-555555555555";
+const ACTIVE = "aaaaaaaa-0000-0000-0000-000000000001";
+const ARCHIVED = "aaaaaaaa-0000-0000-0000-000000000002";
+const scope = moderationCampaignScope([
+  { id: ACTIVE, status: "active" },
+  { id: ARCHIVED, status: "archived" },
+]);
 
 describe("moderationDecisionSchema", () => {
   it("approves without a note and drops any note that was typed", () => {
@@ -156,6 +164,7 @@ describe("parseModerationQuery", () => {
   it("defaults to the queue that needs an admin, with no date bounds", () => {
     expect(parseModerationQuery({})).toEqual({
       filter: "submitted",
+      campaign: "all",
       submittedFrom: null,
       submittedTo: null,
       page: 1,
@@ -172,6 +181,7 @@ describe("parseModerationQuery", () => {
       }),
     ).toEqual({
       filter: "approved",
+      campaign: "all",
       submittedFrom: "2026-08-25",
       submittedTo: "2026-09-01",
       page: 3,
@@ -234,12 +244,83 @@ describe("moderationSearch", () => {
     ).toEqual(query);
   });
 
-  it("omits what is unset", () => {
-    expect(moderationSearch(parseModerationQuery({}))).toBe("status=submitted");
+  it("round-trips a campaign", () => {
+    const query = parseModerationQuery({ campaign: ACTIVE }, scope);
+
+    expect(
+      parseModerationQuery(
+        Object.fromEntries(new URLSearchParams(moderationSearch(query))),
+        scope,
+      ),
+    ).toEqual(query);
+  });
+
+  // The campaign is spelled out like the status: the default moves whenever
+  // another campaign is activated, and "back" must not move with it.
+  it("spells out status and campaign, omits the rest when unset", () => {
+    expect(moderationSearch(parseModerationQuery({}))).toBe(
+      "status=submitted&campaign=all",
+    );
+    expect(moderationSearch(parseModerationQuery({}, scope))).toBe(
+      `status=submitted&campaign=${ACTIVE}`,
+    );
+  });
+
+  // A bare filter (the reset link) carries no campaign, so the queue picks
+  // whatever the default is when it is opened.
+  it("leaves the campaign to the default for a bare filter", () => {
+    expect(moderationSearch("submitted")).toBe("status=submitted");
+  });
+});
+
+describe("moderation campaign filter", () => {
+  it("defaults to the active campaign", () => {
+    expect(parseModerationQuery({}, scope).campaign).toBe(ACTIVE);
+  });
+
+  it("defaults to every campaign when none is active", () => {
+    const noneActive = moderationCampaignScope([
+      { id: ARCHIVED, status: "archived" },
+    ]);
+    expect(parseModerationQuery({}, noneActive).campaign).toBe("all");
+  });
+
+  it("keeps a known campaign and the explicit 'all'", () => {
+    expect(parseModerationQuery({ campaign: ARCHIVED }, scope).campaign).toBe(
+      ARCHIVED,
+    );
+    expect(parseModerationQuery({ campaign: "all" }, scope).campaign).toBe(
+      "all",
+    );
+  });
+
+  // A stale or mangled id would otherwise show an empty queue that reads as
+  // "nothing to review".
+  it("falls back to the default for a campaign it does not know", () => {
+    expect(
+      parseModerationQuery({ campaign: "not-a-campaign" }, scope).campaign,
+    ).toBe(ACTIVE);
+  });
+
+  it("maps only 'all' to an unconstrained query", () => {
+    expect(campaignToId("all")).toBeUndefined();
+    expect(campaignToId(ARCHIVED)).toBe(ARCHIVED);
   });
 });
 
 describe("isDefaultModerationQuery", () => {
+  it("treats the active campaign as the default, and any other as narrowed", () => {
+    expect(
+      isDefaultModerationQuery(parseModerationQuery({}, scope), scope),
+    ).toBe(true);
+    expect(
+      isDefaultModerationQuery(
+        parseModerationQuery({ campaign: "all" }, scope),
+        scope,
+      ),
+    ).toBe(false);
+  });
+
   it("is true only when nothing is narrowed", () => {
     expect(isDefaultModerationQuery(parseModerationQuery({}))).toBe(true);
     expect(

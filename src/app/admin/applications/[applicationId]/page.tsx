@@ -13,9 +13,11 @@ import { getApplicationForAdmin } from "@/features/applications/adminQueries";
 import { getClaimHolder, searchVolunteers } from "@/features/claims/queries";
 import { getParentNote } from "@/features/users/adminQueries";
 import {
+  moderationCampaignScope,
   moderationQueueHref,
   parseModerationQuery,
 } from "@/features/applications/moderationFilter";
+import { listCampaigns } from "@/features/campaigns/adminQueries";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { recordAuditLog } from "@/features/audit/log";
 
@@ -52,6 +54,7 @@ export default async function AdminApplicationPage({
   // the exact view they left instead of the default queue's first page.
   searchParams: Promise<{
     status?: string;
+    campaign?: string;
     from?: string;
     to?: string;
     page?: string;
@@ -67,15 +70,21 @@ export default async function AdminApplicationPage({
   }>;
 }) {
   const [{ applicationId }, query] = await Promise.all([params, searchParams]);
-  // The whole queue view rides in the url — status, date range and page — so
-  // "back" returns to exactly what the admin was working, not the default.
-  const backHref = moderationQueueHref(parseModerationQuery(query));
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
   }
 
-  const detail = await getApplicationForAdmin(applicationId);
+  const [detail, campaigns] = await Promise.all([
+    getApplicationForAdmin(applicationId),
+    listCampaigns(),
+  ]);
+  // The whole queue view rides in the url — status, campaign, date range and
+  // page — so "back" returns to exactly what the admin was working, not the
+  // default.
+  const backHref = moderationQueueHref(
+    parseModerationQuery(query, moderationCampaignScope(campaigns)),
+  );
   if (!detail) {
     notFound();
   }

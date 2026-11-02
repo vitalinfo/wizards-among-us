@@ -6,7 +6,10 @@ vi.mock("next-intl/server", async () =>
 );
 
 import messages from "../../../../messages/uk.json";
-import { parseModerationQuery } from "@/features/applications/moderationFilter";
+import {
+  moderationCampaignScope,
+  parseModerationQuery,
+} from "@/features/applications/moderationFilter";
 import { axe } from "@/test/axe";
 
 import { ModerationFilterForm } from "../ModerationFilterForm";
@@ -14,9 +17,22 @@ import { ModerationFilterForm } from "../ModerationFilterForm";
 const t = messages.admin.applications.filter;
 const tStatus = messages.parent.applications.status;
 
-async function renderForm(params: Parameters<typeof parseModerationQuery>[0]) {
+const ACTIVE = "aaaaaaaa-0000-0000-0000-000000000001";
+const ARCHIVED = "aaaaaaaa-0000-0000-0000-000000000002";
+const campaigns = [
+  { id: ACTIVE, title: "Святий Миколай 2026", status: "active" },
+  { id: ARCHIVED, title: "Святий Миколай 2025", status: "archived" },
+];
+
+async function renderForm(
+  params: Parameters<typeof parseModerationQuery>[0],
+  campaignList = campaigns,
+) {
+  const campaignScope = moderationCampaignScope(campaignList);
   const ui = await ModerationFilterForm({
-    query: parseModerationQuery(params),
+    query: parseModerationQuery(params, campaignScope),
+    campaigns: campaignList,
+    campaignScope,
   });
   return render(<>{ui}</>);
 }
@@ -36,6 +52,7 @@ describe("ModerationFilterForm", () => {
   it("labels every control", async () => {
     await renderForm({});
 
+    expect(screen.getByLabelText(t.campaign)).toBeVisible();
     expect(screen.getByLabelText(t.status)).toBeVisible();
     expect(screen.getByLabelText(t.submittedFrom)).toBeVisible();
     expect(screen.getByLabelText(t.submittedTo)).toBeVisible();
@@ -81,6 +98,37 @@ describe("ModerationFilterForm", () => {
     expect(screen.getByLabelText(t.submittedTo)).toHaveValue("2026-09-01");
   });
 
+  it("offers every campaign plus «all», marking the active one", async () => {
+    await renderForm({});
+
+    expect(
+      screen.getByRole("option", { name: t.allCampaigns }),
+    ).toHaveAttribute("value", "all");
+    expect(
+      screen.getByRole("option", {
+        name: t.activeCampaign.replace("{title}", "Святий Миколай 2026"),
+      }),
+    ).toHaveAttribute("value", ACTIVE);
+    expect(
+      screen.getByRole("option", { name: "Святий Миколай 2025" }),
+    ).toHaveAttribute("value", ARCHIVED);
+  });
+
+  it("selects the active campaign by default", async () => {
+    await renderForm({});
+    expect(screen.getByLabelText(t.campaign)).toHaveValue(ACTIVE);
+  });
+
+  it("selects every campaign when none is active", async () => {
+    await renderForm({}, [{ ...campaigns[1]! }]);
+    expect(screen.getByLabelText(t.campaign)).toHaveValue("all");
+  });
+
+  it("shows the campaign that is actually applied", async () => {
+    await renderForm({ campaign: ARCHIVED });
+    expect(screen.getByLabelText(t.campaign)).toHaveValue(ARCHIVED);
+  });
+
   it("defaults to the queue that needs an admin", async () => {
     await renderForm({});
 
@@ -99,6 +147,37 @@ describe("ModerationFilterForm", () => {
       "href",
       "/admin/applications?status=submitted",
     );
+  });
+
+  // Leaving the active campaign is narrowing; the reset brings it back.
+  it("offers a reset once another campaign is picked", async () => {
+    await renderForm({ campaign: "all" });
+    expect(screen.getByRole("link", { name: t.reset })).toBeVisible();
+  });
+
+  // «Скинути» is a client-side navigation: React re-renders the form in place
+  // rather than replacing it, and an uncontrolled select ignores a new
+  // defaultValue. The controls must still end up showing the reset query.
+  it("shows the new query when re-rendered in place", async () => {
+    const view = await renderForm({
+      status: "approved",
+      campaign: ARCHIVED,
+      from: "2026-09-01",
+    });
+    const scope = moderationCampaignScope(campaigns);
+    view.rerender(
+      <>
+        {await ModerationFilterForm({
+          query: parseModerationQuery({}, scope),
+          campaigns,
+          campaignScope: scope,
+        })}
+      </>,
+    );
+
+    expect(screen.getByLabelText(t.campaign)).toHaveValue(ACTIVE);
+    expect(screen.getByLabelText(t.status)).toHaveValue("submitted");
+    expect(screen.getByLabelText(t.submittedFrom)).toHaveValue("");
   });
 
   it("has no accessibility violations", async () => {

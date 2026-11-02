@@ -11,7 +11,9 @@ import {
   listForModeration,
 } from "@/features/applications/adminQueries";
 import {
+  campaignToId,
   filterToStatus,
+  moderationCampaignScope,
   moderationPageCount,
   moderationQueueHref,
   moderationSearch,
@@ -19,6 +21,7 @@ import {
   submittedRange,
   MODERATION_PAGE_SIZE,
 } from "@/features/applications/moderationFilter";
+import { listCampaigns } from "@/features/campaigns/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
 
@@ -29,6 +32,7 @@ export default async function AdminApplicationsPage({
 }: {
   searchParams: Promise<{
     status?: string;
+    campaign?: string;
     from?: string;
     to?: string;
     page?: string;
@@ -39,9 +43,15 @@ export default async function AdminApplicationsPage({
     redirect("/admin/login");
   }
 
-  const query = parseModerationQuery(await searchParams);
+  const [params, campaigns] = await Promise.all([
+    searchParams,
+    listCampaigns(),
+  ]);
+  const campaignScope = moderationCampaignScope(campaigns);
+  const query = parseModerationQuery(params, campaignScope);
   const filters = {
     status: filterToStatus(query.filter),
+    campaignId: campaignToId(query.campaign),
     ...submittedRange(query),
   };
 
@@ -70,7 +80,11 @@ export default async function AdminApplicationsPage({
           <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>
         </div>
 
-        <ModerationFilterForm query={query} />
+        <ModerationFilterForm
+          query={query}
+          campaigns={campaigns}
+          campaignScope={campaignScope}
+        />
 
         {rows.length === 0 ? (
           <p className="text-muted-foreground">{t("empty")}</p>
@@ -92,11 +106,7 @@ export default async function AdminApplicationsPage({
                     ? tList("ageSuffix", { age: row.childAge })
                     : t("empty_value")}
                   {" · "}
-                  {row.currentRegion
-                    ? tRegions(row.currentRegion)
-                    : t("empty_value")}
-                  {" · "}
-                  {row.campaignTitle}
+                  {row.homeRegion ? tRegions(row.homeRegion) : t("empty_value")}
                   {" · "}
                   {row.submittedAt
                     ? t("submittedAt", {

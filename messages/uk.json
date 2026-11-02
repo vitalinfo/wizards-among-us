@@ -1381,6 +1381,9 @@
       "filter": {
         "legend": "Показати",
         "all": "Усі",
+        "campaign": "Кампанія",
+        "allCampaigns": "Усі кампанії",
+        "activeCampaign": "{title} (активна)",
         "status": "Статус",
         "submittedFrom": "Подано з",
         "submittedTo": "Подано по",
