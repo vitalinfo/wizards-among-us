@@ -62,6 +62,16 @@ describe("UserSearchForm", () => {
     );
   });
 
+  // «Скинути» is a client-side navigation: React re-renders the form in place,
+  // and an uncontrolled input ignores a new defaultValue. The box must still
+  // empty when the search is reset.
+  it("shows the new term when re-rendered in place", async () => {
+    const view = await renderForm({ q: "Коваль" });
+    view.rerender(<>{await UserSearchForm({ query: parseUsersQuery({}) })}</>);
+
+    expect(screen.getByLabelText(t.label)).toHaveValue("");
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = await renderForm({ q: "Коваль" });
     expect(await axe(container)).toHaveNoViolations();

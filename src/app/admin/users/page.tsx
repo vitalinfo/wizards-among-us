@@ -117,8 +117,13 @@ export default async function AdminUsersPage({
                       <tr key={user.id}>
                         {/* The row's header cell, so a screen reader reads
                             "Олена Коваль, Взятих дітей, 2" rather than a bare
-                            number. */}
-                        <th scope="row" className={`${cell} font-medium`}>
+                            number. text-left because a <th> centres by
+                            default, and the header row's text-left does not
+                            reach the body. */}
+                        <th
+                          scope="row"
+                          className={`${cell} text-left font-medium`}
+                        >
                           {name ?? t("unnamed")}
                         </th>
                         <td className={cell}>
