@@ -44,6 +44,24 @@ const ACCOUNT_MOVES = [
 
 const nextConfig: NextConfig = {
   ...(allowedDevOrigins.length > 0 ? { allowedDevOrigins } : {}),
+  // public/ images are served with `max-age=0` by default, so every visit
+  // re-checks each one with the dyno. Their names carry no content hash, so they
+  // can't be `immutable`: a day fresh, then served stale while one background
+  // re-check fetches a replacement. One path segment only — the regex can't
+  // reach /api (the private, no-store file route) or /_next.
+  async headers() {
+    return [
+      {
+        source: "/:file([^/]+\\.(?:webp|png|svg))",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=2592000",
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return ACCOUNT_MOVES.flatMap((from) => [
       { source: from, destination: `/account${from}`, permanent: true },
