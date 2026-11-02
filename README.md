@@ -578,6 +578,16 @@ env $(heroku config -s -a wau-staging | grep -E '^(DATABASE_URL|S3_[A-Z_]+)=' | 
 
 Swap the app for production, and append `--apply` or `--delete-originals <list>` as above.
 
+Before an upload replaced the previous file of its kind, each «Замінити» added another row, so
+older applications can hold several photos of one kind (the admin page lists them all). Only
+the newest is ever shown, and `photos:dedupe` removes the rest, rows and objects. It takes the
+same environment variables as above:
+
+```bash
+pnpm photos:dedupe            # dry run — prints what it would remove
+pnpm photos:dedupe --apply    # deletes those rows, then their objects
+```
+
 ### Project layout & scripts (Phase 0)
 
 ```

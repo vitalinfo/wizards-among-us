@@ -6,6 +6,7 @@ import {
   latestByKind,
   MAX_UPLOAD_BYTES,
   rejectUpload,
+  supersededFiles,
 } from "../files";
 
 // Uploads include a child's ВПО certificate, so what may be uploaded — and
@@ -139,5 +140,30 @@ describe("latestByKind", () => {
     expect(
       latestByKind(files, CLAIM_VISIBLE_KINDS).map((f) => f.kind),
     ).not.toContain("idp_certificate");
+  });
+});
+
+describe("supersededFiles", () => {
+  it("returns all but the newest of each kind, per application", () => {
+    const files = [
+      { id: "a-child-1", applicationId: "a", kind: "child_with_letter_photo" },
+      { id: "a-cert", applicationId: "a", kind: "idp_certificate" },
+      { id: "b-child", applicationId: "b", kind: "child_with_letter_photo" },
+      { id: "a-child-2", applicationId: "a", kind: "child_with_letter_photo" },
+      { id: "a-child-3", applicationId: "a", kind: "child_with_letter_photo" },
+    ];
+    expect(supersededFiles(files).map((file) => file.id)).toEqual([
+      "a-child-1",
+      "a-child-2",
+    ]);
+  });
+
+  it("returns nothing when every kind has one file", () => {
+    expect(
+      supersededFiles([
+        { id: "cert", applicationId: "a", kind: "idp_certificate" },
+        { id: "letter", applicationId: "a", kind: "letter_photo" },
+      ]),
+    ).toEqual([]);
   });
 });
