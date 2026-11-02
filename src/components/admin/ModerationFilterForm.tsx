@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import { ChevronRightIcon } from "@/components/icons";
+
 import { APPLICATION_STATUSES } from "@/db/enums";
 import {
   DEFAULT_MODERATION_FILTER,
@@ -23,8 +25,11 @@ export async function ModerationFilterForm({
   const t = await getTranslations("admin.applications.filter");
   const tStatus = await getTranslations("parent.applications.status");
 
+  // No horizontal padding here: the select needs room on the right for its
+  // chevron, and appending pr-* after px-* is settled by Tailwind's emit order,
+  // not by the order in the string.
   const field =
-    "border-border bg-surface focus-visible:outline-ring rounded-md border px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
+    "border-border bg-surface focus-visible:outline-ring rounded-md border py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
 
   return (
     <form
@@ -37,19 +42,27 @@ export async function ModerationFilterForm({
         <label htmlFor="status" className="text-xs font-medium">
           {t("status")}
         </label>
-        <select
-          id="status"
-          name="status"
-          defaultValue={query.filter}
-          className={field}
-        >
-          <option value="all">{t("all")}</option>
-          {APPLICATION_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {tStatus(status)}
-            </option>
-          ))}
-        </select>
+        {/* appearance-none plus our own chevron, as in the volunteer browse
+            filter: the platform's arrow lands against the border on macOS. */}
+        <div className="relative">
+          <select
+            id="status"
+            name="status"
+            defaultValue={query.filter}
+            className={`${field} appearance-none pr-9 pl-3`}
+          >
+            <option value="all">{t("all")}</option>
+            {APPLICATION_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {tStatus(status)}
+              </option>
+            ))}
+          </select>
+          <ChevronRightIcon
+            aria-hidden="true"
+            className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 rotate-90"
+          />
+        </div>
       </div>
 
       {/* Native date inputs: the browser supplies the picker, the locale format
@@ -64,7 +77,7 @@ export async function ModerationFilterForm({
           id="from"
           name="from"
           defaultValue={query.submittedFrom ?? ""}
-          className={field}
+          className={`${field} px-3`}
         />
       </div>
 
@@ -77,7 +90,7 @@ export async function ModerationFilterForm({
           id="to"
           name="to"
           defaultValue={query.submittedTo ?? ""}
-          className={field}
+          className={`${field} px-3`}
         />
       </div>
 
