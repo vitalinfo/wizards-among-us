@@ -7,6 +7,7 @@ import {
   canBrowseChildren,
   canClaim,
   canReleaseClaim,
+  canToggleProcessed,
   getClaimBlockReason,
 } from "../authz";
 
@@ -178,5 +179,52 @@ describe("admin assignment uses the same gate as a self-claim", () => {
         reachable,
       ),
     ).toBe("not_available");
+  });
+});
+
+// The optional «Опрацьовано» mark: only the volunteer holding the active claim,
+// on a claimed application (or a processed one, to take it off).
+describe("canToggleProcessed", () => {
+  const held = { volunteerId: "v1", releasedAt: null };
+
+  it("lets the holding volunteer mark a claimed child, and unmark a processed one", () => {
+    for (const status of ["claimed", "processed"] as const) {
+      expect(canToggleProcessed(volunteer, { status }, held)).toBe(true);
+    }
+  });
+
+  it("refuses any status other than claimed or processed", () => {
+    for (const status of [
+      "draft",
+      "submitted",
+      "approved",
+      "rejected",
+      "fulfilled",
+    ] as const) {
+      expect(canToggleProcessed(volunteer, { status }, held)).toBe(false);
+    }
+  });
+
+  it("refuses a volunteer who does not hold the active claim", () => {
+    const other: Actor = { ...volunteer, id: "v2" } as Actor;
+    expect(canToggleProcessed(other, { status: "claimed" }, held)).toBe(false);
+    expect(
+      canToggleProcessed(
+        volunteer,
+        { status: "claimed" },
+        { volunteerId: "v1", releasedAt: new Date() },
+      ),
+    ).toBe(false);
+    expect(canToggleProcessed(volunteer, { status: "claimed" }, null)).toBe(
+      false,
+    );
+  });
+
+  it("refuses admins, parents and the signed-out", () => {
+    for (const actor of [admin, parent, null]) {
+      expect(canToggleProcessed(actor, { status: "claimed" }, held)).toBe(
+        false,
+      );
+    }
   });
 });

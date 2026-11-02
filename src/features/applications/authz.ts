@@ -1,4 +1,4 @@
-import type { FileKind } from "@/db/enums";
+import { isHeldStatus, type FileKind } from "@/db/enums";
 import type { applications, claims } from "@/db/schema";
 import { intakeOpen } from "@/features/campaigns/authz";
 import { hasRole, isAdmin, isUser, type MaybeActor } from "@/lib/actor";
@@ -158,7 +158,7 @@ export function canUploadApplicationFile(
     // actually holds the child. Not before a claim (there is nothing to
     // confirm) and not after `fulfilled` (it is already done).
     return (
-      ownsApplication(actor, application) && application.status === "claimed"
+      ownsApplication(actor, application) && isHeldStatus(application.status)
     );
   }
   return canEditApplication(actor, application);
@@ -239,7 +239,7 @@ export function getConfirmBlockReason(
   if (!ownsApplication(actor, application)) {
     return "not_owner";
   }
-  if (application.status !== "claimed") {
+  if (!isHeldStatus(application.status)) {
     return "not_claimed";
   }
   // A photo is REQUIRED to close the loop (Vital, Phase 7): it is the proof the

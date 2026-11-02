@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { AdminApplicationForm } from "@/components/admin/AdminApplicationForm";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { isHeldStatus } from "@/db/enums";
 import { getApplicationForAdmin } from "@/features/applications/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
@@ -39,7 +40,7 @@ export default async function AdminEditApplicationPage({
   // exactly right (a corrected address) and sometimes not (a different gift), so
   // say so rather than silently allowing it.
   const claimed =
-    application.status === "claimed" || application.status === "fulfilled";
+    isHeldStatus(application.status) || application.status === "fulfilled";
 
   return (
     <>

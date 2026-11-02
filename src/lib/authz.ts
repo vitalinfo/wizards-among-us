@@ -57,6 +57,7 @@ export {
   canBrowseChildren,
   canClaim,
   canReleaseClaim,
+  canToggleProcessed,
   getClaimBlockReason,
   isClaimed,
   type ClaimBlockReason,

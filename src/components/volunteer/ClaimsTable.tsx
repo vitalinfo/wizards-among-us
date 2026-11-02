@@ -1,8 +1,14 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
-import { ChildIcon, EyeIcon } from "@/components/icons";
+import {
+  ChildIcon,
+  EyeIcon,
+  ProcessedIcon,
+  UnprocessedIcon,
+} from "@/components/icons";
 import { ClaimStatusBadge } from "@/components/volunteer/ClaimStatusBadge";
+import { claimDialogHref, type ClaimsQuery } from "@/features/claims/claimTabs";
 import type { MyClaimRow } from "@/features/claims/queries";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +23,14 @@ import { cn } from "@/lib/utils";
 // rather than one responsive one: a four-column table at 328px is unreadable
 // however it is restyled, and the card reorders its parts rather than just
 // stacking them.
-export async function ClaimsTable({ rows }: { rows: readonly MyClaimRow[] }) {
+export async function ClaimsTable({
+  rows,
+  query,
+}: {
+  rows: readonly MyClaimRow[];
+  // The list's tab, page and size, so the confirmation returns to this view.
+  query: ClaimsQuery;
+}) {
   const t = await getTranslations("volunteer.claims");
   const tCard = await getTranslations("volunteer.children.card");
 
@@ -26,7 +39,36 @@ export async function ClaimsTable({ rows }: { rows: readonly MyClaimRow[] }) {
 
   const name = (row: MyClaimRow) => row.childName ?? t("noName");
   const state = (row: MyClaimRow) =>
-    row.status === "fulfilled" ? ("completed" as const) : ("active" as const);
+    row.status === "fulfilled"
+      ? ("completed" as const)
+      : row.status === "processed"
+        ? ("processed" as const)
+        : ("active" as const);
+
+  // The optional «Опрацьовано» mark: set on a claimed child, taken off a
+  // processed one — each behind a confirmation drawn over the list. The icon
+  // shows the current state; the label names the action.
+  const toggle = (row: MyClaimRow) =>
+    row.status === "claimed" || row.status === "processed" ? (
+      <Link
+        href={claimDialogHref(
+          query,
+          row.status === "claimed" ? "process" : "unprocess",
+          row.applicationId,
+        )}
+        aria-label={t(
+          row.status === "claimed" ? "markProcessedFor" : "unmarkProcessedFor",
+          { name: name(row) },
+        )}
+        className="text-foreground hover:text-primary focus-visible:outline-ring inline-flex items-center rounded focus-visible:outline-2 focus-visible:outline-offset-2"
+      >
+        {row.status === "claimed" ? (
+          <UnprocessedIcon className="size-6" />
+        ) : (
+          <ProcessedIcon className="size-6" />
+        )}
+      </Link>
+    ) : null;
 
   const details = (row: MyClaimRow) => (
     <Link
@@ -80,7 +122,12 @@ export async function ClaimsTable({ rows }: { rows: readonly MyClaimRow[] }) {
                 <td className={cell}>
                   <ClaimStatusBadge state={state(row)} />
                 </td>
-                <td className={`${cell} text-right`}>{details(row)}</td>
+                <td className={cell}>
+                  <div className="flex items-center justify-end gap-6">
+                    {toggle(row)}
+                    {details(row)}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -114,7 +161,10 @@ export async function ClaimsTable({ rows }: { rows: readonly MyClaimRow[] }) {
             </div>
             {/* On the right of the card and centred against the whole of it
                 (Vital), rather than sitting under the text. */}
-            {details(row)}
+            <div className="flex shrink-0 items-center gap-4">
+              {toggle(row)}
+              {details(row)}
+            </div>
           </li>
         ))}
       </ul>

@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { recordAuditLog } from "@/features/audit/log";
-import { claimApplication, getActiveClaim } from "@/features/claims/queries";
+import {
+  claimApplication,
+  getActiveClaim,
+  setClaimProcessed,
+} from "@/features/claims/queries";
 import { getApplicationForFileAccess } from "@/features/applications/queries";
 import {
   addVolunteerRole,
@@ -14,11 +18,12 @@ import {
 import { consumeRateLimit } from "@/features/rateLimit/queries";
 import { isContactable } from "@/features/users/contact";
 import { userPhoneSchema } from "@/features/users/contact";
-import { getClaimBlockReason } from "@/lib/authz";
+import { canToggleProcessed, getClaimBlockReason } from "@/lib/authz";
 import { safeReturnPath } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
 import { isUser } from "@/lib/actor";
 import type { VolunteerActionState } from "@/features/claims/formState";
+import { claimsHref, type ClaimsQuery } from "@/features/claims/claimTabs";
 
 // Opt in as a volunteer. Self-serve (Phase 6 decision) — nothing else grants
 // the role, and canBrowseChildren requires it.
@@ -126,4 +131,39 @@ export async function claimAction(
       ? "/account/volunteer/claims"
       : safeReturnPath(returnTo),
   );
+}
+
+// Set or take off the optional `processed` mark on a child this volunteer
+// holds, from its confirmation dialog. Re-checked here, and guarded again in
+// the UPDATE itself. Always redirects to the list, so the dialog's url does not
+// survive the post and draw the question again.
+export async function toggleProcessedAction(
+  applicationId: string,
+  processed: boolean,
+  view: ClaimsQuery,
+): Promise<void> {
+  const actor = await getSessionActor();
+  if (!isUser(actor)) {
+    redirect("/login?next=%2Faccount%2Fvolunteer%2Fclaims");
+  }
+
+  const context = await getApplicationForFileAccess(applicationId);
+  if (
+    !context ||
+    !canToggleProcessed(actor, context.application, context.claim) ||
+    context.application.status !== (processed ? "claimed" : "processed")
+  ) {
+    redirect(claimsHref(view));
+  }
+
+  if (await setClaimProcessed(actor.id, applicationId, processed)) {
+    await recordAuditLog({
+      actor,
+      action: processed ? "claim.processed" : "claim.unprocessed",
+      targetType: "application",
+      targetId: applicationId,
+    });
+  }
+  revalidatePath("/account/volunteer/claims");
+  redirect(claimsHref(view));
 }

@@ -12,10 +12,14 @@ import { cn } from "@/lib/utils";
 //
 // The state is the word, not the colour — the pill says the same thing to
 // someone who cannot tell the two tints apart.
-export type ClaimState = "active" | "completed";
+//
+// «Опрацьовано» is the volunteer's optional mark. Not in the design; it takes
+// the parent pills' pink, an existing AA pair.
+export type ClaimState = "active" | "processed" | "completed";
 
 const TONE: Record<ClaimState, string> = {
   active: "bg-status-progress-tint text-primary",
+  processed: "bg-status-review-tint text-status-review",
   completed: "bg-status-done-tint text-status-done",
 };
 

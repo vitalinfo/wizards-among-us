@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 
-import type { ApplicationStatus } from "@/db/enums";
+import type { ParentApplicationStatus } from "@/features/applications/mappers";
 import { cn } from "@/lib/utils";
 
 // An application's status on «Мої заявки» (Figma 139:4543) — the redesign's
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 //
 // The status is the WORD, not the colour — the pill says the same thing to
 // someone who cannot tell the tints apart.
-const TONE: Record<ApplicationStatus, string> = {
+const TONE: Record<ParentApplicationStatus, string> = {
   draft: "bg-status-draft-tint text-status-draft",
   submitted: "bg-status-review-tint text-status-review",
   approved: "bg-status-done-tint text-status-done",
@@ -26,7 +26,7 @@ const TONE: Record<ApplicationStatus, string> = {
 export function ApplicationStatusPill({
   status,
 }: {
-  status: ApplicationStatus;
+  status: ParentApplicationStatus;
 }) {
   const t = useTranslations("parent.applications.status");
   return (

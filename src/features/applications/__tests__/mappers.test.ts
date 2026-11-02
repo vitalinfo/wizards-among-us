@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { applications } from "@/db/schema";
 
-import { toBrowseCard } from "../mappers";
+import { toBrowseCard, toParentStatus } from "../mappers";
 
 describe("toBrowseCard redaction (guardrail)", () => {
   it("exposes only non-sensitive fields and drops delivery/contact info", () => {
@@ -111,5 +111,25 @@ describe("toBrowseCard gift links", () => {
     expect(withTypeFields({})).toEqual([]);
     expect(withTypeFields({ giftUrls: "not-a-list" })).toEqual([]);
     expect(withTypeFields({ giftUrls: [42, null, "not a url"] })).toEqual([]);
+  });
+});
+
+// `processed` is the volunteer's own mark (volunteer + admin only).
+describe("toParentStatus", () => {
+  it("shows a processed application to the parent as claimed", () => {
+    expect(toParentStatus("processed")).toBe("claimed");
+  });
+
+  it("passes every other status through", () => {
+    for (const status of [
+      "draft",
+      "submitted",
+      "approved",
+      "rejected",
+      "claimed",
+      "fulfilled",
+    ] as const) {
+      expect(toParentStatus(status)).toBe(status);
+    }
   });
 });

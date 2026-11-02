@@ -1,3 +1,4 @@
+import { isHeldStatus } from "@/db/enums";
 import type { applications } from "@/db/schema";
 import { getReviewBlockReason } from "@/features/reviews/authz";
 import { hasReviewed } from "@/features/reviews/queries";
@@ -46,7 +47,7 @@ export async function loadApplicationDialog(
       // here — adding it is what the dialog is for.
       if (
         !ownsApplication(actor, application) ||
-        application.status !== "claimed"
+        !isHeldStatus(application.status)
       ) {
         return null;
       }

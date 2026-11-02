@@ -52,9 +52,23 @@ export const APPLICATION_STATUSES = [
   "approved",
   "rejected",
   "claimed",
+  "processed",
   "fulfilled",
 ] as const;
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
+
+// The statuses in which a volunteer holds the child. `processed` is an optional
+// mark the holding volunteer sets on a `claimed` application (and may take off
+// again); every rule that applies while a child is held applies to both.
+// Volunteer and admin see the mark — a parent sees `claimed`.
+export const HELD_STATUSES = [
+  "claimed",
+  "processed",
+] as const satisfies readonly ApplicationStatus[];
+
+export function isHeldStatus(status: string): boolean {
+  return (HELD_STATUSES as readonly string[]).includes(status);
+}
 
 // The child's gender. Two values, because the thing it drives is an ICON on the
 // browse card (Vital) — an icon needs something definite to draw, and a third

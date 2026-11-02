@@ -1,4 +1,8 @@
-import { APPLICATION_STATUSES, type ApplicationStatus } from "@/db/enums";
+import {
+  APPLICATION_STATUSES,
+  HELD_STATUSES,
+  type ApplicationStatus,
+} from "@/db/enums";
 import {
   DEFAULT_PAGE_SIZE,
   parsePageSize,
@@ -101,7 +105,13 @@ export function parseDialog(params: {
     : null;
 }
 
-// Which statuses a tab lists. «Всі» is every status; each other tab is its own.
+// Which statuses a tab lists. «Всі» is every status; each other tab is its own
+// — except «Чарівник знайшовся», which also lists `processed`, the status a
+// parent sees as `claimed`.
 export function tabStatuses(tab: ApplicationTab): readonly ApplicationStatus[] {
-  return tab === "all" ? APPLICATION_STATUSES : [tab];
+  return tab === "all"
+    ? APPLICATION_STATUSES
+    : tab === "claimed"
+      ? HELD_STATUSES
+      : [tab];
 }

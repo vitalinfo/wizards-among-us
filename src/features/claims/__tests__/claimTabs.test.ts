@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { CLAIM_TABS, claimsHref, parseClaimsQuery } from "../claimTabs";
+import {
+  CLAIM_TABS,
+  claimDialogHref,
+  claimsHref,
+  parseClaimDialog,
+  parseClaimsQuery,
+} from "../claimTabs";
 
 describe("parseClaimsQuery", () => {
   it("defaults to «Всі», page 1, ten a page", () => {
@@ -42,5 +48,34 @@ describe("claimsHref", () => {
       page: 3,
       per: 20,
     });
+  });
+});
+
+// The «Опрацьовано» confirmation is a url, so it must round-trip and keep the
+// view of the list it was opened from.
+describe("claim dialogs", () => {
+  it("builds a dialog url on top of the current view", () => {
+    expect(
+      claimDialogHref({ tab: "all", page: 1, per: 10 }, "process", "a1"),
+    ).toBe("/account/volunteer/claims?dialog=process&id=a1");
+    expect(
+      claimDialogHref({ tab: "active", page: 2, per: 20 }, "unprocess", "a2"),
+    ).toBe(
+      "/account/volunteer/claims?tab=active&page=2&per=20&dialog=unprocess&id=a2",
+    );
+  });
+
+  it("parses the two dialogs and nothing else", () => {
+    expect(parseClaimDialog({ dialog: "process", id: "a1" })).toEqual({
+      dialog: "process",
+      id: "a1",
+    });
+    expect(parseClaimDialog({ dialog: "unprocess", id: "a1" })).toEqual({
+      dialog: "unprocess",
+      id: "a1",
+    });
+    expect(parseClaimDialog({ dialog: "release", id: "a1" })).toBeNull();
+    expect(parseClaimDialog({ dialog: "process" })).toBeNull();
+    expect(parseClaimDialog({})).toBeNull();
   });
 });

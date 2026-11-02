@@ -1,6 +1,7 @@
 import { and, count, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
+import { HELD_STATUSES } from "@/db/enums";
 import {
   applicationFiles,
   applications,
@@ -13,6 +14,7 @@ import {
 import type { ClaimTab } from "@/features/claims/queries";
 
 import { tabStatuses, type ApplicationTab } from "./applicationTabs";
+import { toParentStatus, type ParentApplicationStatus } from "./mappers";
 
 // Data access for the parent application flow. Deliberately thin: every
 // authorization decision is made by the pure predicates in ./authz and passed in
@@ -31,7 +33,7 @@ export type MyApplicationRow = {
   id: string;
   childName: string | null;
   childAge: number | null;
-  status: Application["status"];
+  status: ParentApplicationStatus;
   submittedAt: Date | null;
   campaignTitle: string;
   // Whether this parent has left the review for it — the same test as
@@ -71,7 +73,7 @@ export async function listMyApplications(
   campaignId: string,
   page: { tab: ApplicationTab; limit: number; offset: number },
 ): Promise<MyApplicationRow[]> {
-  return getDb()
+  const rows = await getDb()
     .select({
       id: applications.id,
       childName: applications.childName,
@@ -91,6 +93,7 @@ export async function listMyApplications(
     .orderBy(desc(applications.updatedAt), desc(applications.id))
     .limit(page.limit)
     .offset(page.offset);
+  return rows.map((row) => ({ ...row, status: toParentStatus(row.status) }));
 }
 
 // Deletes one of this parent's DRAFTS, and returns the storage keys of the
@@ -351,7 +354,7 @@ export async function getApplicationForFileAccess(
   return { application, claim: claim ?? null, browsable };
 }
 
-// Mark a wish fulfilled. Guarded on `claimed` in SQL, not only in the UI: a
+// Mark a wish fulfilled. Guarded on the held statuses in SQL, not only in the UI: a
 // double submit, or a release that landed in between, must not be able to move
 // an application into `fulfilled` from anywhere else.
 export async function markFulfilled(
@@ -365,7 +368,7 @@ export async function markFulfilled(
       and(
         eq(applications.id, applicationId),
         eq(applications.parentId, parentId),
-        eq(applications.status, "claimed"),
+        inArray(applications.status, [...HELD_STATUSES]),
       ),
     )
     .returning({ id: applications.id });
@@ -396,8 +399,8 @@ export type MyVolunteerRow = {
 // The tabs mirror «Мої підопічні» from the other side: a claimed child is help
 // in progress, a fulfilled one is help completed.
 const VOLUNTEER_TAB_STATUSES: Record<ClaimTab, Application["status"][]> = {
-  all: ["claimed", "fulfilled"],
-  active: ["claimed"],
+  all: [...HELD_STATUSES, "fulfilled"],
+  active: [...HELD_STATUSES],
   completed: ["fulfilled"],
 };
 

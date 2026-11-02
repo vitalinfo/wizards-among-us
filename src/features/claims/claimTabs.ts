@@ -54,3 +54,30 @@ export function claimsHref(query: Partial<ClaimsQuery> = {}): string {
   const qs = params.toString();
   return `/account/volunteer/claims${qs ? `?${qs}` : ""}`;
 }
+
+// The confirmation for the optional «Опрацьовано» mark, drawn over the list:
+// `process` sets it, `unprocess` takes it off. Page state rather than client
+// script (see ui/Modal) — the control that opens one is a link to this.
+export const CLAIM_DIALOGS = ["process", "unprocess"] as const;
+export type ClaimDialog = (typeof CLAIM_DIALOGS)[number];
+
+export function claimDialogHref(
+  query: ClaimsQuery,
+  dialog: ClaimDialog,
+  applicationId: string,
+): string {
+  const list = claimsHref(query);
+  const params = new URLSearchParams({ dialog, id: applicationId });
+  return `${list}${list.includes("?") ? "&" : "?"}${params.toString()}`;
+}
+
+// Which dialog the url asks for, if any. Unknown values open nothing.
+export function parseClaimDialog(params: {
+  dialog?: string;
+  id?: string;
+}): { dialog: ClaimDialog; id: string } | null {
+  return params.id &&
+    (CLAIM_DIALOGS as readonly string[]).includes(params.dialog ?? "")
+    ? { dialog: params.dialog as ClaimDialog, id: params.id }
+    : null;
+}
