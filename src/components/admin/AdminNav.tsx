@@ -18,7 +18,7 @@ export async function AdminNav() {
 
   return (
     <nav className="border-border border-b">
-      <ul className="mx-auto flex w-full max-w-4xl gap-4 px-6 py-3 text-sm font-medium">
+      <ul className="mx-auto flex w-full max-w-4xl flex-wrap gap-x-4 gap-y-2 px-6 py-3 text-sm font-medium">
         {links.map((link) => (
           <li key={link.href}>
             <Link
