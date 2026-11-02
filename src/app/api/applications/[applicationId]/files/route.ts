@@ -15,7 +15,12 @@ import { getMyApplication } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
 import { isUser } from "@/lib/actor";
 import { getSessionActor } from "@/lib/auth/session";
-import { fileObjectKey, getStorage, storageBucket } from "@/lib/storage/client";
+import {
+  deleteStoredObjects,
+  fileObjectKey,
+  getStorage,
+  storageBucket,
+} from "@/lib/storage/client";
 
 export const dynamic = "force-dynamic";
 
@@ -110,13 +115,14 @@ export async function POST(
     }),
   );
 
-  const id = await recordApplicationFile({
+  const { id, replacedStorageKeys } = await recordApplicationFile({
     applicationId,
     kind: kind as ParentUploadKind,
     storageKey,
     contentType: photo.contentType,
     sizeBytes: photo.bytes.byteLength,
   });
+  await deleteStoredObjects(replacedStorageKeys);
 
   await recordAuditLog({
     actor,

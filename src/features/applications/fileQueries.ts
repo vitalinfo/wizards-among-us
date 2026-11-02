@@ -2,7 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import type { FileKind } from "@/db/enums";
-import { applicationFiles } from "@/db/schema";
+import { applicationFiles, applications } from "@/db/schema";
 
 export type ApplicationFile = typeof applicationFiles.$inferSelect;
 
@@ -42,18 +42,47 @@ export async function getApplicationFile(
   return row ?? null;
 }
 
+// Every upload slot holds ONE file, so recording a file of a kind replaces
+// whatever of that kind was there — «Замінити» is just another upload, and
+// before this each one added a row (the admin page, which lists every row,
+// showed all of them). Returns the replaced keys: their objects are the
+// caller's to remove, because storage is not in this transaction.
+//
+// The application row is locked first so two uploads of the same kind (two
+// tabs) take turns: without it both could delete nothing and both insert.
 export async function recordApplicationFile(file: {
   applicationId: string;
   kind: FileKind;
   storageKey: string;
   contentType: string;
   sizeBytes: number;
-}): Promise<string> {
-  const [row] = await getDb()
-    .insert(applicationFiles)
-    .values(file)
-    .returning({ id: applicationFiles.id });
-  return row.id;
+}): Promise<{ id: string; replacedStorageKeys: string[] }> {
+  return getDb().transaction(async (tx) => {
+    await tx
+      .select({ id: applications.id })
+      .from(applications)
+      .where(eq(applications.id, file.applicationId))
+      .for("update");
+
+    const replaced = await tx
+      .delete(applicationFiles)
+      .where(
+        and(
+          eq(applicationFiles.applicationId, file.applicationId),
+          eq(applicationFiles.kind, file.kind),
+        ),
+      )
+      .returning({ storageKey: applicationFiles.storageKey });
+    const [row] = await tx
+      .insert(applicationFiles)
+      .values(file)
+      .returning({ id: applicationFiles.id });
+
+    return {
+      id: row.id,
+      replacedStorageKeys: replaced.map((r) => r.storageKey),
+    };
+  });
 }
 
 // Points a file row at a new stored object (a turned photo). Guarded on the
