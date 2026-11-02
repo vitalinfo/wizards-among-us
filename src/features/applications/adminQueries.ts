@@ -15,6 +15,8 @@ export type ModerationRow = {
   childAge: number | null;
   // Where the family left from («звідки виїхали»).
   homeRegion: Application["homeRegion"];
+  homeTown: string | null;
+  displacedYear: number | null;
   giftDescription: string | null;
   giftPrice: string | null;
   status: Application["status"];
@@ -77,6 +79,8 @@ export async function listForModeration(
         childName: applications.childName,
         childAge: applications.childAge,
         homeRegion: applications.homeRegion,
+        homeTown: applications.homeTown,
+        displacedYear: applications.displacedYear,
         giftDescription: applications.giftDescription,
         giftPrice: applications.giftPrice,
         status: applications.status,
