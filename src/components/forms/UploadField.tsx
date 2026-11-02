@@ -150,8 +150,14 @@ export function UploadField({
           <span className="text-sm font-medium">{t("uploaded")}</span>
           {/* Opens in place. Checking the photo you just uploaded is worth a
               glance, not losing the form to another tab mid-application. */}
+          {/* The turn buttons live in the overlay, where the photo is: a phone
+              cannot tell which way is up over a document lying on a table,
+              and the parent is the first person who can. UploadField only
+              renders while this kind may be uploaded, which is exactly when
+              it may be turned (canRotateApplicationFile). */}
           <PhotoLightbox
             href={`${base}/${existing.id}`}
+            rotateHref={`${base}/${existing.id}/rotate`}
             title={label}
             alt={label}
           >

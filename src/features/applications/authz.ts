@@ -164,6 +164,46 @@ export function canUploadApplicationFile(
   return canEditApplication(actor, application);
 }
 
+// Who may REMOVE an uploaded file («Видалити» beside it).
+//
+// The parent, exactly while they could upload that kind: removing is the
+// first half of replacing. This used to be canEditApplication, which is the
+// edit lock — and the gift confirmation is uploaded precisely while the lock
+// is on (a volunteer holds the child), so a family could add the photo and
+// never take it back. Once the gift is confirmed (`fulfilled`) the window has
+// closed and the photo stays: it is the proof the volunteer was shown.
+//
+// An admin, for every kind, as before (canEditApplication's override).
+export function canDeleteApplicationFile(
+  actor: MaybeActor,
+  application: Pick<Application, "parentId" | "status">,
+  kind: FileKind,
+): boolean {
+  return isAdmin(actor) || canUploadApplicationFile(actor, application, kind);
+}
+
+// Who may TURN an uploaded photo (the rotate button). A photo of a document
+// shot flat on a table comes out sideways however carefully it is processed —
+// the phone cannot tell which way is up — so someone has to say.
+//
+//   - the parent, exactly while they could upload that kind again: turning is
+//     a smaller version of replacing, and needs no wider window;
+//   - an admin, at ANY status and for every kind. Turning changes how the
+//     photo is shown, not what it shows, and the admin reading a sideways
+//     ВПО certificate is the person it is most useful to. Not an override
+//     of the edit lock in any sense that matters: nothing a parent wrote
+//     changes.
+//
+// Never a volunteer, not even the one holding the claim: they see these
+// photos, they do not maintain them.
+export function canRotateApplicationFile(
+  actor: MaybeActor,
+  application: Pick<Application, "parentId" | "status">,
+  kind: FileKind,
+): boolean {
+  return isAdmin(actor) || canUploadApplicationFile(actor, application, kind);
+}
+
 // Who may read an uploaded file. The KIND decides, not the application:
 //
 //   idp_certificate         — ADMINS ONLY. A state document about a child; a

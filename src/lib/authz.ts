@@ -26,9 +26,11 @@ export {
 export {
   canConfirmReceipt,
   canDeleteApplication,
+  canDeleteApplicationFile,
   canEditApplication,
   canModerateApplications,
   canReopenApplication,
+  canRotateApplicationFile,
   canUploadApplicationFile,
   canViewApplicationFile,
   canStartApplication,

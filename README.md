@@ -536,6 +536,37 @@ Cells that begin with `=`, `+`, `-` or `@` are prefixed with an apostrophe: Exce
 Sheets otherwise execute them as formulas, and every free-text field here is parent-written.
 The file carries a UTF-8 BOM so Excel on Windows reads the Ukrainian correctly.
 
+### Uploaded photos
+
+Nothing a parent uploads is stored as sent. `features/applications/photos.ts` re-encodes every
+photo with sharp: turned by its EXIF tag, at most 2560px, a JPEG with **no metadata**. That
+last part is a privacy fix, not tidiness: Android cameras write GPS coordinates into the file,
+and the letter photo is on the browse card. HEIC is refused, which makes iOS Safari send a
+JPEG instead.
+
+A document shot flat on a table has a wrong EXIF tag (the phone cannot tell which way is up),
+so `orientation.ts` also reads the photo's **text** with Tesseract (`tesseract.js` + the
+`@tesseract.js-data/osd` model, both from `node_modules`) and turns it when confident
+(≥ 3; see the measurements in that file). Every decision is logged as `photo orientation
+{ kind, turn, confidence, applied }`. Tesseract prints «Too few characters. Skipping this
+page» for a photo with no text — that is the no-guess case, not an error. Whatever it misses,
+the ↺ ↻ buttons in the photo viewer turn by hand (parent while they could re-upload, admin
+always; never a volunteer).
+
+Photos stored before this existed are brought up to date by a one-off script, in three steps
+because the last cannot be undone:
+
+```bash
+pnpm photos:normalize                              # dry run — reads, changes nothing
+pnpm photos:normalize --apply                      # new objects + rows; originals KEPT,
+                                                   # their keys saved to a file it names
+pnpm photos:normalize --delete-originals <file>    # after looking: removes the originals
+```
+
+It uses whatever `DATABASE_URL` / `S3_*` the shell has (`.env.local` otherwise). It runs on
+`tsx`, a dev dependency Heroku prunes, so run it from a checkout with the target app's config
+vars exported — choosing staging or production is a command-line decision, never a default.
+
 ### Project layout & scripts (Phase 0)
 
 ```

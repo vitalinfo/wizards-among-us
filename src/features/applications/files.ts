@@ -33,18 +33,24 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 // Images only. Deliberately no PDF: every one of these is a photograph in the
 // real process, and narrowing the type narrows what can be uploaded at all.
+//
+// No HEIC, although that is what an iPhone shoots. Every upload is re-encoded
+// (photos.ts) and sharp's prebuilt libvips cannot decode HEIC — and a stored
+// HEIC would not display in Chrome or Firefox anyway. Leaving it out of the
+// picker's `accept` is what makes iOS Safari convert the photo to JPEG itself
+// before sending it.
+//
+// This is the type CLAIMED by the client; photos.ts checks the bytes.
 export const ALLOWED_UPLOAD_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
-  "image/heic",
 ] as const;
 
 const EXTENSIONS: Record<string, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",
-  "image/heic": ".heic",
 };
 
 export function isAllowedUploadType(contentType: string): boolean {

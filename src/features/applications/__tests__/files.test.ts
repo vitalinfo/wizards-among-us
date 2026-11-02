@@ -43,6 +43,14 @@ describe("rejectUpload", () => {
     );
   });
 
+  // Every upload is re-encoded and sharp cannot decode HEIC. Refusing it is
+  // also what makes iOS Safari convert to JPEG before sending (see files.ts).
+  it("refuses HEIC", () => {
+    expect(rejectUpload({ ...valid, contentType: "image/heic" })).toBe(
+      "unsupported_type",
+    );
+  });
+
   it("refuses an empty or oversized file", () => {
     expect(rejectUpload({ ...valid, sizeBytes: 0 })).toBe("missing_file");
     expect(rejectUpload({ ...valid, sizeBytes: MAX_UPLOAD_BYTES + 1 })).toBe(

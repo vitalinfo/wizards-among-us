@@ -4,7 +4,9 @@ import type { Actor } from "@/lib/actor";
 
 import {
   canDeleteApplication,
+  canDeleteApplicationFile,
   canReopenApplication,
+  canRotateApplicationFile,
   canEditApplication,
   canStartApplication,
   canSubmitApplication,
@@ -15,6 +17,7 @@ import {
   getSubmitBlockReason,
 } from "../authz";
 import { intakeOpen } from "@/features/campaigns/authz";
+import { APPLICATION_STATUSES, FILE_KINDS } from "@/db/enums";
 
 const admin: Actor = { kind: "admin", id: "a1", email: "a@example.com" };
 const parent: Actor = {
@@ -462,6 +465,134 @@ describe("canUploadApplicationFile", () => {
         "letter_photo",
       ),
     ).toBe(false);
+  });
+});
+
+// Removing a file is half of replacing it. It used to follow the edit lock,
+// which made a gift confirmation impossible to take back: it is uploaded
+// precisely while the lock is on.
+describe("canDeleteApplicationFile", () => {
+  const owned = { parentId: "p1" };
+
+  it("lets the parent remove the gift photo while a volunteer holds the child", () => {
+    for (const status of ["claimed", "processed"] as const) {
+      expect(
+        canDeleteApplicationFile(parent, { ...owned, status }, "confirmation"),
+      ).toBe(true);
+    }
+  });
+
+  it("keeps the gift photo once the gift is confirmed", () => {
+    // It is the proof the volunteer was shown.
+    expect(
+      canDeleteApplicationFile(
+        parent,
+        { ...owned, status: "fulfilled" },
+        "confirmation",
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the edit lock for the form's own uploads", () => {
+    expect(
+      canDeleteApplicationFile(
+        parent,
+        { ...owned, status: "submitted" },
+        "letter_photo",
+      ),
+    ).toBe(true);
+    expect(
+      canDeleteApplicationFile(
+        parent,
+        { ...owned, status: "claimed" },
+        "letter_photo",
+      ),
+    ).toBe(false);
+  });
+
+  it("matches the upload window for the parent, everywhere", () => {
+    for (const status of APPLICATION_STATUSES) {
+      for (const kind of FILE_KINDS) {
+        expect(
+          canDeleteApplicationFile(parent, { ...owned, status }, kind),
+        ).toBe(canUploadApplicationFile(parent, { ...owned, status }, kind));
+      }
+    }
+  });
+
+  it("lets an admin remove any file, and nobody else", () => {
+    for (const status of APPLICATION_STATUSES) {
+      for (const kind of FILE_KINDS) {
+        expect(
+          canDeleteApplicationFile(admin, { ...owned, status }, kind),
+        ).toBe(true);
+        for (const actor of [volunteer, otherParent, null]) {
+          expect(
+            canDeleteApplicationFile(actor, { ...owned, status }, kind),
+          ).toBe(false);
+        }
+      }
+    }
+  });
+});
+
+// Turning a photo rewrites the stored file, so who may do it is asserted for
+// every role, not only the ones the UI offers the button to.
+describe("canRotateApplicationFile", () => {
+  const owned = { parentId: "p1" };
+
+  it("lets an admin turn any kind of photo, at any status", () => {
+    for (const status of APPLICATION_STATUSES) {
+      for (const kind of FILE_KINDS) {
+        expect(
+          canRotateApplicationFile(admin, { ...owned, status }, kind),
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("lets the parent turn a photo exactly while they could upload it again", () => {
+    for (const status of APPLICATION_STATUSES) {
+      for (const kind of FILE_KINDS) {
+        expect(
+          canRotateApplicationFile(parent, { ...owned, status }, kind),
+        ).toBe(canUploadApplicationFile(parent, { ...owned, status }, kind));
+      }
+    }
+    // Spelled out, so the rule above cannot pass by both being always false.
+    expect(
+      canRotateApplicationFile(
+        parent,
+        { ...owned, status: "submitted" },
+        "idp_certificate",
+      ),
+    ).toBe(true);
+    expect(
+      canRotateApplicationFile(
+        parent,
+        { ...owned, status: "approved" },
+        "idp_certificate",
+      ),
+    ).toBe(false);
+    expect(
+      canRotateApplicationFile(
+        parent,
+        { ...owned, status: "claimed" },
+        "confirmation",
+      ),
+    ).toBe(true);
+  });
+
+  it("never lets a volunteer, another parent, or nobody turn a photo", () => {
+    for (const actor of [volunteer, otherParent, null]) {
+      for (const status of APPLICATION_STATUSES) {
+        for (const kind of FILE_KINDS) {
+          expect(
+            canRotateApplicationFile(actor, { ...owned, status }, kind),
+          ).toBe(false);
+        }
+      }
+    }
   });
 });
 

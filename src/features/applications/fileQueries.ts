@@ -56,6 +56,30 @@ export async function recordApplicationFile(file: {
   return row.id;
 }
 
+// Points a file row at a new stored object (a turned photo). Guarded on the
+// key the caller READ: two turns racing each other would otherwise both land,
+// and the photo would end up turned once instead of twice. The loser gets
+// `false` and must remove the object it wrote.
+export async function replaceApplicationFileObject(
+  applicationId: string,
+  fileId: string,
+  expectedStorageKey: string,
+  next: { storageKey: string; contentType: string; sizeBytes: number },
+): Promise<boolean> {
+  const rows = await getDb()
+    .update(applicationFiles)
+    .set(next)
+    .where(
+      and(
+        eq(applicationFiles.id, fileId),
+        eq(applicationFiles.applicationId, applicationId),
+        eq(applicationFiles.storageKey, expectedStorageKey),
+      ),
+    )
+    .returning({ id: applicationFiles.id });
+  return rows.length > 0;
+}
+
 export async function deleteApplicationFile(
   applicationId: string,
   fileId: string,

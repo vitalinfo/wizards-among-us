@@ -1,6 +1,10 @@
 # Native dependencies whose install/build scripts we explicitly allow to run.
-# pnpm blocks build scripts by default. `sharp` (next/image optimization) is
-# left disabled — unused for now.
+# pnpm blocks build scripts by default. `sharp` normalizes uploaded photos
+# (features/applications/photos.ts) and needs no build: it ships prebuilt
+# binaries as `@img/sharp-<platform>` optional dependencies. Our 0.35 has no
+# install script at all; this entry is for the 0.34 copy Next depends on, whose
+# script only compiles from source when no binary matches — which we never
+# want on a deploy. So it stays disabled.
 allowBuilds:
   esbuild: true
   "@tailwindcss/oxide": true
@@ -13,3 +17,6 @@ allowBuilds:
   # upload itself stays off until it is (see next.config.ts), so this costs a
   # binary in node_modules and nothing else.
   "@sentry/cli": true
+  # Its only script is `opencollective-postinstall`, a donation banner. The
+  # library runs from the files it ships (features/applications/orientation.ts).
+  tesseract.js: false
