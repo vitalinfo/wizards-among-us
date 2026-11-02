@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { BillListIcon, EditIcon, EyeIcon, TrashIcon } from "@/components/icons";
 import { ApplicationStatusPill } from "@/components/parent/ApplicationStatusPill";
+import { Tooltip } from "@/components/ui/Tooltip";
 import type { ApplicationStatus } from "@/db/enums";
 import {
   dialogHref,
@@ -70,32 +71,43 @@ export async function ApplicationsTable({
       </Link>
     ) : null;
 
+  // The first icon's label hangs right from it: on a phone the icons start at
+  // the card's left edge, and centred it would run off the screen.
   const actions = (row: MyApplicationRow) => (
     <>
       {EDITABLE.includes(row.status) ? (
-        <Link
-          href={base(row)}
-          aria-label={t("edit", { name: name(row) })}
-          className={ICON}
-        >
-          <EditIcon className="size-6" />
-        </Link>
+        <Tooltip label={t("editShort")} align="start">
+          <Link
+            href={base(row)}
+            aria-label={t("edit", { name: name(row) })}
+            className={ICON}
+          >
+            <EditIcon className="size-6" />
+          </Link>
+        </Tooltip>
       ) : null}
-      <Link
-        href={`${base(row)}/view`}
-        aria-label={t("view", { name: name(row) })}
-        className={ICON}
+      <Tooltip
+        label={t("viewShort")}
+        align={EDITABLE.includes(row.status) ? "center" : "start"}
       >
-        <EyeIcon className="size-6" />
-      </Link>
-      {row.status === "draft" ? (
         <Link
-          href={dialogHref(query, "delete", row.id)}
-          aria-label={t("delete", { name: name(row) })}
+          href={`${base(row)}/view`}
+          aria-label={t("view", { name: name(row) })}
           className={ICON}
         >
-          <TrashIcon className="size-6" />
+          <EyeIcon className="size-6" />
         </Link>
+      </Tooltip>
+      {row.status === "draft" ? (
+        <Tooltip label={t("deleteShort")}>
+          <Link
+            href={dialogHref(query, "delete", row.id)}
+            aria-label={t("delete", { name: name(row) })}
+            className={ICON}
+          >
+            <TrashIcon className="size-6" />
+          </Link>
+        </Tooltip>
       ) : null}
     </>
   );

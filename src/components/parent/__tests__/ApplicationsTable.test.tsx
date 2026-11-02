@@ -180,6 +180,22 @@ describe("ApplicationsTable actions by status", () => {
 
   // The confirmation opens over the view the bin was pressed on, and sends
   // the parent back to it.
+  // Each icon says what it does on hover and focus. The bubble's words must be
+  // in the control's name, so a voice-control user can say what they read.
+  it("labels each icon with its action", async () => {
+    await renderTable([row("draft")]);
+    const name = "Дитина-draft";
+
+    for (const [short, full] of [
+      [t.editShort, t.edit],
+      [t.viewShort, t.view],
+      [t.deleteShort, t.delete],
+    ] as const) {
+      expect(screen.getAllByText(short)).toHaveLength(2);
+      expect(fill(full, name)).toContain(short);
+    }
+  });
+
   it("the bin keeps the tab and page it was pressed on", async () => {
     await renderTable([row("draft")], { tab: "draft", page: 2, per: 10 });
 

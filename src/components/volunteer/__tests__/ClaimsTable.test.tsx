@@ -172,6 +172,25 @@ describe("ClaimsTable", () => {
     ).not.toBeInTheDocument();
   });
 
+  // Each icon says what it does on hover and focus. The bubble's words must be
+  // in the control's name, so a voice-control user can say what they read.
+  it("labels each icon with its action", async () => {
+    await renderTable([
+      rows[0]!,
+      { ...rows[0]!, applicationId: "a3", status: "processed" },
+    ]);
+
+    for (const [short, full] of [
+      [t.markProcessed, t.markProcessedFor],
+      [t.unmarkProcessed, t.unmarkProcessedFor],
+    ] as const) {
+      expect(screen.getAllByText(short)).toHaveLength(2);
+      expect(full.replace("{name}", "Софійка")).toContain(short);
+    }
+    expect(screen.getAllByText(t.viewShort)).toHaveLength(4);
+    expect(t.view.replace("{name}", "Софійка")).toContain(t.viewShort);
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = await renderTable();
     expect(await axe(container)).toHaveNoViolations();

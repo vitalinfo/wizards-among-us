@@ -7,6 +7,7 @@ import {
   ProcessedIcon,
   UnprocessedIcon,
 } from "@/components/icons";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { ClaimStatusBadge } from "@/components/volunteer/ClaimStatusBadge";
 import { claimDialogHref, type ClaimsQuery } from "@/features/claims/claimTabs";
 import type { MyClaimRow } from "@/features/claims/queries";
@@ -47,37 +48,53 @@ export async function ClaimsTable({
 
   // The optional «Опрацьовано» mark: set on a claimed child, taken off a
   // processed one — each behind a confirmation drawn over the list. The icon
-  // shows the current state; the label names the action.
+  // and the label both name the ACTION: the check marks it processed, the
+  // half-filled circle takes the mark off.
+  //
+  // Both icons' labels hang left, flush with their right edge: they sit at the
+  // right of the card and of the table, whose box clips, and «Позначити як
+  // опрацьовану» centred would run past either.
   const toggle = (row: MyClaimRow) =>
     row.status === "claimed" || row.status === "processed" ? (
-      <Link
-        href={claimDialogHref(
-          query,
-          row.status === "claimed" ? "process" : "unprocess",
-          row.applicationId,
+      <Tooltip
+        label={t(
+          row.status === "claimed" ? "markProcessed" : "unmarkProcessed",
         )}
-        aria-label={t(
-          row.status === "claimed" ? "markProcessedFor" : "unmarkProcessedFor",
-          { name: name(row) },
-        )}
-        className="text-foreground hover:text-primary focus-visible:outline-ring inline-flex items-center rounded focus-visible:outline-2 focus-visible:outline-offset-2"
+        align="end"
       >
-        {row.status === "claimed" ? (
-          <UnprocessedIcon className="size-6" />
-        ) : (
-          <ProcessedIcon className="size-6" />
-        )}
-      </Link>
+        <Link
+          href={claimDialogHref(
+            query,
+            row.status === "claimed" ? "process" : "unprocess",
+            row.applicationId,
+          )}
+          aria-label={t(
+            row.status === "claimed"
+              ? "markProcessedFor"
+              : "unmarkProcessedFor",
+            { name: name(row) },
+          )}
+          className="text-foreground hover:text-primary focus-visible:outline-ring inline-flex items-center rounded focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          {row.status === "claimed" ? (
+            <ProcessedIcon className="size-6" />
+          ) : (
+            <UnprocessedIcon className="size-6" />
+          )}
+        </Link>
+      </Tooltip>
     ) : null;
 
   const details = (row: MyClaimRow) => (
-    <Link
-      href={`/account/volunteer/claims/${row.applicationId}`}
-      aria-label={t("view", { name: name(row) })}
-      className="text-foreground hover:text-primary focus-visible:outline-ring inline-flex items-center gap-2 rounded focus-visible:outline-2 focus-visible:outline-offset-2"
-    >
-      <EyeIcon className="size-6" />
-    </Link>
+    <Tooltip label={t("viewShort")} align="end">
+      <Link
+        href={`/account/volunteer/claims/${row.applicationId}`}
+        aria-label={t("view", { name: name(row) })}
+        className="text-foreground hover:text-primary focus-visible:outline-ring inline-flex items-center gap-2 rounded focus-visible:outline-2 focus-visible:outline-offset-2"
+      >
+        <EyeIcon className="size-6" />
+      </Link>
+    </Tooltip>
   );
 
   return (
