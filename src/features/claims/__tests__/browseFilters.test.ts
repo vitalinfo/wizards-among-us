@@ -7,6 +7,7 @@ import {
   ageBand,
   browseHref,
   claimHref,
+  claimTakenHref,
   BROWSE_ANCHOR,
   parseBrowseQuery,
 } from "../browseFilters";
@@ -190,4 +191,42 @@ describe("claimHref", () => {
     const back = new URL(url.searchParams.get("return") ?? "", "http://x");
     expect(back.searchParams.get("page")).toBeNull();
   });
+});
+
+// A lost claim used to redirect back to the list with nothing said, so the
+// volunteer could not tell their press had been refused.
+describe("claimTakenHref", () => {
+  it("returns to the same view, notice added, fragment kept last", () => {
+    const back = browseHref(
+      parseBrowseQuery({ region: "lviv", age: "5-8", page: "2" }),
+    );
+    const href = claimTakenHref(back);
+    const url = new URL(href, "http://x");
+
+    expect(url.pathname).toBe("/account/volunteer/children");
+    expect(url.searchParams.get("region")).toBe("lviv");
+    expect(url.searchParams.get("page")).toBe("2");
+    expect(url.searchParams.get("notice")).toBe("taken");
+    expect(href.endsWith(`#${BROWSE_ANCHOR}`)).toBe(true);
+  });
+
+  it("is not carried into the next filter or page link", () => {
+    const query = parseBrowseQuery(
+      Object.fromEntries(
+        new URL(claimTakenHref(browseHref(empty)), "http://x").searchParams,
+      ),
+    );
+    expect(browseHref(query, { page: 2 })).not.toContain("notice");
+  });
+
+  // `return` comes back through a query string; anything that is not the
+  // browse list still lands on it, where the notice is drawn.
+  it.each(["https://evil.example/", "/account/volunteer/claims", ""])(
+    "falls back to the browse list for %j",
+    (returnTo) => {
+      expect(claimTakenHref(returnTo)).toBe(
+        `/account/volunteer/children?notice=taken#${BROWSE_ANCHOR}`,
+      );
+    },
+  );
 });

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { BrowseFilterForm } from "@/components/volunteer/BrowseFilterForm";
 import { ChildCard } from "@/components/volunteer/ChildCard";
+import { ClaimTakenModal } from "@/components/volunteer/ClaimTakenModal";
 import { ChildrenEmptyState } from "@/components/volunteer/ChildrenEmptyState";
 import { ListPager } from "@/components/ui/ListPager";
 import {
@@ -32,6 +33,8 @@ export default async function BrowseChildrenPage({
     age?: string;
     page?: string;
     per?: string;
+    // `taken`: another volunteer took the child first (claimTakenHref).
+    notice?: string;
   }>;
 }) {
   const actor = await getSessionActor();
@@ -88,50 +91,59 @@ export default async function BrowseChildrenPage({
   // A filter is what emptied the list, as opposed to there being nothing to
   // show — the two need different copy, and only one of them is reassuring.
   const filtered = query.region !== null || query.age !== null;
+  const taken = params.notice === "taken";
 
   return (
-    <div className="pt-10 pb-10 lg:pt-[50px]">
-      <Header title={t("title")} intro={t("intro")} />
+    <>
+      {/* inert while the dialog is up: Tab must not walk into the list under
+          it. */}
+      <div className="pt-10 pb-10 lg:pt-[50px]" inert={taken}>
+        <Header title={t("title")} intro={t("intro")} />
 
-      {/* 60 between the intro and the filters, 58 between the filters and the
+        {/* 60 between the intro and the filters, 58 between the filters and the
           first card — the rhythm the design draws, looser than the page's
           default spacing. */}
-      <div className="mt-10 lg:mt-[60px]">
-        <BrowseFilterForm query={query} anchor={BROWSE_ANCHOR} />
+        <div className="mt-10 lg:mt-[60px]">
+          <BrowseFilterForm query={query} anchor={BROWSE_ANCHOR} />
+        </div>
+
+        {/* scroll-mt clears the account header, or the anchor lands under it and
+          the first card is hidden. */}
+        <div id={BROWSE_ANCHOR} className="scroll-mt-20" />
+
+        {rows.length === 0 ? (
+          <ChildrenEmptyState filtered={filtered} />
+        ) : (
+          <>
+            <ul className="mt-14 flex flex-col gap-10 lg:mt-[58px] lg:gap-6">
+              {rows.map((row) => (
+                <ChildCard
+                  key={row.id}
+                  row={row}
+                  claimHref={claimHref(query, page, row.id)}
+                />
+              ))}
+            </ul>
+
+            <ListPager
+              label={t("pager.label")}
+              page={page}
+              pageCount={pageCount}
+              total={total}
+              from={(page - 1) * per + 1}
+              to={(page - 1) * per + rows.length}
+              per={per}
+              hrefFor={(target) => browseHref(query, { page: target })}
+              sizeHref={(size) => browseHref(query, { per: size })}
+            />
+          </>
+        )}
       </div>
 
-      {/* scroll-mt clears the account header, or the anchor lands under it and
-          the first card is hidden. */}
-      <div id={BROWSE_ANCHOR} className="scroll-mt-20" />
-
-      {rows.length === 0 ? (
-        <ChildrenEmptyState filtered={filtered} />
-      ) : (
-        <>
-          <ul className="mt-14 flex flex-col gap-10 lg:mt-[58px] lg:gap-6">
-            {rows.map((row) => (
-              <ChildCard
-                key={row.id}
-                row={row}
-                claimHref={claimHref(query, page, row.id)}
-              />
-            ))}
-          </ul>
-
-          <ListPager
-            label={t("pager.label")}
-            page={page}
-            pageCount={pageCount}
-            total={total}
-            from={(page - 1) * per + 1}
-            to={(page - 1) * per + rows.length}
-            per={per}
-            hrefFor={(target) => browseHref(query, { page: target })}
-            sizeHref={(size) => browseHref(query, { per: size })}
-          />
-        </>
-      )}
-    </div>
+      {taken ? (
+        <ClaimTakenModal closeHref={browseHref(query, { page })} />
+      ) : null}
+    </>
   );
 }
 

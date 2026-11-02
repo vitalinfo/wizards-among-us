@@ -1,5 +1,6 @@
 import { UKRAINE_REGIONS, type UkraineRegion } from "@/db/enums";
 import { CHILD_AGE_MAX } from "@/lib/applicationFieldOptions";
+import { safeReturnPath } from "@/lib/auth/returnPath";
 import {
   DEFAULT_PAGE_SIZE,
   parsePageSize,
@@ -132,4 +133,21 @@ export function claimHref(
     return: browseUrl(browseParams(query, page)),
   });
   return `/account/volunteer/children/${applicationId}/claim?${params}`;
+}
+
+// Where claimAction sends a volunteer whose child was taken by someone else
+// while they read the briefing: back to the view they came from, with
+// `?notice=taken` so the list can say so. Without it the redirect looked like
+// nothing had happened.
+//
+// The notice is deliberately NOT part of BrowseQuery, so browseHref drops it —
+// the next filter or page change clears it rather than carrying it along.
+export function claimTakenHref(returnTo: string): string {
+  const back = new URL(safeReturnPath(returnTo), "http://local");
+  const url =
+    back.pathname === "/account/volunteer/children"
+      ? back
+      : new URL(browseUrl(new URLSearchParams()), back);
+  url.searchParams.set("notice", "taken");
+  return `${url.pathname}${url.search}${url.hash}`;
 }

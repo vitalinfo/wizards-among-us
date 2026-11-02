@@ -9,6 +9,7 @@ import {
   canReleaseClaim,
   canToggleProcessed,
   getClaimBlockReason,
+  isHeldByAnother,
 } from "../authz";
 
 const parent: Actor = {
@@ -226,5 +227,26 @@ describe("canToggleProcessed", () => {
         false,
       );
     }
+  });
+});
+
+// Decides whether the claim briefing says "someone else took this child" or
+// bounces silently — so it must never fire for the volunteer's own claim.
+describe("isHeldByAnother", () => {
+  const held = { volunteerId: "v2", releasedAt: null };
+
+  it("is true while another volunteer holds the claim", () => {
+    expect(isHeldByAnother("v1", held)).toBe(true);
+  });
+
+  it("is false for the volunteer's own claim", () => {
+    expect(isHeldByAnother("v2", held)).toBe(false);
+  });
+
+  it("is false for a released claim, or none", () => {
+    expect(isHeldByAnother("v1", { ...held, releasedAt: new Date() })).toBe(
+      false,
+    );
+    expect(isHeldByAnother("v1", null)).toBe(false);
   });
 });
