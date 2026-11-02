@@ -95,24 +95,30 @@ export default async function AdminApplicationsPage({
                 key={row.id}
                 className="border-border bg-surface rounded-lg border p-4"
               >
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <ApplicationStatusBadge status={row.status} />
+                  <span className="text-muted-foreground text-sm">
+                    {row.submittedAt
+                      ? format.dateTime(row.submittedAt, "short")
+                      : t("notSubmitted")}
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap items-baseline gap-x-3">
                   <h2 className="font-semibold">
                     {row.childName ?? t("empty_value")}
                   </h2>
-                  <ApplicationStatusBadge status={row.status} />
+                  <span className="text-muted-foreground text-sm">
+                    {row.childAge !== null
+                      ? tList("ageSuffix", { age: row.childAge })
+                      : t("empty_value")}
+                  </span>
                 </div>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  {row.childAge !== null
-                    ? tList("ageSuffix", { age: row.childAge })
-                    : t("empty_value")}
-                  {" · "}
                   {row.homeRegion ? tRegions(row.homeRegion) : t("empty_value")}
                   {" · "}
-                  {row.submittedAt
-                    ? t("submittedAt", {
-                        date: format.dateTime(row.submittedAt, "short"),
-                      })
-                    : t("notSubmitted")}
+                  {row.homeTown ?? t("empty_value")}
+                  {" · "}
+                  {row.displacedYear ?? t("empty_value")}
                 </p>
                 {/* The filter rides along so "back" returns to this view
                     rather than resetting to the default queue.
