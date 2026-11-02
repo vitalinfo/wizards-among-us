@@ -354,29 +354,36 @@ export default async function AdminApplicationPage({
             <p className="text-muted-foreground text-sm">{t("files.none")}</p>
           ) : (
             <ul className="flex flex-wrap gap-4">
-              {files.map((file) => (
-                <li key={file.id}>
-                  {/* Streams through the authorized route, which re-checks the
+              {files.map((file) => {
+                const fileUrl = `/api/applications/${applicationId}/files/${file.id}`;
+                // The version makes a turned photo a new URL, so the thumbnail
+                // reloads on the refresh that follows a turn. The route ignores it.
+                const versioned = `${fileUrl}?v=${file.updatedAt.getTime()}`;
+                return (
+                  <li key={file.id}>
+                    {/* Streams through the authorized route, which re-checks the
                       actor and logs the read. Never a direct storage URL. */}
-                  <figure className="flex w-40 flex-col gap-1.5">
-                    <PhotoLightbox
-                      href={`/api/applications/${applicationId}/files/${file.id}`}
-                      title={t(`files.${file.kind}`)}
-                      alt={t("files.alt", { title: t(`files.${file.kind}`) })}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element -- served by an authorized route, not an optimizable static asset */}
-                      <img
-                        src={`/api/applications/${applicationId}/files/${file.id}`}
-                        alt=""
-                        className="border-border h-32 w-40 rounded-md border object-cover"
-                      />
-                    </PhotoLightbox>
-                    <figcaption className="text-sm font-medium">
-                      {t(`files.${file.kind}`)}
-                    </figcaption>
-                  </figure>
-                </li>
-              ))}
+                    <figure className="flex w-40 flex-col gap-1.5">
+                      <PhotoLightbox
+                        href={versioned}
+                        rotateHref={`${fileUrl}/rotate`}
+                        title={t(`files.${file.kind}`)}
+                        alt={t("files.alt", { title: t(`files.${file.kind}`) })}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- served by an authorized route, not an optimizable static asset */}
+                        <img
+                          src={versioned}
+                          alt=""
+                          className="border-border h-32 w-40 rounded-md border object-cover"
+                        />
+                      </PhotoLightbox>
+                      <figcaption className="text-sm font-medium">
+                        {t(`files.${file.kind}`)}
+                      </figcaption>
+                    </figure>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

@@ -2,7 +2,7 @@ import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { type NextRequest, NextResponse } from "next/server";
 
 import {
-  canEditApplication,
+  canDeleteApplicationFile,
   canViewApplicationFile,
 } from "@/features/applications/authz";
 import {
@@ -102,8 +102,15 @@ export async function DELETE(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // The file is read first because its KIND decides who may remove it: the
+  // gift confirmation has its own window, after the edit lock is on.
   const context = await getApplicationForFileAccess(applicationId);
-  if (!context || !canEditApplication(actor, context.application)) {
+  const file = await getApplicationFile(applicationId, fileId);
+  if (
+    !context ||
+    !file ||
+    !canDeleteApplicationFile(actor, context.application, file.kind)
+  ) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 

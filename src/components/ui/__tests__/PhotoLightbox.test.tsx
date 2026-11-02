@@ -1,13 +1,21 @@
 import { NextIntlClientProvider } from "next-intl";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import messages from "../../../../messages/uk.json";
 import { locale } from "@/i18n/request";
 import { axe } from "@/test/axe";
 
 import { PhotoLightbox } from "../PhotoLightbox";
+
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  refresh.mockReset();
+});
 
 const t = messages.common.lightbox;
 // The trigger's accessible name comes from PhotoLightbox itself: a thumbnail
@@ -98,6 +106,119 @@ describe("PhotoLightbox", () => {
     const user = userEvent.setup();
     const { container } = wrap();
     await user.click(screen.getByRole("link", { name: trigger }));
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe("PhotoLightbox turning", () => {
+  function wrapRotatable() {
+    return render(
+      <NextIntlClientProvider locale={locale} messages={messages}>
+        <PhotoLightbox
+          href="/api/file/1?v=5"
+          rotateHref="/api/file/1/rotate"
+          title="Фото листа"
+          alt="Лист дитини"
+        >
+          <span>Переглянути</span>
+        </PhotoLightbox>
+      </NextIntlClientProvider>,
+    );
+  }
+
+  async function open() {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("link", { name: trigger }));
+    return user;
+  }
+
+  // The lightbox also opens photos for volunteers, who see these photos but
+  // never maintain them.
+  it("offers no turn buttons unless asked to", async () => {
+    wrap();
+    await open();
+
+    expect(screen.queryByRole("group", { name: t.rotate })).toBeNull();
+    expect(screen.queryByRole("button", { name: t.rotateRight })).toBeNull();
+  });
+
+  it("turns the photo and shows the new pixels", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(Response.json({ ok: true }));
+    wrapRotatable();
+    const user = await open();
+
+    await user.click(screen.getByRole("button", { name: t.rotateRight }));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/file/1/rotate",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ direction: "right" }),
+      }),
+    );
+    // Same file, new URL: otherwise the browser keeps the photo it has.
+    await waitFor(() =>
+      expect(screen.getByAltText("Лист дитини")).toHaveAttribute(
+        "src",
+        "/api/file/1?v=5&t=1",
+      ),
+    );
+    expect(refresh).toHaveBeenCalled();
+
+    // Until the turned photo has arrived, another turn would act on a photo
+    // nobody has seen yet. (`load` is not something user-event models.)
+    expect(screen.getByRole("button", { name: t.rotateLeft })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(t.rotating);
+    fireEvent.load(screen.getByAltText("Лист дитини"));
+    expect(screen.getByRole("button", { name: t.rotateLeft })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: t.rotateLeft }));
+
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/file/1/rotate",
+      expect.objectContaining({ body: JSON.stringify({ direction: "left" }) }),
+    );
+    await waitFor(() =>
+      expect(screen.getByAltText("Лист дитини")).toHaveAttribute(
+        "src",
+        "/api/file/1?v=5&t=2",
+      ),
+    );
+  });
+
+  it("says so when the turn fails, and keeps the photo it had", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ error: "not_found" }, { status: 404 }),
+    );
+    wrapRotatable();
+    const user = await open();
+
+    await user.click(screen.getByRole("button", { name: t.rotateRight }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.rotateFailed);
+    expect(screen.getByAltText("Лист дитини")).toHaveAttribute(
+      "src",
+      "/api/file/1?v=5",
+    );
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("says so when the network fails", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("offline"));
+    wrapRotatable();
+    const user = await open();
+
+    await user.click(screen.getByRole("button", { name: t.rotateLeft }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.rotateFailed);
+  });
+
+  it("has no accessibility violations with the turn buttons", async () => {
+    const { container } = wrapRotatable();
+    await open();
 
     expect(await axe(container)).toHaveNoViolations();
   });

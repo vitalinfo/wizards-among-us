@@ -1,8 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
+import { CloseIcon, ExternalLinkIcon } from "@/components/icons";
+import { iconButton } from "@/components/ui/buttonStyles";
+import { PhotoRotateControls } from "@/components/ui/PhotoRotateControls";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/lib/utils";
 
 // Opens a photo in an overlay instead of a new tab.
@@ -20,10 +24,14 @@ export function PhotoLightbox({
   href,
   title,
   alt,
+  rotateHref,
   className,
   children,
 }: {
   href: string;
+  // Offers the quarter-turn buttons, posting to this endpoint. Only pass it
+  // where canRotateApplicationFile holds — the route re-checks either way.
+  rotateHref?: string;
   // Names the dialog for a screen reader, and captions the photo.
   title: string;
   alt: string;
@@ -38,6 +46,16 @@ export function PhotoLightbox({
 }) {
   const t = useTranslations("common.lightbox");
   const dialog = useRef<HTMLDialogElement>(null);
+  // Bumped after each turn. The file keeps its URL when its pixels change, so
+  // without a new one the browser keeps showing the photo it already has.
+  const [turns, setTurns] = useState(0);
+  // From the turn's response until the turned photo has actually arrived. The
+  // request finishes well before the new image does, and without this the
+  // buttons came back while the old photo still showed — a click that seemed
+  // to do nothing.
+  const [reloading, setReloading] = useState(false);
+  const src =
+    turns === 0 ? href : `${href}${href.includes("?") ? "&" : "?"}t=${turns}`;
 
   return (
     <>
@@ -86,31 +104,55 @@ export function PhotoLightbox({
         className="bg-surface text-foreground m-auto max-h-[90dvh] max-w-[92vw] rounded-lg p-0 backdrop:bg-black/70"
       >
         <div className="flex max-h-[90dvh] flex-col">
-          <div className="border-border flex items-center justify-between gap-4 border-b px-4 py-3">
+          <div className="border-border flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-4 py-3">
             <p className="text-sm font-semibold">{title}</p>
-            <div className="flex items-center gap-3">
-              <a
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary text-sm underline underline-offset-4"
-              >
-                {t("openInTab")}
-              </a>
-              <button
-                type="button"
-                onClick={() => dialog.current?.close()}
-                className="border-border rounded-md border px-2.5 py-1 text-sm font-semibold"
-              >
-                {t("close")}
-              </button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {rotateHref ? (
+                <PhotoRotateControls
+                  endpoint={rotateHref}
+                  waiting={reloading}
+                  onRotated={() => {
+                    setReloading(true);
+                    setTurns((count) => count + 1);
+                  }}
+                />
+              ) : null}
+              {/* Icons, not words: «Відкрити в новій вкладці» alone took
+                  most of a phone's width once the turn buttons joined it.
+                  The words stay as each control's name and its tooltip. */}
+              <Tooltip label={t("openInTab")} side="bottom" align="end">
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={t("openInTab")}
+                  className={iconButton}
+                >
+                  <ExternalLinkIcon className="size-5" />
+                </a>
+              </Tooltip>
+              <Tooltip label={t("close")} side="bottom" align="end">
+                <button
+                  type="button"
+                  aria-label={t("close")}
+                  onClick={() => dialog.current?.close()}
+                  className={iconButton}
+                >
+                  <CloseIcon className="size-5" />
+                </button>
+              </Tooltip>
             </div>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element -- served by an authorized route, not an optimizable static asset */}
           <img
-            src={href}
+            src={src}
             alt={alt}
-            className="min-h-0 w-auto flex-1 object-contain p-2"
+            onLoad={() => setReloading(false)}
+            onError={() => setReloading(false)}
+            className={cn(
+              "min-h-0 w-auto flex-1 object-contain p-2 transition-opacity",
+              reloading && "opacity-40",
+            )}
           />
         </div>
       </dialog>
