@@ -4,7 +4,7 @@ import { getDb } from "@/db";
 import { applications, identities } from "@/db/schema";
 import { recordAuditLog } from "@/features/audit/log";
 import type { Actor } from "@/lib/actor";
-import { SITE } from "@/lib/site";
+import { siteOrigin } from "@/lib/site";
 import { sendTelegramMessage } from "@/lib/telegramBot";
 
 type Decision = "approved" | "rejected";
@@ -27,12 +27,8 @@ export function decisionMessage(
   applicationId: string,
   childName: string,
 ): string {
-  // The link must land on the host THIS deploy serves — staging's bot sends a
-  // staging link. CANONICAL_HOST is that host (the middleware redirects to it);
-  // SITE.url is production's, the fallback where it isn't set.
-  const host = process.env.CANONICAL_HOST;
-  const origin = host ? `https://${host}` : SITE.url;
-  const url = `${origin}/account/parent/applications/${applicationId}/view`;
+  // The host THIS deploy serves — staging's bot sends a staging link.
+  const url = `${siteOrigin()}/account/parent/applications/${applicationId}/view`;
   return t(decision, { childName, url });
 }
 

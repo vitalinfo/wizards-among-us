@@ -3,7 +3,7 @@ import { Caveat, Raleway } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 
-import { SITE } from "@/lib/site";
+import { siteOrigin } from "@/lib/site";
 import "./globals.css";
 
 // The 2026 redesign's two faces. Both are Google Fonts with a Cyrillic subset,
@@ -33,15 +33,11 @@ export async function generateMetadata(): Promise<Metadata> {
     // og:image must be ABSOLUTE. Without this Next falls back to whatever
     // origin served the request.
     //
-    // Read from CANONICAL_HOST — the host the middleware already redirects to —
-    // rather than NEXT_PUBLIC_SITE_URL, because NEXT_PUBLIC_* is inlined at
-    // BUILD time: a staging slug promoted through the Heroku pipeline would
-    // otherwise advertise staging's host in every share card in production.
-    metadataBase: new URL(
-      process.env.CANONICAL_HOST
-        ? `https://${process.env.CANONICAL_HOST}`
-        : SITE.url,
-    ),
+    // siteOrigin() reads CANONICAL_HOST at request time. Not a NEXT_PUBLIC_*
+    // var, because those are inlined at BUILD time: a staging slug promoted
+    // through the Heroku pipeline would otherwise advertise staging's host in
+    // every share card in production.
+    metadataBase: new URL(siteOrigin()),
     title: t("title"),
     description: t("description"),
     // Default: keep the whole app out of search indexes. Only the landing page

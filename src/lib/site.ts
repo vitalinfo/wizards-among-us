@@ -1,7 +1,11 @@
 // Site-wide configuration (non-translatable values like contact links).
 export const SITE = {
-  // Canonical URL — used by robots.txt, sitemap and metadataBase.
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://wizards-among-us.pp.ua",
+  // PRODUCTION's URL — used by robots.txt and the sitemap, which only production
+  // should advertise. A constant on purpose: those two routes are rendered at
+  // build time, and this module also ships to the browser, so an env read here
+  // would be frozen into the build. For "the host this deploy serves" (links,
+  // metadataBase) use siteOrigin() below.
+  url: "https://wizards-among-us.pp.ua",
   // The year the initiative started. Drives the landing page's "4+ years"
   // figure, which is COMPUTED — a hardcoded 4 quietly becomes a lie every
   // January, and nobody is watching a marketing number for that.
@@ -19,3 +23,12 @@ export const SITE = {
   // ever moves to an external URL.
   privacyUrl: "/privacy",
 } as const;
+
+// The origin THIS deploy is served on — staging's on staging. SERVER ONLY, and
+// call it per request: CANONICAL_HOST is a runtime config var (the host the
+// middleware redirects to), absent from the browser bundle. Falls back to
+// production's URL where it isn't set.
+export function siteOrigin(): string {
+  const host = process.env.CANONICAL_HOST;
+  return host ? `https://${host}` : SITE.url;
+}
