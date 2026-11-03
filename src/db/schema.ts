@@ -187,6 +187,9 @@ export const auditLogs = pgTable(
     action: text("action").notNull(),
     targetType: text("target_type").notNull(),
     targetId: uuid("target_id"),
+    // The client address the request came from (clientIp). Null for rows
+    // written before it was recorded, and outside a request.
+    ip: text("ip"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

@@ -19,12 +19,13 @@ describe("rateLimitKey", () => {
 });
 
 describe("clientIp", () => {
-  // Heroku terminates TLS at its router, so the dyno never sees the real peer.
-  // The chain is "client, proxy1, proxy2" — later entries are our own
-  // infrastructure, so taking anything but the first would rate-limit Heroku.
-  it("takes the first entry of x-forwarded-for", () => {
+  // Heroku's router APPENDS the address it saw to whatever the client sent, so
+  // only the last entry is not the client's own text.
+  it("takes the entry the router appended, not one the client sent", () => {
     expect(
-      clientIp(new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" })),
+      clientIp(
+        new Headers({ "x-forwarded-for": "198.51.100.77, 203.0.113.7" }),
+      ),
     ).toBe("203.0.113.7");
     expect(clientIp(new Headers({ "x-forwarded-for": " 203.0.113.7 " }))).toBe(
       "203.0.113.7",
@@ -35,7 +36,7 @@ describe("clientIp", () => {
     expect(clientIp(new Headers())).toBeNull();
     expect(clientIp(new Headers({ "x-forwarded-for": "" }))).toBeNull();
     expect(
-      clientIp(new Headers({ "x-forwarded-for": " , 10.0.0.1" })),
+      clientIp(new Headers({ "x-forwarded-for": "203.0.113.7, " })),
     ).toBeNull();
   });
 });

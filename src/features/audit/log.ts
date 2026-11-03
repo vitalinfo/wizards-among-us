@@ -1,6 +1,19 @@
+import { headers } from "next/headers";
+
 import { getDb } from "@/db";
 import { auditLogs } from "@/db/schema";
+import { clientIp } from "@/features/rateLimit/policy";
 import { isAdmin, type Actor } from "@/lib/actor";
+
+// Where the request came from. `headers()` throws outside a request scope (a
+// script, a test), and there is no address to record there.
+async function requestIp(): Promise<string | null> {
+  try {
+    return clientIp(await headers());
+  } catch {
+    return null;
+  }
+}
 
 // Append-only audit trail (invariant: log every view/claim/export of child
 // data, plus the actions that change an application's fate).
@@ -17,6 +30,7 @@ export async function recordAuditLog(entry: {
   const actorLabel = isAdmin(actor)
     ? actor.email
     : (actor.username ?? actor.firstName ?? actor.id);
+  const ip = await requestIp();
 
   try {
     await getDb().insert(auditLogs).values({
@@ -26,6 +40,7 @@ export async function recordAuditLog(entry: {
       action,
       targetType,
       targetId,
+      ip,
     });
   } catch (error) {
     // Never let logging break the user's action — but make the failure loud in
