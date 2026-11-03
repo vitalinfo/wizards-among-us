@@ -17,6 +17,3 @@ allowBuilds:
   # upload itself stays off until it is (see next.config.ts), so this costs a
   # binary in node_modules and nothing else.
   "@sentry/cli": true
-  # Its only script is `opencollective-postinstall`, a donation banner. The
-  # library runs from the files it ships (features/applications/orientation.ts).
-  tesseract.js: false

@@ -16,15 +16,14 @@ export type StoredPhotoFacts = {
 export type StoredPhotoDecision = "rewrite" | "already_normalized";
 
 // Rewrite unless the stored photo is already exactly what an upload produces
-// today AND reading its text found nothing to turn. Re-encoding a photo that
-// is already clean would only cost it a generation of JPEG quality.
+// today. Re-encoding a photo that is already clean would only cost it a
+// generation of JPEG quality.
 export function decideStoredPhoto(
   before: StoredPhotoFacts,
-  turnApplied: boolean,
 ): StoredPhotoDecision {
   const clean =
     before.format === "jpeg" &&
     Math.max(before.width, before.height) <= MAX_PHOTO_SIDE &&
     !before.hasMetadata;
-  return clean && !turnApplied ? "already_normalized" : "rewrite";
+  return clean ? "already_normalized" : "rewrite";
 }

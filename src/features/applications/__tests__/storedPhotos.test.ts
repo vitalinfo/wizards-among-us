@@ -15,28 +15,22 @@ describe("decideStoredPhoto", () => {
   };
 
   it("leaves a photo that is already what an upload produces today", () => {
-    expect(decideStoredPhoto(clean, false)).toBe("already_normalized");
-  });
-
-  it("rewrites a clean photo when its text says it lies sideways", () => {
-    expect(decideStoredPhoto(clean, true)).toBe("rewrite");
+    expect(decideStoredPhoto(clean)).toBe("already_normalized");
   });
 
   it("rewrites anything that still carries metadata — GPS lives there", () => {
-    expect(decideStoredPhoto({ ...clean, hasMetadata: true }, false)).toBe(
+    expect(decideStoredPhoto({ ...clean, hasMetadata: true })).toBe("rewrite");
+  });
+
+  it("rewrites a photo larger than the limit", () => {
+    expect(decideStoredPhoto({ ...clean, width: MAX_PHOTO_SIDE + 1 })).toBe(
       "rewrite",
     );
   });
 
-  it("rewrites a photo larger than the limit", () => {
-    expect(
-      decideStoredPhoto({ ...clean, width: MAX_PHOTO_SIDE + 1 }, false),
-    ).toBe("rewrite");
-  });
-
   it("rewrites a PNG or WebP into the one stored format", () => {
     for (const format of ["png", "webp"]) {
-      expect(decideStoredPhoto({ ...clean, format }, false)).toBe("rewrite");
+      expect(decideStoredPhoto({ ...clean, format })).toBe("rewrite");
     }
   });
 });

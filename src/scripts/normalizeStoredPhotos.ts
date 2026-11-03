@@ -22,7 +22,7 @@ import {
 } from "@/lib/storage/client";
 
 // One-off: bring photos stored BEFORE uploads were normalized up to what an
-// upload produces today — turned upright (EXIF, then the text), at most
+// upload produces today — turned upright by its EXIF tag, at most
 // 2560px, a JPEG with no metadata. That last part is the one that matters
 // most: phone originals carry GPS, and the letter photo is on the browse card.
 //
@@ -123,9 +123,7 @@ async function normalizeAll(apply: boolean, only: string | undefined) {
         const bytes = await object.Body.transformToByteArray();
         const before = await factsOf(bytes);
 
-        const photo = await normalizePhoto(bytes, {
-          detectTurn: true,
-        });
+        const photo = await normalizePhoto(bytes);
         if (!photo.ok) {
           // A HEIC from before HEIC was refused lands here: sharp cannot read it.
           counts.failed += 1;
@@ -135,21 +133,16 @@ async function normalizeAll(apply: boolean, only: string | undefined) {
           continue;
         }
 
-        const turn = photo.orientation
-          ? ` text: ${photo.orientation.turn}° (${photo.orientation.confidence.toFixed(1)})${photo.orientation.applied ? " applied" : ""}`
-          : "";
-        const decision = before
-          ? decideStoredPhoto(before, photo.orientation?.applied ?? false)
-          : "rewrite";
+        const decision = before ? decideStoredPhoto(before) : "rewrite";
         if (decision === "already_normalized") {
           counts.already_normalized += 1;
-          console.log(`${label} ${describe(before, bytes)}  ok as is${turn}`);
+          console.log(`${label} ${describe(before, bytes)}  ok as is`);
           continue;
         }
 
         const after = await factsOf(photo.bytes);
         console.log(
-          `${label} ${describe(before, bytes)}  → ${describe(after, photo.bytes)}${turn}`,
+          `${label} ${describe(before, bytes)}  → ${describe(after, photo.bytes)}`,
         );
         counts.rewrite += 1;
         if (!apply) {
