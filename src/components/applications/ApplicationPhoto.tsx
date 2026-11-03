@@ -14,6 +14,8 @@ export function ApplicationPhoto({
   alt,
   height,
   mobileHeight = 261,
+  version,
+  rotatable = false,
 }: {
   applicationId: string;
   fileId: string;
@@ -23,16 +25,26 @@ export function ApplicationPhoto({
   // The design gives the two portraits 261 on a phone, side by side, and the
   // family photo 443 across the full width.
   mobileHeight?: number;
+  // The file's updatedAt. A turned photo keeps its URL, so without this the
+  // thumbnail would go on showing the old pixels after the refresh a turn
+  // triggers. The route ignores it.
+  version?: number;
+  // Offer the turn buttons in the overlay. The page decides, from
+  // canRotateApplicationFile; the route checks again either way.
+  rotatable?: boolean;
 }) {
+  const fileUrl = `/api/applications/${applicationId}/files/${fileId}`;
+  const href = version === undefined ? fileUrl : `${fileUrl}?v=${version}`;
   return (
     <PhotoLightbox
-      href={`/api/applications/${applicationId}/files/${fileId}`}
+      href={href}
+      rotateHref={rotatable ? `${fileUrl}/rotate` : undefined}
       title={title}
       alt={alt}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- authorized, logged, never optimized */}
       <img
-        src={`/api/applications/${applicationId}/files/${fileId}`}
+        src={href}
         alt=""
         width={306}
         height={height}
