@@ -30,7 +30,6 @@ describe("toBrowseCard redaction (guardrail)", () => {
       rejectionNote: null,
       submittedAt: new Date(),
       socialMediaConsent: true,
-      childWithLetterPhotoConsent: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

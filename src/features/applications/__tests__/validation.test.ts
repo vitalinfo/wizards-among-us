@@ -364,14 +364,10 @@ describe("applicationDraftFormSchema (FormData coercion)", () => {
     ).toBeUndefined();
   });
 
-  it("reads the child-photo consent checkbox as a real boolean", () => {
+  // A required consent gates submit and is never saved with a draft.
+  it("drops the child-photo consent from a draft save", () => {
     expect(
-      applicationDraftFormSchema.parse({ childWithLetterPhotoConsent: "true" })
-        .childWithLetterPhotoConsent,
-    ).toBe(true);
-    expect(
-      applicationDraftFormSchema.parse({ childWithLetterPhotoConsent: "false" })
-        .childWithLetterPhotoConsent,
-    ).toBe(false);
+      applicationDraftFormSchema.parse({ childWithLetterPhotoConsent: "true" }),
+    ).not.toHaveProperty("childWithLetterPhotoConsent");
   });
 });

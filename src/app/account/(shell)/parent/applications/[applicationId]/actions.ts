@@ -307,13 +307,7 @@ export async function submitApplicationAction(
   // sent? Read before the write, so the two cases can be told apart afterwards.
   const wasAlreadySubmitted = application.status === "submitted";
 
-  // The photo consent is now required, but the column still gates what the
-  // claiming volunteer sees (canViewApplicationFile) — applications submitted
-  // while it was optional keep their «no» there. Recorded so that gate opens
-  // for this one too.
-  const submitted = await submitApplication(id, actor.id, {
-    childWithLetterPhotoConsent: true,
-  });
+  const submitted = await submitApplication(id, actor.id, {});
   if (!submitted) {
     // The SQL guard refused it, which now means only one thing: an admin
     // decided the application between this page loading and the parent pressing

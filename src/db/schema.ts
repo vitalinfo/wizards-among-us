@@ -140,11 +140,6 @@ export const applications = pgTable(
     // or child photo on social media to promote the initiative? Either answer
     // is valid, so it is a nullable boolean — never a required "true".
     socialMediaConsent: boolean("social_media_consent"),
-    // May the volunteer who claims this child see the child-with-letter photo?
-    // Without a «yes» they never do (canViewApplicationFile). Required at
-    // submit since 2026-11-03, so new submissions always write «yes»; the
-    // column stays for the «no» recorded while it was optional.
-    childWithLetterPhotoConsent: boolean("child_with_letter_photo_consent"),
     ...timestamps(),
   },
   (t) => [

@@ -197,10 +197,6 @@ export const applicationDraftFormSchema = z.object({
   // has no Telegram handle, and it's stored on `users` (one contact per person,
   // never a per-application snapshot).
   phone: text(userPhoneSchema),
-  childWithLetterPhotoConsent: z.preprocess(
-    (value) => (value === undefined ? undefined : value === "true"),
-    z.boolean().optional(),
-  ),
   socialMediaConsent: z.preprocess(
     (value) => (value === undefined ? undefined : value === "true"),
     z.boolean().optional(),
@@ -277,7 +273,6 @@ export function adminApplicationEditSchema(context: {
     .omit({
       phone: true,
       socialMediaConsent: true,
-      childWithLetterPhotoConsent: true,
     })
     .extend({
       socialMediaConsent: triStateBoolean,

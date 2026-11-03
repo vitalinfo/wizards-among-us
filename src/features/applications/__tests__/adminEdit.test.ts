@@ -215,8 +215,8 @@ describe("adminApplicationEditSchema", () => {
     expect(no.success && no.data.socialMediaConsent).toBe(false);
   });
 
-  // Not an admin field any more: the edit must never write the stored answer,
-  // which still decides whether the claiming volunteer sees the child photo.
+  // Required at submit and never stored, so there is nothing for an admin to
+  // edit — and the column it used to live in is being dropped.
   it("ignores the child-photo consent", () => {
     const result = forDraft.safeParse({ childWithLetterPhotoConsent: "false" });
     expect(result.success).toBe(true);
