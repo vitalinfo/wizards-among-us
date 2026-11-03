@@ -711,6 +711,8 @@ against production's own config vars.
 | `ADMIN_ALLOWLIST` | Comma-separated admin emails |
 | `SENTRY_DSN` | Optional. Error reporting; unset = no reporting initialised. **One project for all environments** — separated by the `environment` tag, not by project. Payloads are scrubbed: error contexts here can carry child data |
 | `SENTRY_ENV` | `staging` / `production`. Defaults to `NODE_ENV`; must be set explicitly on Heroku, where both apps run as `production` |
+| `NODE_OPTIONS` | `--max-old-space-size=384` on a 512 MB dyno. **Required** — see [Memory](#memory) |
+| `MALLOC_ARENA_MAX` | `2`. **Required** — see [Memory](#memory) |
 
 > **Why no `NEXT_PUBLIC_*` vars.** Heroku pipeline promotion copies the **compiled slug** from
 > staging to production instead of rebuilding. `NEXT_PUBLIC_*` values are inlined into the browser
@@ -718,6 +720,32 @@ against production's own config vars.
 > e.g. rendering the login widget for the staging bot. So the bot username is read on the server
 > per request and passed to the client component as a prop. Keep it that way: don't reintroduce a
 > `NEXT_PUBLIC_` var for anything that differs between environments.
+
+#### Memory
+
+Both apps need `NODE_OPTIONS` and `MALLOC_ARENA_MAX`. Without them, production ran at 200% of its
+512 MB quota on the first day real parents used it (2026-11-03), swapping until Heroku killed
+the dyno (R15).
+
+- **`NODE_OPTIONS=--max-old-space-size=384`.** Heroku's shared dynos don't cap a process's
+  memory, so Node sizes its heap from the host: on a 512 MB Basic dyno it saw 63 GB of RAM
+  and picked a **4 GB** heap limit, then barely collected. 384 leaves ~128 MB for what lives
+  outside the JS heap. Scale it with the dyno (~75% of the quota).
+- **`MALLOC_ARENA_MAX=2`.** The cap alone still left the dyno at ~600 MB, spiking with every
+  photo upload: sharp and Tesseract (orientation detection, since removed) allocated natively
+  across threads, and glibc keeps up to 8 arenas per core (8 cores here) without returning freed
+  memory. Limiting the arenas kept production under quota for ~20 minutes of uploads, but not
+  for the rest of the day. Tesseract was removed next.
+
+Each dyno logs a line a minute (`lib/monitoring/memory.ts`):
+
+```
+memory rss=412MB heapUsed=202MB heapTotal=250MB external=40MB arrayBuffers=18MB
+```
+
+Read it with `heroku logs -a wau -t | grep 'memory rss='`. `heapUsed` climbing toward the cap
+means something in our JS keeps growing. `rss` climbing while the heap stays flat means native
+memory, which `NODE_OPTIONS` can't cap.
 
 **Never set `DEV_LOGIN`** on any deployed app — the dev-login backdoor is local-only, and is
 additionally hard-disabled whenever `NODE_ENV=production` (which Heroku sets for you).

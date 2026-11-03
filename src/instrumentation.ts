@@ -5,6 +5,12 @@ import * as Sentry from "@sentry/nextjs";
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("../sentry.server.config");
+    // Deployed apps only: locally it would print into the dev server's output
+    // every minute.
+    if (process.env.NODE_ENV === "production") {
+      const { startMemoryLog } = await import("./lib/monitoring/memory");
+      startMemoryLog();
+    }
   }
   if (process.env.NEXT_RUNTIME === "edge") {
     await import("../sentry.edge.config");
