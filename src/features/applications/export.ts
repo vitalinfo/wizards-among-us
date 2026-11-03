@@ -35,7 +35,6 @@ const HEADERS = [
   "delivery_information",
   "contact",
   "gift_urls",
-  "child_with_letter_photo_consent",
   "social_media_consent",
 ] as const;
 
@@ -90,11 +89,6 @@ export async function exportApplicationsCsv(
           ? `@${contact.value}`
           : contact.value,
       Array.isArray(giftUrls) ? giftUrls.join(" ") : "",
-      a.childWithLetterPhotoConsent === null
-        ? ""
-        : a.childWithLetterPhotoConsent
-          ? "yes"
-          : "no",
       a.socialMediaConsent === null ? "" : a.socialMediaConsent ? "yes" : "no",
     ];
   });

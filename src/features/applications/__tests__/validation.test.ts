@@ -33,7 +33,7 @@ const validSubmit = {
   privacyConsent: true,
   contactConsent: true,
   confirmationConsent: true,
-  childWithLetterPhotoConsent: false,
+  childWithLetterPhotoConsent: true,
   socialMediaConsent: false,
 } as const;
 
@@ -245,24 +245,34 @@ describe("gift links (campaign type field) and social-media consent", () => {
 
   // Required to ANSWER, but "no" is a valid answer — it must never be a
   // literal(true) like the data-processing consent.
-  it("accepts either answer for the optional consents", () => {
-    for (const key of ["socialMediaConsent", "childWithLetterPhotoConsent"]) {
-      for (const answer of [true, false]) {
-        expect(
-          applicationSubmitSchema.safeParse({ ...validSubmit, [key]: answer })
-            .success,
-        ).toBe(true);
-      }
+  it("accepts either answer for the social-media consent", () => {
+    for (const answer of [true, false]) {
+      expect(
+        applicationSubmitSchema.safeParse({
+          ...validSubmit,
+          socialMediaConsent: answer,
+        }).success,
+      ).toBe(true);
     }
   });
 
-  it("still requires the optional consents to be answered", () => {
-    for (const key of ["socialMediaConsent", "childWithLetterPhotoConsent"]) {
-      const withoutAnswer: Record<string, unknown> = { ...validSubmit };
-      delete withoutAnswer[key];
-      expect(applicationSubmitSchema.safeParse(withoutAnswer).success).toBe(
-        false,
-      );
+  it("still requires the social-media consent to be answered", () => {
+    const withoutAnswer: Record<string, unknown> = { ...validSubmit };
+    delete withoutAnswer.socialMediaConsent;
+    expect(applicationSubmitSchema.safeParse(withoutAnswer).success).toBe(
+      false,
+    );
+  });
+
+  // Required since 2026-11-03: a «no» blocks submit like a missing answer.
+  it("requires the child-with-letter photo consent", () => {
+    for (const answer of [false, undefined]) {
+      expect(
+        applicationSubmitSchema.safeParse({
+          ...validSubmit,
+          childWithLetterPhotoConsent: answer,
+        }).success,
+      ).toBe(false);
     }
   });
 });

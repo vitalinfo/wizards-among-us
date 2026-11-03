@@ -215,13 +215,14 @@ describe("adminApplicationEditSchema", () => {
     expect(no.success && no.data.socialMediaConsent).toBe(false);
   });
 
-  it("treats an unanswered child-photo consent as unset, not No", () => {
-    const result = forDraft.safeParse({ childWithLetterPhotoConsent: "" });
-    expect(result.success && result.data.childWithLetterPhotoConsent).toBe(
-      undefined,
+  // Not an admin field any more: the edit must never write the stored answer,
+  // which still decides whether the claiming volunteer sees the child photo.
+  it("ignores the child-photo consent", () => {
+    const result = forDraft.safeParse({ childWithLetterPhotoConsent: "false" });
+    expect(result.success).toBe(true);
+    expect(result.success && "childWithLetterPhotoConsent" in result.data).toBe(
+      false,
     );
-    const yes = forDraft.safeParse({ childWithLetterPhotoConsent: "true" });
-    expect(yes.success && yes.data.childWithLetterPhotoConsent).toBe(true);
   });
 });
 

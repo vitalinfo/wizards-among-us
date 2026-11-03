@@ -279,14 +279,6 @@ export default async function AdminApplicationPage({
       key: "consent",
       fields: [
         [
-          t("fields.childWithLetterPhotoConsent"),
-          application.childWithLetterPhotoConsent === null
-            ? null
-            : application.childWithLetterPhotoConsent
-              ? t("yes")
-              : t("no"),
-        ],
-        [
           t("fields.socialMediaConsent"),
           application.socialMediaConsent === null
             ? null

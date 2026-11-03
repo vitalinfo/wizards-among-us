@@ -36,7 +36,7 @@ const validSubmit = {
   privacyConsent: true,
   contactConsent: true,
   confirmationConsent: true,
-  childWithLetterPhotoConsent: false,
+  childWithLetterPhotoConsent: true,
   socialMediaConsent: false,
 } as const;
 
