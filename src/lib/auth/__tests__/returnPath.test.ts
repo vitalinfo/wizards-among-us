@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { loginPathFor, safeReturnPath, signedOutRedirect } from "../returnPath";
+import {
+  afterLoginPath,
+  loginPathFor,
+  safeReturnPath,
+  signedOutRedirect,
+} from "../returnPath";
 
 // The return path comes from a query string, so it's attacker-controlled. An
 // open redirect right after authentication is a phishing gift — the user has
@@ -44,6 +49,24 @@ describe("safeReturnPath", () => {
     expect(safeReturnPath(null)).toBe("/");
     expect(safeReturnPath(undefined)).toBe("/");
     expect(safeReturnPath("")).toBe("/");
+  });
+});
+
+describe("afterLoginPath", () => {
+  it("lands a sign-in with no destination in the account", () => {
+    expect(afterLoginPath(undefined)).toBe("/account");
+    expect(afterLoginPath("")).toBe("/account");
+  });
+
+  it("keeps the page the sign-in was sent from", () => {
+    expect(afterLoginPath("/account/volunteer/children")).toBe(
+      "/account/volunteer/children",
+    );
+  });
+
+  it("sends a refused destination to the account too", () => {
+    expect(afterLoginPath("https://evil.com")).toBe("/account");
+    expect(afterLoginPath("/login")).toBe("/account");
   });
 });
 
