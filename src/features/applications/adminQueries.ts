@@ -1,4 +1,15 @@
-import { and, asc, count, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  sql,
+} from "drizzle-orm";
 
 import { getDb } from "@/db";
 import type { ApplicationStatus } from "@/db/enums";
@@ -31,6 +42,9 @@ type ModerationFilterInput = {
   // time, and comparing a timestamptz to one is how a day goes missing.
   submittedFrom?: Date;
   submittedBefore?: Date;
+  parentId?: string;
+  // An ACTIVE claim only — the same rule as the «Взятих дітей» count.
+  claimedBy?: string;
 };
 
 function moderationConditions(filter: ModerationFilterInput) {
@@ -47,6 +61,21 @@ function moderationConditions(filter: ModerationFilterInput) {
     // what "по 01.09" means to the person typing it.
     filter.submittedBefore
       ? lt(applications.submittedAt, filter.submittedBefore)
+      : undefined,
+    filter.parentId ? eq(applications.parentId, filter.parentId) : undefined,
+    filter.claimedBy
+      ? inArray(
+          applications.id,
+          getDb()
+            .select({ id: claims.applicationId })
+            .from(claims)
+            .where(
+              and(
+                eq(claims.volunteerId, filter.claimedBy),
+                isNull(claims.releasedAt),
+              ),
+            ),
+        )
       : undefined,
   ].filter(Boolean);
 }

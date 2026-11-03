@@ -180,6 +180,17 @@ describe("ModerationFilterForm", () => {
     expect(screen.getByLabelText(t.submittedFrom)).toHaveValue("");
   });
 
+  // The person filter has no visible control; re-applying the status must not
+  // widen one person's list back to everyone.
+  it("submits the person filter it was opened with", async () => {
+    const USER = "bbbbbbbb-0000-0000-0000-000000000001";
+    const { container } = await renderForm({ parent: USER });
+    const data = new FormData(container.querySelector("form")!);
+
+    expect(data.get("parent")).toBe(USER);
+    expect(data.get("claimedBy")).toBeNull();
+  });
+
   it("has no accessibility violations", async () => {
     const { container } = await renderForm({ status: "all" });
     expect(await axe(container)).toHaveNoViolations();

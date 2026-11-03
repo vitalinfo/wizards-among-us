@@ -13,12 +13,14 @@ import {
   parseModerationQuery,
   submittedRange,
   parseModerationPage,
+  userApplicationsHref,
   MODERATION_PAGE_SIZE,
 } from "../moderationFilter";
 
 const APPLICATION_ID = "11111111-2222-3333-4444-555555555555";
 const ACTIVE = "aaaaaaaa-0000-0000-0000-000000000001";
 const ARCHIVED = "aaaaaaaa-0000-0000-0000-000000000002";
+const USER = "bbbbbbbb-0000-0000-0000-000000000001";
 const scope = moderationCampaignScope([
   { id: ACTIVE, status: "active" },
   { id: ARCHIVED, status: "archived" },
@@ -167,6 +169,8 @@ describe("parseModerationQuery", () => {
       campaign: "all",
       submittedFrom: null,
       submittedTo: null,
+      parentId: null,
+      claimedBy: null,
       page: 1,
     });
   });
@@ -184,8 +188,18 @@ describe("parseModerationQuery", () => {
       campaign: "all",
       submittedFrom: "2026-08-25",
       submittedTo: "2026-09-01",
+      parentId: null,
+      claimedBy: null,
       page: 3,
     });
+  });
+
+  // Postgres errors on a malformed uuid, so a mangled link must widen the
+  // queue rather than break it.
+  it("reads a person filter, dropping anything that is not a uuid", () => {
+    const query = parseModerationQuery({ parent: USER, claimedBy: "nope" });
+    expect(query.parentId).toBe(USER);
+    expect(query.claimedBy).toBeNull();
   });
 
   // A url that filters everything out looks like a broken page, not a typo.
@@ -305,6 +319,34 @@ describe("moderation campaign filter", () => {
   it("maps only 'all' to an unconstrained query", () => {
     expect(campaignToId("all")).toBeUndefined();
     expect(campaignToId(ARCHIVED)).toBe(ARCHIVED);
+  });
+});
+
+// What the counts on /admin/users link to: every status and campaign, so the
+// list matches the number it was opened from.
+describe("userApplicationsHref", () => {
+  it("opens one parent's applications across everything", () => {
+    const href = userApplicationsHref("parent", USER);
+    const query = parseModerationQuery(
+      Object.fromEntries(new URLSearchParams(href.split("?")[1])),
+    );
+    expect(query).toMatchObject({
+      filter: "all",
+      campaign: "all",
+      parentId: USER,
+      claimedBy: null,
+    });
+  });
+
+  it("opens one volunteer's claimed children", () => {
+    const href = userApplicationsHref("claimedBy", USER);
+    expect(href).toBe(
+      `/admin/applications?status=all&campaign=all&claimedBy=${USER}`,
+    );
+    expect(isDefaultModerationQuery(parseModerationQuery({}))).toBe(true);
+    expect(
+      isDefaultModerationQuery(parseModerationQuery({ claimedBy: USER })),
+    ).toBe(false);
   });
 });
 

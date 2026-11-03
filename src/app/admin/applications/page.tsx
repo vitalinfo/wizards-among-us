@@ -22,6 +22,7 @@ import {
   MODERATION_PAGE_SIZE,
 } from "@/features/applications/moderationFilter";
 import { listCampaigns } from "@/features/campaigns/adminQueries";
+import { getUserForAdmin } from "@/features/users/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
 
@@ -35,6 +36,8 @@ export default async function AdminApplicationsPage({
     campaign?: string;
     from?: string;
     to?: string;
+    parent?: string;
+    claimedBy?: string;
     page?: string;
   }>;
 }) {
@@ -53,6 +56,8 @@ export default async function AdminApplicationsPage({
     status: filterToStatus(query.filter),
     campaignId: campaignToId(query.campaign),
     ...submittedRange(query),
+    parentId: query.parentId ?? undefined,
+    claimedBy: query.claimedBy ?? undefined,
   };
 
   // Count first: the requested page has to be clamped to what exists before we
@@ -63,13 +68,23 @@ export default async function AdminApplicationsPage({
   const page = Math.min(query.page, pageCount);
   const offset = (page - 1) * MODERATION_PAGE_SIZE;
 
-  const [t, tList, tRegions, format, rows] = await Promise.all([
-    getTranslations("admin.applications"),
-    getTranslations("parent.applications"),
-    getTranslations("regions"),
-    getFormatter(),
-    listForModeration({ ...filters, limit: MODERATION_PAGE_SIZE, offset }),
-  ]);
+  const [t, tUsers, tList, tRegions, format, rows, parent, volunteer] =
+    await Promise.all([
+      getTranslations("admin.applications"),
+      getTranslations("admin.users"),
+      getTranslations("parent.applications"),
+      getTranslations("regions"),
+      getFormatter(),
+      listForModeration({ ...filters, limit: MODERATION_PAGE_SIZE, offset }),
+      query.parentId ? getUserForAdmin(query.parentId) : null,
+      query.claimedBy ? getUserForAdmin(query.claimedBy) : null,
+    ]);
+  const nameOf = (user: {
+    firstName: string | null;
+    lastName: string | null;
+  }) =>
+    [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+    tUsers("unnamed");
 
   return (
     <>
@@ -85,6 +100,20 @@ export default async function AdminApplicationsPage({
           campaigns={campaigns}
           campaignScope={campaignScope}
         />
+
+        {/* The person filter has no control of its own — it arrives from a
+            count on /admin/users — so it is spelled out here, or the list
+            would be narrowed with nothing on screen saying why. */}
+        {parent ? (
+          <p className="text-sm">
+            {t("filter.byParent", { name: nameOf(parent) })}
+          </p>
+        ) : null}
+        {volunteer ? (
+          <p className="text-sm">
+            {t("filter.byVolunteer", { name: nameOf(volunteer) })}
+          </p>
+        ) : null}
 
         {rows.length === 0 ? (
           <p className="text-muted-foreground">{t("empty")}</p>

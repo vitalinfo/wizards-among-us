@@ -3,11 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
+import { CountLink } from "@/components/admin/CountLink";
 import { UserSearchForm } from "@/components/admin/UserSearchForm";
 import { Pager } from "@/components/ui/Pager";
 import { countUsers, listUsers } from "@/features/users/adminQueries";
+import { userApplicationsHref } from "@/features/applications/moderationFilter";
 import { resolveUserContact } from "@/features/users/contact";
 import {
+  isDefaultUsersQuery,
   parseUsersQuery,
   userNoteHref,
   usersHref,
@@ -24,7 +27,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; id?: string; page?: string }>;
 }) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
@@ -36,7 +39,11 @@ export default async function AdminUsersPage({
   // Count before fetching: a stale ?page= (or a search that narrowed the list
   // under it) would otherwise render an empty table that reads as "there is
   // nobody".
-  const total = await countUsers({ search: query.search });
+  const filter = {
+    search: query.search,
+    userId: query.userId ?? undefined,
+  };
+  const total = await countUsers(filter);
   const pageCount = usersPageCount(total);
   const page = Math.min(query.page, pageCount);
   const offset = (page - 1) * USERS_PAGE_SIZE;
@@ -46,11 +53,7 @@ export default async function AdminUsersPage({
     getTranslations("admin.users"),
     getTranslations("admin.users.roles"),
     getFormatter(),
-    listUsers({
-      limit: USERS_PAGE_SIZE,
-      offset,
-      search: query.search,
-    }),
+    listUsers({ ...filter, limit: USERS_PAGE_SIZE, offset }),
   ]);
 
   const cell = "border-border border-b px-3 py-2 align-top";
@@ -68,7 +71,7 @@ export default async function AdminUsersPage({
 
         {rows.length === 0 ? (
           <p className="text-muted-foreground">
-            {query.search === "" ? t("empty") : t("noMatches")}
+            {isDefaultUsersQuery(query) ? t("empty") : t("noMatches")}
           </p>
         ) : (
           <>
@@ -142,10 +145,24 @@ export default async function AdminUsersPage({
                             : t("noRole")}
                         </td>
                         <td className={`${cell} text-right tabular-nums`}>
-                          {user.applicationCount}
+                          <CountLink
+                            count={user.applicationCount}
+                            href={userApplicationsHref("parent", user.id)}
+                            label={t("applicationsFor", {
+                              name: name ?? t("unnamed"),
+                              count: user.applicationCount,
+                            })}
+                          />
                         </td>
                         <td className={`${cell} text-right tabular-nums`}>
-                          {user.claimCount}
+                          <CountLink
+                            count={user.claimCount}
+                            href={userApplicationsHref("claimedBy", user.id)}
+                            label={t("claimsFor", {
+                              name: name ?? t("unnamed"),
+                              count: user.claimCount,
+                            })}
+                          />
                         </td>
                         <td className={`${cell} whitespace-nowrap`}>
                           {format.dateTime(user.createdAt, "short")}

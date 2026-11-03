@@ -1,3 +1,5 @@
+import { isUuid } from "@/lib/uuid";
+
 // The people list's view, parsed out of the url — same approach as the
 // moderation queue: each view is addressable, and editing someone's note
 // returns to the list the admin was actually looking at rather than resetting
@@ -8,16 +10,21 @@ export const USERS_PAGE_SIZE = 50;
 export type UsersQuery = {
   // Free text over name, Telegram handle and phone. Empty means "everyone".
   search: string;
+  // One person, by id — how an application links to the family that filed it.
+  userId: string | null;
   page: number;
 };
 
 export function parseUsersQuery(params: {
   q?: string;
+  id?: string;
   page?: string;
 }): UsersQuery {
   const page = Number(params.page);
   return {
     search: (params.q ?? "").trim(),
+    // Anything but a uuid is dropped: Postgres errors on a malformed one.
+    userId: params.id && isUuid(params.id) ? params.id : null,
     // Anything unparseable is page 1 rather than an error — a bad page number
     // must never be able to blank the list.
     page: Number.isInteger(page) && page >= 1 ? page : 1,
@@ -34,13 +41,16 @@ export function usersPageCount(total: number): number {
 // Whether the admin has narrowed anything — drives whether a "reset" is worth
 // showing. Mirrors isDefaultModerationQuery.
 export function isDefaultUsersQuery(query: UsersQuery): boolean {
-  return query.search === "";
+  return query.search === "" && query.userId === null;
 }
 
 export function usersHref(query: UsersQuery, page?: number): string {
   const params = new URLSearchParams();
   if (query.search !== "") {
     params.set("q", query.search);
+  }
+  if (query.userId) {
+    params.set("id", query.userId);
   }
   const target = page ?? query.page;
   if (target > 1) {
@@ -50,10 +60,19 @@ export function usersHref(query: UsersQuery, page?: number): string {
   return search === "" ? "/admin/users" : `/admin/users?${search}`;
 }
 
+// The users list narrowed to one person, so their row — counts, note link —
+// is the only one on screen.
+export function userHref(userId: string): string {
+  return usersHref({ search: "", userId, page: 1 });
+}
+
 export function userNoteHref(userId: string, query: UsersQuery): string {
   const params = new URLSearchParams();
   if (query.search !== "") {
     params.set("q", query.search);
+  }
+  if (query.userId) {
+    params.set("id", query.userId);
   }
   if (query.page > 1) {
     params.set("page", String(query.page));

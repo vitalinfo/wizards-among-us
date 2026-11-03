@@ -3,20 +3,24 @@ import { describe, expect, it } from "vitest";
 import {
   isDefaultUsersQuery,
   parseUsersQuery,
+  userHref,
   userNoteHref,
   usersHref,
   usersPageCount,
   USERS_PAGE_SIZE,
 } from "../listQuery";
 
+const USER = "bbbbbbbb-0000-0000-0000-000000000001";
+
 describe("parseUsersQuery", () => {
   it("defaults to everyone, page 1", () => {
-    expect(parseUsersQuery({})).toEqual({ search: "", page: 1 });
+    expect(parseUsersQuery({})).toEqual({ search: "", userId: null, page: 1 });
   });
 
   it("reads the search and page out of the url", () => {
     expect(parseUsersQuery({ q: "  Коваль ", page: "3" })).toEqual({
       search: "Коваль",
+      userId: null,
       page: 3,
     });
   });
@@ -26,6 +30,33 @@ describe("parseUsersQuery", () => {
     for (const page of ["0", "-2", "abc", "1.5", ""]) {
       expect(parseUsersQuery({ page }).page).toBe(1);
     }
+  });
+});
+
+// Postgres errors on a malformed uuid, so a mangled link must show everyone
+// rather than break the page.
+describe("parseUsersQuery id", () => {
+  it("keeps a uuid and drops anything else", () => {
+    expect(parseUsersQuery({ id: USER }).userId).toBe(USER);
+    expect(parseUsersQuery({ id: "u1" }).userId).toBeNull();
+  });
+});
+
+// How an application links to the family that filed it.
+describe("userHref", () => {
+  it("narrows the list to one person and round-trips", () => {
+    const href = userHref(USER);
+    expect(href).toBe(`/admin/users?id=${USER}`);
+    const query = parseUsersQuery(
+      Object.fromEntries(new URLSearchParams(href.split("?")[1])),
+    );
+    expect(query.userId).toBe(USER);
+    expect(isDefaultUsersQuery(query)).toBe(false);
+  });
+
+  it("is carried into the note page, so saving returns to it", () => {
+    const href = userNoteHref(USER, parseUsersQuery({ id: USER }));
+    expect(new URLSearchParams(href.split("?")[1]).get("id")).toBe(USER);
   });
 });
 

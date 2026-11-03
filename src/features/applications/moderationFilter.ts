@@ -1,4 +1,5 @@
 import { APPLICATION_STATUSES, type ApplicationStatus } from "@/db/enums";
+import { isUuid } from "@/lib/uuid";
 import {
   parseDateOnly,
   zonedEndOfDayExclusive,
@@ -111,8 +112,19 @@ export type ModerationQuery = {
   // here: a date is not a point in time.
   submittedFrom: string | null;
   submittedTo: string | null;
+  // One person's applications: the ones they filed as a parent, or the ones
+  // they hold an active claim on as a volunteer — what the two counts on
+  // /admin/users link to.
+  parentId: string | null;
+  claimedBy: string | null;
   page: number;
 };
+
+// Anything but a uuid is dropped: Postgres answers a malformed one with an
+// error, and a mangled link should widen the queue, not break it.
+function parseUserId(value: string | undefined): string | null {
+  return value && isUuid(value) ? value : null;
+}
 
 export function parseModerationQuery(
   params: {
@@ -120,6 +132,8 @@ export function parseModerationQuery(
     campaign?: string;
     from?: string;
     to?: string;
+    parent?: string;
+    claimedBy?: string;
     page?: string;
   },
   campaigns: ModerationCampaignScope = NO_CAMPAIGNS,
@@ -133,6 +147,8 @@ export function parseModerationQuery(
     // A backwards range returns nothing and reads as a bug in the page rather
     // than a typo in the form, so the later date wins and the range is dropped.
     submittedTo: to && from && to < from ? null : to,
+    parentId: parseUserId(params.parent),
+    claimedBy: parseUserId(params.claimedBy),
     page: parseModerationPage(params.page),
   };
 }
@@ -175,7 +191,14 @@ export function moderationSearch(
 ): string {
   const q: Omit<ModerationQuery, "campaign"> & { campaign?: string } =
     typeof query === "string"
-      ? { filter: query, submittedFrom: null, submittedTo: null, page: 1 }
+      ? {
+          filter: query,
+          submittedFrom: null,
+          submittedTo: null,
+          parentId: null,
+          claimedBy: null,
+          page: 1,
+        }
       : query;
   const params = new URLSearchParams({ status: q.filter });
   if (q.campaign) {
@@ -186,6 +209,12 @@ export function moderationSearch(
   }
   if (q.submittedTo) {
     params.set("to", q.submittedTo);
+  }
+  if (q.parentId) {
+    params.set("parent", q.parentId);
+  }
+  if (q.claimedBy) {
+    params.set("claimedBy", q.claimedBy);
   }
   const target = page ?? q.page;
   if (target > 1) {
@@ -204,6 +233,25 @@ export function isDefaultModerationQuery(
     query.filter === DEFAULT_MODERATION_FILTER &&
     query.campaign === defaultModerationCampaign(campaigns) &&
     query.submittedFrom === null &&
-    query.submittedTo === null
+    query.submittedTo === null &&
+    query.parentId === null &&
+    query.claimedBy === null
   );
+}
+
+// Everything one person filed, or everything they currently hold. Every status
+// and every campaign, so the list matches the count it was opened from.
+export function userApplicationsHref(
+  scope: "parent" | "claimedBy",
+  userId: string,
+): string {
+  return moderationQueueHref({
+    filter: "all",
+    campaign: "all",
+    submittedFrom: null,
+    submittedTo: null,
+    parentId: scope === "parent" ? userId : null,
+    claimedBy: scope === "claimedBy" ? userId : null,
+    page: 1,
+  });
 }
