@@ -8,6 +8,7 @@ import { getUserForAdmin } from "@/features/users/adminQueries";
 import { resolveUserContact } from "@/features/users/contact";
 import { parseUsersQuery, usersHref } from "@/features/users/listQuery";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import { isAdmin } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,10 @@ export default async function AdminUserPage({
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
+  }
+
+  if (!isUuid(userId)) {
+    notFound();
   }
 
   const user = await getUserForAdmin(userId);

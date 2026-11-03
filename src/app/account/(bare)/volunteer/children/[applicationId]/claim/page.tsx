@@ -14,6 +14,7 @@ import { isContactable } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
 import { safeReturnPath } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import { canBrowseChildren, getClaimBlockReason } from "@/lib/authz";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 
@@ -59,6 +60,10 @@ export default async function ClaimBriefingPage({
   // Not joined yet: to the cabinet's front page, which offers the opt-in.
   if (!canBrowseChildren(actor)) {
     redirect("/account/volunteer");
+  }
+
+  if (!isUuid(applicationId)) {
+    redirect(backHref);
   }
 
   const context = await getApplicationForFileAccess(applicationId);

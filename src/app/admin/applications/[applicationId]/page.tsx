@@ -28,6 +28,7 @@ import {
 } from "../actions";
 import { resolveUserContact } from "@/features/users/contact";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import { canReopenApplication, isAdmin } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +74,10 @@ export default async function AdminApplicationPage({
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
+  }
+
+  if (!isUuid(applicationId)) {
+    notFound();
   }
 
   const [detail, campaigns] = await Promise.all([

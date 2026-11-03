@@ -12,6 +12,7 @@ import { normalizePhoto } from "@/features/applications/photos";
 import { getApplicationForFileAccess } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import {
   deleteStoredObjects,
   fileObjectKey,
@@ -43,6 +44,10 @@ export async function POST(
   const actor = await getSessionActor();
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (!isUuid(applicationId) || !isUuid(fileId)) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));

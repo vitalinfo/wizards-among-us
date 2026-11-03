@@ -12,6 +12,7 @@ import {
 import { getApplicationForFileAccess } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import { getStorage, storageBucket } from "@/lib/storage/client";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,10 @@ export async function GET(
   const actor = await getSessionActor();
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (!isUuid(applicationId) || !isUuid(fileId)) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
   const context = await getApplicationForFileAccess(applicationId);
@@ -100,6 +105,10 @@ export async function DELETE(
   const actor = await getSessionActor();
   if (!actor) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (!isUuid(applicationId) || !isUuid(fileId)) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
   // The file is read first because its KIND decides who may remove it: the

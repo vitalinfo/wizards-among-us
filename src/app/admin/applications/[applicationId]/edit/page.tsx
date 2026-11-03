@@ -7,6 +7,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { isHeldStatus } from "@/db/enums";
 import { getApplicationForAdmin } from "@/features/applications/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import { isAdmin } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,10 @@ export default async function AdminEditApplicationPage({
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
+  }
+
+  if (!isUuid(applicationId)) {
+    notFound();
   }
 
   const detail = await getApplicationForAdmin(applicationId);

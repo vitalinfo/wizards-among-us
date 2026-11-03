@@ -15,6 +15,7 @@ import { getMyApplication } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
 import { isUser } from "@/lib/actor";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import {
   deleteStoredObjects,
   fileObjectKey,
@@ -39,6 +40,10 @@ export async function POST(
   const actor = await getSessionActor();
   if (!isUser(actor)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (!isUuid(applicationId)) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
   const application = await getMyApplication(applicationId, actor.id);
