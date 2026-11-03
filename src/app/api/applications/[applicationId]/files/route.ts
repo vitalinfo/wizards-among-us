@@ -47,7 +47,15 @@ export async function POST(
   if (!application) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
-  const form = await request.formData();
+  // A body that won't parse is almost always an upload cut off mid-way — a
+  // dropped mobile connection, a closed tab. That's the client's failure, not
+  // ours: answer 400 rather than throwing a 500 nobody is there to receive.
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
   const kind = String(form.get("kind") ?? "");
 
   // The edit lock covers the form's uploads: once an admin approves, they are
