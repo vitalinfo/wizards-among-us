@@ -1,0 +1,1 @@
+ALTER TABLE "applications" DROP COLUMN "child_with_letter_photo_consent";
