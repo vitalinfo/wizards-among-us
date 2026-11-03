@@ -34,7 +34,9 @@ describe("AuditFilterForm", () => {
     expect(form).toHaveAttribute("action", "/admin/audit");
   });
 
-  it("offers every logged action, and all of them", async () => {
+  // Sorted by label, not code: approved precedes rejected as codes, and
+  // «…відхилено» precedes «…схвалено» as labels.
+  it("offers every logged action by name, in the order it reads", async () => {
     await renderForm({});
     const select = screen.getByLabelText(t.action);
 
@@ -43,15 +45,15 @@ describe("AuditFilterForm", () => {
       screen.getAllByRole("option").map((option) => option.textContent),
     ).toEqual([
       t.allActions,
-      messages.admin.audit.actions.application.approved,
       messages.admin.audit.actions.application.rejected,
+      messages.admin.audit.actions.application.approved,
     ]);
     // The url still carries the code, not the label.
     expect(
       screen
         .getAllByRole("option")
         .map((option) => option.getAttribute("value")),
-    ).toEqual(["", ...ACTIONS]);
+    ).toEqual(["", "application.rejected", "application.approved"]);
   });
 
   // A url can name an action nothing has logged yet; the select must still

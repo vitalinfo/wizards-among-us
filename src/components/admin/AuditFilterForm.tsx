@@ -25,10 +25,15 @@ export async function AuditFilterForm({
 
   // An action from the url that nothing has logged yet still has to show as
   // selected — otherwise the select reads «Усі дії» over a filtered list.
-  const options =
+  // Sorted by what the admin reads, not by the code: the codes' order is
+  // meaningless once each shows as its label.
+  const options = (
     query.action && !actions.includes(query.action)
       ? [query.action, ...actions]
-      : actions;
+      : actions
+  )
+    .map((action) => ({ action, label: auditActionLabel(t, action) }))
+    .sort((a, b) => a.label.localeCompare(b.label, "uk"));
 
   const field =
     "border-border bg-surface focus-visible:outline-ring rounded-md border py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -58,9 +63,9 @@ export async function AuditFilterForm({
             className={`${field} w-full appearance-none truncate pr-9 pl-3 sm:w-auto sm:max-w-80`}
           >
             <option value="">{t("filter.allActions")}</option>
-            {options.map((action) => (
+            {options.map(({ action, label }) => (
               <option key={action} value={action}>
-                {auditActionLabel(t, action)}
+                {label}
               </option>
             ))}
           </select>
