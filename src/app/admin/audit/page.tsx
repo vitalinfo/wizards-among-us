@@ -3,13 +3,20 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
+import { AuditFilterForm } from "@/components/admin/AuditFilterForm";
 import { Pager } from "@/components/ui/Pager";
-import { countAuditLogs, listAuditLogs } from "@/features/audit/adminQueries";
+import { auditActionLabel } from "@/features/audit/actionLabel";
+import {
+  countAuditLogs,
+  listAuditActions,
+  listAuditLogs,
+} from "@/features/audit/adminQueries";
 import {
   auditActorHref,
   auditHref,
   auditPageCount,
   auditTargetHref,
+  isDefaultAuditQuery,
   parseAuditQuery,
   splitAuditAction,
   AUDIT_PAGE_SIZE,
@@ -32,7 +39,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminAuditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ action?: string; target?: string; page?: string }>;
 }) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
@@ -43,15 +50,16 @@ export default async function AdminAuditPage({
 
   // Count before fetching: a stale ?page= would otherwise render an empty table
   // that reads as "nothing has happened".
-  const total = await countAuditLogs();
+  const total = await countAuditLogs(query);
   const pageCount = auditPageCount(total);
   const page = Math.min(query.page, pageCount);
   const offset = (page - 1) * AUDIT_PAGE_SIZE;
 
-  const [t, format, rows] = await Promise.all([
+  const [t, format, rows, actions] = await Promise.all([
     getTranslations("admin.audit"),
     getFormatter(),
-    listAuditLogs({ limit: AUDIT_PAGE_SIZE, offset }),
+    listAuditLogs({ filter: query, limit: AUDIT_PAGE_SIZE, offset }),
+    listAuditActions(),
   ]);
 
   const cell = "border-border border-b px-3 py-2 align-top";
@@ -67,8 +75,12 @@ export default async function AdminAuditPage({
           <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>
         </div>
 
+        <AuditFilterForm query={query} actions={actions} />
+
         {rows.length === 0 ? (
-          <p className="text-muted-foreground">{t("empty")}</p>
+          <p className="text-muted-foreground">
+            {isDefaultAuditQuery(query) ? t("empty") : t("emptyFiltered")}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-4xl border-collapse text-sm">
@@ -95,9 +107,10 @@ export default async function AdminAuditPage({
               <tbody>
                 {rows.map((row) => {
                   // Actions carry an optional ":detail" suffix — the file kind
-                  // that was viewed, or the field names an admin edited. Split
-                  // so the action itself stays scannable down the column.
-                  const [action, detail] = splitAuditAction(row.action);
+                  // that was viewed, or the field names an admin edited. The
+                  // label belongs to the action without it.
+                  const [action] = splitAuditAction(row.action);
+                  const label = auditActionLabel(t, action);
                   const actorHref = auditActorHref(row.actorType, row.actorId);
                   const targetHref = auditTargetHref(
                     row.targetType,
@@ -141,17 +154,22 @@ export default async function AdminAuditPage({
                         )}
                       </td>
                       <td className={cell}>
-                        {/* Raw codes, not translated copy. They are the
-                            vocabulary of the trail, they are generated (an
-                            admin edit appends the field names it changed), and
-                            a lookup table would rot silently the first time
-                            someone adds an action. */}
-                        <code className="font-mono text-xs">{action}</code>
-                        {detail ? (
-                          <p className="text-muted-foreground font-mono text-xs">
-                            {detail}
-                          </p>
-                        ) : null}
+                        {/* The readable name, and under it the raw value as
+                            stored — the codes are the trail's vocabulary, and
+                            the detail (file kind, edited fields) has no copy.
+                            A code without a label shows as itself. */}
+                        {label === action ? (
+                          <code className="font-mono text-xs break-all">
+                            {row.action}
+                          </code>
+                        ) : (
+                          <>
+                            <span>{label}</span>
+                            <p className="text-muted-foreground font-mono text-xs break-all">
+                              {row.action}
+                            </p>
+                          </>
+                        )}
                       </td>
                       <td className={cell}>
                         {row.targetId ? (
@@ -192,7 +210,7 @@ export default async function AdminAuditPage({
           total={total}
           from={offset + 1}
           to={offset + rows.length}
-          hrefFor={auditHref}
+          hrefFor={(target) => auditHref(query, target)}
         />
       </main>
     </>
