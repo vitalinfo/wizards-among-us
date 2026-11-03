@@ -718,6 +718,8 @@ against production's own config vars.
 | `SENTRY_DSN` | Optional. Error reporting; unset = no reporting initialised. **One project for all environments** — separated by the `environment` tag, not by project. Payloads are scrubbed: error contexts here can carry child data |
 | `SENTRY_ENV` | `staging` / `production`. Defaults to `NODE_ENV`; must be set explicitly on Heroku, where both apps run as `production` |
 | `MALLOC_ARENA_MAX` | `2`. **Required** — see [Memory](#memory) |
+| `JEMALLOC_ENABLED` | `true`. Loads jemalloc instead of glibc's allocator; needs the jemalloc buildpack — see [Memory](#memory). Unset it to roll back (restart, no rebuild) |
+| `MALLOC_CONF` | `dirty_decay_ms:1000,narenas:2,background_thread:true`. jemalloc's tuning: hand freed memory back to the OS after ~1 s instead of the default 10 s. Ignored without jemalloc |
 | `WEB_HEAP_MB` | Optional. The web process's JS heap cap in MB; unset = `384`, for a 512 MB dyno. Raise it with the dyno size (~75% of the quota) — see [Memory](#memory) |
 
 **Never set `NODE_OPTIONS`** as a config var. Heroku passes config vars to the **build** too, and
@@ -733,7 +735,7 @@ build died with `JavaScript heap out of memory` (2026-11-03).
 
 #### Memory
 
-The web process needs a heap cap and `MALLOC_ARENA_MAX`. Without them, production ran at 200% of
+The web process needs a heap cap and a memory allocator that returns freed memory. Without them, production ran at 200% of
 its 512 MB quota on the first day real parents used it (2026-11-03), swapping until Heroku killed
 the dyno (R15).
 
@@ -747,6 +749,21 @@ the dyno (R15).
   across threads, and glibc keeps up to 8 arenas per core (8 cores here) without returning freed
   memory. Limiting the arenas kept production under quota for ~20 minutes of uploads, but not
   for the rest of the day. Tesseract was removed next.
+- **jemalloc.** With Tesseract gone and the heap capped, the JS heap sat at ~110 MB, but `rss` still
+  rose by 30–40 MB with each photo upload and gave only part of it back (330 → 511 MB in 17
+  minutes, v39). That is sharp/libvips memory that glibc keeps, which sharp's own docs say to fix
+  with a different allocator. Both apps run the jemalloc buildpack **before** `heroku/nodejs`,
+  pinned to a commit. It compiles jemalloc from source at build time and checks the download
+  against a SHA-256. At runtime it preloads jemalloc for every process in the dyno, only while
+  `JEMALLOC_ENABLED=true`:
+
+  ```bash
+  heroku buildpacks:add --index 1 'https://github.com/gaffneyc/heroku-buildpack-jemalloc.git#3bdce59b90b47257ec86ba01e1746a29fef38c9e' -a <app>
+  heroku config:set JEMALLOC_ENABLED=true 'MALLOC_CONF=dirty_decay_ms:1000,narenas:2,background_thread:true' -a <app>
+  ```
+
+  The buildpack only takes effect on the next build, so push after adding it. Check that it
+  loaded with `heroku run -a <app> 'grep -c jemalloc /proc/self/maps'` (≥ 1).
 
 Each dyno logs a line a minute (`lib/monitoring/memory.ts`):
 
