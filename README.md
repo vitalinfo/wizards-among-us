@@ -90,8 +90,8 @@ DIRECT_DATABASE_URL=    # optional: Neon's direct string, used only by migration
 
 # Auth
 AUTH_SECRET=            # session/JWT signing
-TELEGRAM_BOT_TOKEN=     # secret; verifies Login Widget hashes
-TELEGRAM_BOT_USERNAME=  # the bot's @username (no @); read server-side, passed to the widget
+TELEGRAM_BOT_TOKEN=     # secret; verifies Telegram login hashes (its numeric prefix is the bot id)
+TELEGRAM_BOT_USERNAME=  # the bot's @username (no @); used by notify:backfill
 ADMIN_ALLOWLIST=        # comma-separated emails allowed to self-provision as admin
 DEV_LOGIN=              # local only: 1 enables /dev/login (see below). Never set in a deploy.
 
