@@ -34,12 +34,13 @@ export async function ApplicationDetail({
   notice,
   children,
   after,
+  rotatable = false,
 }: {
   application: Application;
   // Only what this page uses — an id to fetch by and a kind to place it. The
   // full file row carries a storage key, and a component that does not need one
   // should not be handed one.
-  photos: readonly { id: string; kind: string }[];
+  photos: readonly { id: string; kind: string; updatedAt?: Date }[];
   contact: { method: ContactMethod; value: string } | null;
   // Where × goes, and what it is called — back to whichever list this came from.
   closeHref: string;
@@ -51,6 +52,9 @@ export async function ApplicationDetail({
   children?: ReactNode;
   // Below the photos and the text, across the page.
   after?: ReactNode;
+  // The family's own card offers the turn buttons (canRotateApplicationFile);
+  // the volunteer's never does.
+  rotatable?: boolean;
 }) {
   const t = await getTranslations("applicationCard");
   const tRegions = await getTranslations("regions");
@@ -88,6 +92,8 @@ export async function ApplicationDetail({
                     title={t(`photos.${kind}.title`)}
                     alt={t(`photos.${kind}.alt`, { child })}
                     height={412}
+                    version={photo.updatedAt?.getTime()}
+                    rotatable={rotatable}
                   />
                 );
               },

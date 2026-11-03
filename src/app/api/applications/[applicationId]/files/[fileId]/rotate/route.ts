@@ -57,7 +57,9 @@ export async function POST(
   if (
     !context ||
     !file ||
-    !canRotateApplicationFile(actor, context.application, file.kind)
+    !canRotateApplicationFile(actor, context.application, {
+      campaignActive: context.campaignActive,
+    })
   ) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }

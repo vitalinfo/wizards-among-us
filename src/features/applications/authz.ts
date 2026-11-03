@@ -186,22 +186,29 @@ export function canDeleteApplicationFile(
 // shot flat on a table comes out sideways however carefully it is processed —
 // the phone cannot tell which way is up — so someone has to say.
 //
-//   - the parent, exactly while they could upload that kind again: turning is
-//     a smaller version of replacing, and needs no wider window;
-//   - an admin, at ANY status and for every kind. Turning changes how the
-//     photo is shown, not what it shows, and the admin reading a sideways
-//     ВПО certificate is the person it is most useful to. Not an override
-//     of the edit lock in any sense that matters: nothing a parent wrote
-//     changes.
+// Turning changes how a photo is SHOWN, not what it shows — nothing a parent
+// wrote changes — so it is not held to the edit lock or the upload window:
+//
+//   - the owning parent, any of their photos, at ANY status while the
+//     campaign is active (Vital, Nov 2026). The view page is where a family
+//     sees their application after approval and while a volunteer holds the
+//     child, which is exactly when a sideways letter is noticed. Not once
+//     the campaign is over: the application is archived (derived, CLAUDE.md)
+//     and nobody is looking at it any more.
+//   - an admin, at any status and for every kind; the admin reading a
+//     sideways ВПО certificate is the person it is most useful to.
 //
 // Never a volunteer, not even the one holding the claim: they see these
 // photos, they do not maintain them.
 export function canRotateApplicationFile(
   actor: MaybeActor,
-  application: Pick<Application, "parentId" | "status">,
-  kind: FileKind,
+  application: Pick<Application, "parentId">,
+  ctx: { campaignActive: boolean },
 ): boolean {
-  return isAdmin(actor) || canUploadApplicationFile(actor, application, kind);
+  if (isAdmin(actor)) {
+    return true;
+  }
+  return ownsApplication(actor, application) && ctx.campaignActive;
 }
 
 // Who may read an uploaded file. The KIND decides, not the application:

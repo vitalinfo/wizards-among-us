@@ -540,58 +540,32 @@ describe("canDeleteApplicationFile", () => {
 // every role, not only the ones the UI offers the button to.
 describe("canRotateApplicationFile", () => {
   const owned = { parentId: "p1" };
+  const active = { campaignActive: true };
+  const archived = { campaignActive: false };
 
-  it("lets an admin turn any kind of photo, at any status", () => {
+  it("lets an admin turn any photo, even after the campaign", () => {
+    expect(canRotateApplicationFile(admin, owned, active)).toBe(true);
+    expect(canRotateApplicationFile(admin, owned, archived)).toBe(true);
+  });
+
+  // Turning changes how a photo is shown, not what it shows — so it is not
+  // held to the edit lock: the view page is where a family sees a sideways
+  // letter after approval, or while a volunteer holds the child.
+  it("lets the parent turn their photos at any status while the campaign runs", () => {
     for (const status of APPLICATION_STATUSES) {
-      for (const kind of FILE_KINDS) {
-        expect(
-          canRotateApplicationFile(admin, { ...owned, status }, kind),
-        ).toBe(true);
-      }
+      // A whole application, as the routes pass one: the rule reads no status.
+      const application = { ...owned, status };
+      expect(canRotateApplicationFile(parent, application, active)).toBe(true);
     }
   });
 
-  it("lets the parent turn a photo exactly while they could upload it again", () => {
-    for (const status of APPLICATION_STATUSES) {
-      for (const kind of FILE_KINDS) {
-        expect(
-          canRotateApplicationFile(parent, { ...owned, status }, kind),
-        ).toBe(canUploadApplicationFile(parent, { ...owned, status }, kind));
-      }
-    }
-    // Spelled out, so the rule above cannot pass by both being always false.
-    expect(
-      canRotateApplicationFile(
-        parent,
-        { ...owned, status: "submitted" },
-        "idp_certificate",
-      ),
-    ).toBe(true);
-    expect(
-      canRotateApplicationFile(
-        parent,
-        { ...owned, status: "approved" },
-        "idp_certificate",
-      ),
-    ).toBe(false);
-    expect(
-      canRotateApplicationFile(
-        parent,
-        { ...owned, status: "claimed" },
-        "confirmation",
-      ),
-    ).toBe(true);
+  it("not once the campaign is over", () => {
+    expect(canRotateApplicationFile(parent, owned, archived)).toBe(false);
   });
 
   it("never lets a volunteer, another parent, or nobody turn a photo", () => {
     for (const actor of [volunteer, otherParent, null]) {
-      for (const status of APPLICATION_STATUSES) {
-        for (const kind of FILE_KINDS) {
-          expect(
-            canRotateApplicationFile(actor, { ...owned, status }, kind),
-          ).toBe(false);
-        }
-      }
+      expect(canRotateApplicationFile(actor, owned, active)).toBe(false);
     }
   });
 });

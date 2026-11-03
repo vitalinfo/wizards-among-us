@@ -5,12 +5,14 @@ import { notFound, redirect } from "next/navigation";
 
 import { ApplicationDetail } from "@/components/applications/ApplicationDetail";
 import { ApplicationPhoto } from "@/components/applications/ApplicationPhoto";
+import { canRotateApplicationFile } from "@/features/applications/authz";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { latestByKind } from "@/features/applications/files";
 import {
   getMyApplication,
   getUserContactFields,
 } from "@/features/applications/queries";
+import { getCampaignById } from "@/features/campaigns/queries";
 import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
@@ -56,10 +58,17 @@ export default async function ApplicationViewPage({
   const t = await getTranslations("parent.applications");
   const tConfirm = await getTranslations("parent.confirm");
   const tRejected = await getTranslations("parent.applications.rejected");
-  const [files, contactFields] = await Promise.all([
+  const [files, contactFields, campaign] = await Promise.all([
     listApplicationFiles(applicationId),
     getUserContactFields(actor.id),
+    getCampaignById(application.campaignId),
   ]);
+  // The family may turn their own photos here, at any status, while the
+  // campaign runs — this page is where they see a sideways letter after
+  // approval. The rotate route re-checks the same rule.
+  const rotatable = canRotateApplicationFile(actor, application, {
+    campaignActive: campaign?.status === "active",
+  });
 
   // The two portraits, and — once the family has sent it — the photo of the
   // gift arriving, under its own heading at the foot of the page, where the
@@ -77,6 +86,7 @@ export default async function ApplicationViewPage({
     <ApplicationDetail
       application={application}
       photos={portraits}
+      rotatable={rotatable}
       contact={resolveUserContact(contactFields)}
       closeHref="/account/parent/applications"
       closeLabel={t("close")}
@@ -116,6 +126,8 @@ export default async function ApplicationViewPage({
                 alt={tConfirm("photo.alt", { child })}
                 height={340}
                 mobileHeight={443}
+                version={gift.updatedAt.getTime()}
+                rotatable={rotatable}
               />
             </div>
           </section>

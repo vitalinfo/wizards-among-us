@@ -325,6 +325,8 @@ export async function getApplicationForFileAccess(
   application: Application;
   claim: { volunteerId: string; releasedAt: Date | null } | null;
   browsable: boolean;
+  // The application's own campaign is the active one (it is not archived).
+  campaignActive: boolean;
 } | null> {
   const db = getDb();
   // The campaign comes along because "browsable" is not a property of the
@@ -344,14 +346,14 @@ export async function getApplicationForFileAccess(
   // are on nobody's card, so no volunteer has a reason to read their letter
   // through this route. The one who HOLDS them still can — that comes from the
   // active claim, not from this flag.
-  const browsable =
-    row.campaignStatus === "active" && application.status === "approved";
+  const campaignActive = row.campaignStatus === "active";
+  const browsable = campaignActive && application.status === "approved";
   const [claim] = await db
     .select({ volunteerId: claims.volunteerId, releasedAt: claims.releasedAt })
     .from(claims)
     .where(eq(claims.applicationId, applicationId))
     .limit(1);
-  return { application, claim: claim ?? null, browsable };
+  return { application, claim: claim ?? null, browsable, campaignActive };
 }
 
 // Mark a wish fulfilled. Guarded on the held statuses in SQL, not only in the UI: a
