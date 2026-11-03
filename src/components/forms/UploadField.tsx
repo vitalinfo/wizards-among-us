@@ -168,9 +168,10 @@ export function UploadField({
             title={label}
             alt={label}
           >
-            {/* Empty alt: the lightbox already names the link, and the
-                status beside it says what this is. Read through the
-                authorized route, which logs it — never a storage URL. */}
+            {/* Empty alt: the lightbox already names the link. The photo is
+                also the slot's only "uploaded" status — no words beside it.
+                Read through the authorized route, which logs it — never a
+                storage URL. */}
             {/* eslint-disable-next-line @next/next/no-img-element -- authorized, logged, never optimized */}
             <img
               src={`${base}/${existing.id}?v=${existing.version}`}
@@ -181,7 +182,6 @@ export function UploadField({
               className="border-border size-16 rounded-md border object-cover"
             />
           </PhotoLightbox>
-          <span className="text-sm font-medium">{t("uploaded")}</span>
           <button
             type="button"
             onClick={remove}

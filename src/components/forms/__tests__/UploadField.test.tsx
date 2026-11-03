@@ -70,7 +70,6 @@ describe("UploadField", () => {
       "src",
       "/api/applications/a1/files/f1?v=42",
     );
-    expect(screen.getByText(t.uploaded)).toBeInTheDocument();
     expect(screen.getByText(t.replace)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: t.remove })).toBeInTheDocument();
 
