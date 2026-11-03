@@ -81,10 +81,6 @@ const nextConfig: NextConfig = {
     // through the authorized file route — never through next/image.
     unoptimized: true,
   },
-  // Loaded from node_modules at runtime, never bundled: tesseract.js finds its
-  // worker script and WASM core through __dirname, which a bundle would break
-  // (features/applications/orientation.ts). sharp is on Next's own list.
-  serverExternalPackages: ["tesseract.js"],
 };
 
 // Source-map upload is gated on the AUTH TOKEN, not on a flag someone has to

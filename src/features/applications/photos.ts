@@ -1,12 +1,5 @@
 import sharp from "sharp";
 
-import {
-  detectOrientation,
-  MIN_ORIENTATION_CONFIDENCE,
-  type OrientationGuess,
-  type QuarterTurn,
-} from "@/features/applications/orientation";
-
 // Every uploaded photo is re-encoded on the server before it is stored. One
 // pass covers three separate problems:
 //
@@ -14,9 +7,8 @@ import {
 //      to turn them. Applying the tag here and dropping it means every viewer
 //      shows the same thing, instead of each one deciding whether to honour it.
 //      This does NOT fix a photo whose tag is wrong — a document shot flat on a
-//      table, where the phone cannot tell which way is up. For photos with
-//      text, `detectTurn` guesses from the text (orientation.ts); whatever it
-//      misses, `turn` (the rotate button) is for.
+//      table, where the phone cannot tell which way is up. That is what
+//      `turn` (the rotate button) is for.
 //   2. LOCATION. Android cameras write GPS coordinates into the file, and the
 //      letter photo is on the browse card (tier 1): any volunteer could read
 //      where the family lives out of the original. Re-encoding keeps none of
@@ -46,16 +38,10 @@ sharp.concurrency(1);
 
 export type PhotoTurn = "left" | "right";
 
+type QuarterTurn = 0 | 90 | 270;
+
 export type PhotoResult =
-  | {
-      ok: true;
-      bytes: Uint8Array;
-      contentType: "image/jpeg";
-      // What text-based detection said, and whether it was acted on. Null when
-      // it was not asked for, or had no answer. Kept so the caller can log it:
-      // the confidence threshold rests on very few photos.
-      orientation: (OrientationGuess & { applied: boolean }) | null;
-    }
+  | { ok: true; bytes: Uint8Array; contentType: "image/jpeg" }
   | { ok: false; reason: "unsupported_type" | "too_large" };
 
 export function normalizePhoto(
@@ -63,49 +49,17 @@ export function normalizePhoto(
   options: {
     // An explicit quarter turn — the rotate button.
     turn?: PhotoTurn;
-    // Also guess which way is up from the text in the photo, and turn it if
-    // the guess is confident (orientation.ts). Uploads ask; the rotate button,
-    // which already knows which way, does not.
-    detectTurn?: boolean;
   } = {},
 ): Promise<PhotoResult> {
   const turn: QuarterTurn =
     options.turn === "right" ? 90 : options.turn === "left" ? 270 : 0;
-  // Detection runs inside the same queue as the encoding: sharp and Tesseract
-  // never hold their memory at the same time.
-  return oneAtATime(async () => {
-    const first = await encode(input, turn);
-    if (!first.ok || !options.detectTurn) {
-      return first.ok ? { ...first, orientation: null } : first;
-    }
-    const guess = await detectOrientation(first.bytes);
-    if (
-      !guess ||
-      guess.turn === 0 ||
-      guess.confidence < MIN_ORIENTATION_CONFIDENCE
-    ) {
-      return {
-        ...first,
-        orientation: guess && { ...guess, applied: false },
-      };
-    }
-    // From the ORIGINAL again, not from `first`: the photo is compressed once.
-    const turned = await encode(
-      input,
-      ((turn + guess.turn) % 360) as QuarterTurn,
-    );
-    if (!turned.ok) {
-      return { ...first, orientation: { ...guess, applied: false } };
-    }
-    return { ...turned, orientation: { ...guess, applied: true } };
-  });
+  return oneAtATime(() => encode(input, turn));
 }
 
-type Encoded =
-  | { ok: true; bytes: Uint8Array; contentType: "image/jpeg" }
-  | { ok: false; reason: "unsupported_type" | "too_large" };
-
-async function encode(input: Uint8Array, turn: QuarterTurn): Promise<Encoded> {
+async function encode(
+  input: Uint8Array,
+  turn: QuarterTurn,
+): Promise<PhotoResult> {
   // Sniffed from the bytes, not the declared Content-Type, and BEFORE sharp
   // sees them: libvips also reads SVG, TIFF, GIF, PDF and more, and none of
   // those decoders has any business running on a file a stranger uploaded.

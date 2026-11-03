@@ -544,14 +544,18 @@ last part is a privacy fix, not tidiness: Android cameras write GPS coordinates 
 and the letter photo is on the browse card. HEIC is refused, which makes iOS Safari send a
 JPEG instead.
 
-A document shot flat on a table has a wrong EXIF tag (the phone cannot tell which way is up),
-so `orientation.ts` also reads the photo's **text** with Tesseract (`tesseract.js` + the
-`@tesseract.js-data/osd` model, both from `node_modules`) and turns it when confident
-(≥ 3; see the measurements in that file). Every decision is logged as `photo orientation
-{ kind, turn, confidence, applied }`. Tesseract prints «Too few characters. Skipping this
-page» for a photo with no text — that is the no-guess case, not an error. Whatever it misses,
-the ↺ ↻ buttons in the photo viewer turn by hand (parent while they could re-upload, admin
-always; never a volunteer).
+A document shot flat on a table can have a wrong EXIF tag (the phone cannot tell which way is
+up). The ↺ ↻ buttons in the photo viewer turn it by hand (parent while they could re-upload,
+admin always; never a volunteer).
+
+> **Why there is no automatic detection from the text.** From 2026-11-02 to 2026-11-03 every upload
+> also went through Tesseract's orientation detection. It was removed for memory: it added
+> ~130 MB per photo on a 512 MB dyno during the first day of real traffic. It also hardly helped
+> where photos most need turning. On that day's uploads, letters were still turned by hand
+> **18.5%** of the time (handwriting scored 0.5–4.6, and one wrong 180° turn got through), child
+> photos 8.8% (EXIF alone: no text to read), and certificates 3.6%. Printed text is the one
+> place it worked, so certificates will likely need the button more often now. Bring it back
+> only off the web dyno.
 
 Photos stored before this existed are brought up to date by a one-off script, in three steps
 because the last cannot be undone:

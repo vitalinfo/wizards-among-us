@@ -92,26 +92,12 @@ export async function POST(
   // What is stored is never the parent's original: it is re-encoded upright,
   // downscaled, and stripped of metadata — GPS included (see photos.ts). The
   // bytes are also checked to BE an image here, whatever the client declared.
-  // And turned by what any text in it says (orientation.ts) — every kind: a
-  // parent can photograph the letter in the gift slot, and a photo with no
-  // text scores far below the threshold and is left alone.
-  const photo = await normalizePhoto(bytes, { detectTurn: true });
+  const photo = await normalizePhoto(bytes);
   if (!photo.ok) {
     return NextResponse.json(
       { error: photo.reason, maxBytes: MAX_UPLOAD_BYTES },
       { status: 400 },
     );
-  }
-  if (photo.orientation) {
-    // Every decision, for revisiting MIN_ORIENTATION_CONFIDENCE against real
-    // uploads: the threshold was set on two photos. The kind and the numbers
-    // only — nothing that points at a family.
-    console.info("photo orientation", {
-      kind,
-      turn: photo.orientation.turn,
-      confidence: Math.round(photo.orientation.confidence * 10) / 10,
-      applied: photo.orientation.applied,
-    });
   }
 
   const storageKey = fileObjectKey(

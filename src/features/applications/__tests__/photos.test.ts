@@ -4,9 +4,7 @@ import { crc32, deflateSync } from "node:zlib";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
-import { detectOrientation } from "../orientation";
 import { MAX_PHOTO_SIDE, normalizePhoto } from "../photos";
-import { documentPage } from "@/test/documentPage";
 
 // Real sharp on generated images — no fixtures from production: a real upload
 // is a photograph of a child's document.
@@ -46,15 +44,8 @@ async function read(bytes: Uint8Array) {
 const isRed = ([r, g, b]: number[]) => r > 200 && g < 60 && b < 60;
 const isBlue = ([r, g, b]: number[]) => b > 200 && r < 60 && g < 60;
 
-async function normalized(
-  input: Buffer,
-  turn?: "left" | "right",
-  detectTurn = false,
-) {
-  const result = await normalizePhoto(new Uint8Array(input), {
-    turn,
-    detectTurn,
-  });
+async function normalized(input: Buffer, turn?: "left" | "right") {
+  const result = await normalizePhoto(new Uint8Array(input), { turn });
   if (!result.ok) {
     throw new Error(`refused: ${result.reason}`);
   }
@@ -224,50 +215,4 @@ describe("normalizePhoto", () => {
 
     expect((await normalizePhoto(new Uint8Array(input))).ok).toBe(true);
   });
-});
-
-// The case the EXIF tag cannot fix: a document shot from above, saved
-// sideways and tagged "upright". Real Tesseract, on a generated page.
-describe("normalizePhoto with detectTurn", () => {
-  it("stands a sideways page of text upright", async () => {
-    const page = await documentPage(); // 2000×1500, upright
-    const sideways = await sharp(page).rotate(90).jpeg().toBuffer();
-
-    const result = await normalized(sideways, undefined, true);
-    const { metadata } = await read(result.bytes);
-
-    expect(result.orientation).toMatchObject({ turn: 270, applied: true });
-    expect([metadata.width, metadata.height]).toEqual([2000, 1500]);
-    // Reading the stored photo again finds nothing left to fix.
-    expect((await detectOrientation(result.bytes))?.turn).toBe(0);
-  }, 30_000);
-
-  it("leaves an upright page alone", async () => {
-    const result = await normalized(await documentPage(), undefined, true);
-
-    expect(result.orientation).toMatchObject({ turn: 0, applied: false });
-  }, 30_000);
-
-  it("leaves a photo it is not confident about as it was", async () => {
-    // No text at all — a photo of a child, as far as it can tell.
-    const input = await (await halves(400, 200)).toBuffer();
-
-    const result = await normalized(input, undefined, true);
-    const { metadata } = await read(result.bytes);
-
-    expect(result.orientation?.applied ?? false).toBe(false);
-    expect([metadata.width, metadata.height]).toEqual([400, 200]);
-  }, 30_000);
-
-  it("does not guess unless asked", async () => {
-    const sideways = await sharp(await documentPage())
-      .rotate(90)
-      .jpeg()
-      .toBuffer();
-
-    const result = await normalized(sideways);
-
-    expect(result.orientation).toBeNull();
-    expect((await read(result.bytes)).metadata.width).toBe(1500);
-  }, 30_000);
 });
