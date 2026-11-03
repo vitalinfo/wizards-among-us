@@ -92,7 +92,12 @@ export default async function ApplicationPage({
   const files = Object.fromEntries(
     uploaded.map((file) => [
       file.kind,
-      { id: file.id, kind: file.kind, contentType: file.contentType },
+      {
+        id: file.id,
+        kind: file.kind,
+        contentType: file.contentType,
+        version: file.updatedAt.getTime(),
+      },
     ]),
   );
 

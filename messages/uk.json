@@ -786,7 +786,6 @@
         "remove": "Видалити",
         "uploading": "Завантажуємо…",
         "uploaded": "Файл завантажено",
-        "view": "Переглянути",
         "hint": "Фото у форматі JPG, PNG або WEBP, до 10 МБ.",
         "errors": {
           "unsupported_type": "Можна завантажити лише фото (JPG, PNG, WEBP).",

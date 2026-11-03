@@ -23,7 +23,12 @@ export type LoadedDialog =
   | {
       dialog: "receive";
       application: Application;
-      photo: { id: string; kind: string; contentType: string } | null;
+      photo: {
+        id: string;
+        kind: string;
+        contentType: string;
+        version: number;
+      } | null;
     }
   | { dialog: "review"; application: Application };
 
@@ -57,7 +62,12 @@ export async function loadApplicationDialog(
         dialog: "receive",
         application,
         photo: photo
-          ? { id: photo.id, kind: photo.kind, contentType: photo.contentType }
+          ? {
+              id: photo.id,
+              kind: photo.kind,
+              contentType: photo.contentType,
+              version: photo.updatedAt.getTime(),
+            }
           : null,
       };
     }

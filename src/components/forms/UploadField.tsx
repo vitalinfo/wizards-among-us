@@ -9,7 +9,15 @@ import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { ALLOWED_UPLOAD_TYPES } from "@/features/applications/files";
 import { cn } from "@/lib/utils";
 
-export type UploadedFile = { id: string; kind: string; contentType: string };
+// `version` is the file's updatedAt. A turned photo keeps its URL, so without
+// it the thumbnail would go on showing the old pixels after the refresh a turn
+// triggers. The route ignores it.
+export type UploadedFile = {
+  id: string;
+  kind: string;
+  contentType: string;
+  version: number;
+};
 
 // One upload slot. Sends the file as soon as it's chosen — same instinct as the
 // per-step drafts: a parent on a phone shouldn't lose a photo because they
@@ -147,7 +155,6 @@ export function UploadField({
 
       {existing ? (
         <div className="border-border bg-surface-muted flex flex-wrap items-center gap-3 rounded-md border p-3">
-          <span className="text-sm font-medium">{t("uploaded")}</span>
           {/* Opens in place. Checking the photo you just uploaded is worth a
               glance, not losing the form to another tab mid-application. */}
           {/* The turn buttons live in the overlay, where the photo is: a phone
@@ -156,15 +163,25 @@ export function UploadField({
               renders while this kind may be uploaded, which is exactly when
               it may be turned (canRotateApplicationFile). */}
           <PhotoLightbox
-            href={`${base}/${existing.id}`}
+            href={`${base}/${existing.id}?v=${existing.version}`}
             rotateHref={`${base}/${existing.id}/rotate`}
             title={label}
             alt={label}
           >
-            <span className="text-primary text-sm underline underline-offset-4">
-              {t("view")}
-            </span>
+            {/* Empty alt: the lightbox already names the link, and the
+                status beside it says what this is. Read through the
+                authorized route, which logs it — never a storage URL. */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- authorized, logged, never optimized */}
+            <img
+              src={`${base}/${existing.id}?v=${existing.version}`}
+              alt=""
+              width={64}
+              height={64}
+              decoding="async"
+              className="border-border size-16 rounded-md border object-cover"
+            />
           </PhotoLightbox>
+          <span className="text-sm font-medium">{t("uploaded")}</span>
           <button
             type="button"
             onClick={remove}

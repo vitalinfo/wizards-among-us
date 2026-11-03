@@ -13,6 +13,7 @@ import {
   saveApplicationDraft,
   submitApplicationAction,
 } from "@/app/account/(shell)/parent/applications/[applicationId]/actions";
+import type { UploadedFile } from "@/components/forms/UploadField";
 import type { ContactMethod } from "@/db/enums";
 import {
   initialSaveDraftState,
@@ -46,7 +47,7 @@ export function ApplicationForm({
   contact: { method: ContactMethod; value: string } | null;
   defaultParentName: string | null;
   giftPriceCap: string | null;
-  files: Record<string, { id: string; kind: string; contentType: string }>;
+  files: Record<string, UploadedFile>;
   turnstileSiteKey: string | null;
   // The form for THIS campaign's type — the page resolves it, so an
   // unimplemented type never reaches this component.

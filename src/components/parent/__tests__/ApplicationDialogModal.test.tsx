@@ -96,7 +96,12 @@ describe("ApplicationDialogModal", () => {
     await renderDialog({
       dialog: "receive",
       application,
-      photo: { id: "f1", kind: "confirmation", contentType: "image/jpeg" },
+      photo: {
+        id: "f1",
+        kind: "confirmation",
+        contentType: "image/jpeg",
+        version: 1,
+      },
     });
 
     expect(

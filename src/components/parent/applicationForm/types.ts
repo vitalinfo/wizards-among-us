@@ -1,3 +1,4 @@
+import type { UploadedFile } from "@/components/forms/UploadField";
 import type { ContactMethod } from "@/db/enums";
 import type { applications } from "@/db/schema";
 
@@ -55,7 +56,7 @@ export type StepProps = {
   // Which uploads already exist, keyed by kind — the upload slots render as
   // filled rather than empty when a parent returns to a draft.
   applicationId?: string;
-  files?: Record<string, { id: string; kind: string; contentType: string }>;
+  files?: Record<string, UploadedFile>;
   // Read server-side per request — never a NEXT_PUBLIC_ build-time value.
   turnstileSiteKey?: string | null;
 };
