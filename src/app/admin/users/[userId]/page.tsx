@@ -23,7 +23,7 @@ export default async function AdminUserPage({
   searchParams,
 }: {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; id?: string; page?: string }>;
 }) {
   const [{ userId }, rawQuery] = await Promise.all([params, searchParams]);
   const actor = await getSessionActor();

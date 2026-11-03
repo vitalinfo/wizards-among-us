@@ -27,6 +27,7 @@ import {
   reopenApplicationAction,
 } from "../actions";
 import { resolveUserContact } from "@/features/users/contact";
+import { userHref } from "@/features/users/listQuery";
 import { getSessionActor } from "@/lib/auth/session";
 import { isUuid } from "@/lib/uuid";
 import { canReopenApplication, isAdmin } from "@/lib/authz";
@@ -58,6 +59,8 @@ export default async function AdminApplicationPage({
     campaign?: string;
     from?: string;
     to?: string;
+    parent?: string;
+    claimedBy?: string;
     page?: string;
     // Claim controls: the volunteer search term and the pending confirmation.
     volunteer?: string;
@@ -192,7 +195,18 @@ export default async function AdminApplicationPage({
     {
       key: "family",
       fields: [
-        [t("fields.parentName"), application.parentName],
+        [
+          t("fields.parentName"),
+          // The family's row on /admin/users — where the note is added.
+          application.parentName ? (
+            <Link
+              href={userHref(application.parentId)}
+              className="text-primary font-semibold underline underline-offset-4"
+            >
+              {application.parentName}
+            </Link>
+          ) : null,
+        ],
         [t("fields.familyStory"), application.familyStory],
         [
           t("fields.contact"),
@@ -300,7 +314,7 @@ export default async function AdminApplicationPage({
               {parentNote.note}
             </p>
             <Link
-              href="/admin/users"
+              href={userHref(application.parentId)}
               className="text-primary mt-2 inline-block text-xs font-semibold underline underline-offset-4"
             >
               {t("parentNote.edit")}

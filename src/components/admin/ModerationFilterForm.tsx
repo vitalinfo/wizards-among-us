@@ -136,6 +136,15 @@ export async function ModerationFilterForm({
         />
       </div>
 
+      {/* Kept across «Застосувати»: changing the status of one person's list
+          should not silently widen it back to everyone. */}
+      {query.parentId ? (
+        <input type="hidden" name="parent" value={query.parentId} />
+      ) : null}
+      {query.claimedBy ? (
+        <input type="hidden" name="claimedBy" value={query.claimedBy} />
+      ) : null}
+
       <div className="col-span-2 flex items-center gap-3">
         <button
           type="submit"

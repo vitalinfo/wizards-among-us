@@ -1400,6 +1400,8 @@
         "status": "Статус",
         "submittedFrom": "Подано з",
         "submittedTo": "Подано по",
+        "byParent": "Анкети користувача: {name}",
+        "byVolunteer": "Взяті діти користувача: {name}",
         "apply": "Застосувати",
         "reset": "Скинути"
       },
@@ -1598,6 +1600,8 @@
         "joined": "Приєднався",
         "note": "Нотатка"
       },
+      "applicationsFor": "Анкети: {name}, {count}",
+      "claimsFor": "Взяті діти: {name}, {count}",
       "search": {
         "label": "Пошук",
         "placeholder": "Імʼя, @нік або телефон",
