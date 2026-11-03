@@ -37,13 +37,23 @@ export function canEditApplication(
 // A parent may delete their own application only while it is a DRAFT. Once
 // submitted it is in the moderation queue and on the two-day clock, and
 // whatever happens next — approval, a claim, a volunteer buying a gift — rests
-// on it existing. NOT an admin override either: admins moderate applications,
-// they do not delete families' work, and nothing here is built for them to.
+// on it existing. Parent only; the admin's delete is its own predicate below.
 export function canDeleteApplication(
   actor: MaybeActor,
   application: Pick<Application, "parentId" | "status">,
 ): boolean {
   return ownsApplication(actor, application) && application.status === "draft";
+}
+
+// An admin may delete a DRAFT from /admin — an abandoned or duplicate one
+// cluttering the queue (Vital, Nov 2026). The same line as the parent's: a
+// draft was never submitted, so nobody has reviewed, claimed or relied on it.
+// Anything past draft is a family's application on the clock, and stays.
+export function canDeleteDraftAsAdmin(
+  actor: MaybeActor,
+  application: Pick<Application, "status">,
+): boolean {
+  return isAdmin(actor) && application.status === "draft";
 }
 
 // Any signed-in user may START an application — deliberately NOT gated on the

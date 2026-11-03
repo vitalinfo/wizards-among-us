@@ -15,6 +15,7 @@ import { getParentNote } from "@/features/users/adminQueries";
 import {
   moderationCampaignScope,
   moderationQueueHref,
+  moderationSearch,
   parseModerationQuery,
 } from "@/features/applications/moderationFilter";
 import { listCampaigns } from "@/features/campaigns/adminQueries";
@@ -23,6 +24,7 @@ import { recordAuditLog } from "@/features/audit/log";
 
 import {
   assignVolunteerAction,
+  deleteDraftAction,
   releaseClaimAction,
   reopenApplicationAction,
 } from "../actions";
@@ -30,7 +32,11 @@ import { resolveUserContact } from "@/features/users/contact";
 import { userHref } from "@/features/users/listQuery";
 import { getSessionActor } from "@/lib/auth/session";
 import { isUuid } from "@/lib/uuid";
-import { canReopenApplication, isAdmin } from "@/lib/authz";
+import {
+  canDeleteDraftAsAdmin,
+  canReopenApplication,
+  isAdmin,
+} from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +77,10 @@ export default async function AdminApplicationPage({
     // and the failure the guard reported.
     reopen?: string;
     reopenError?: string;
+    // Deleting a draft: the pending confirmation, and the refusal when the
+    // parent submitted it in the meantime.
+    delete?: string;
+    deleteError?: string;
   }>;
 }) {
   const [{ applicationId }, query] = await Promise.all([params, searchParams]);
@@ -90,9 +100,11 @@ export default async function AdminApplicationPage({
   // The whole queue view rides in the url — status, campaign, date range and
   // page — so "back" returns to exactly what the admin was working, not the
   // default.
-  const backHref = moderationQueueHref(
-    parseModerationQuery(query, moderationCampaignScope(campaigns)),
+  const queueView = parseModerationQuery(
+    query,
+    moderationCampaignScope(campaigns),
   );
+  const backHref = moderationQueueHref(queueView);
   if (!detail) {
     notFound();
   }
@@ -138,13 +150,22 @@ export default async function AdminApplicationPage({
   // the write path would refuse anyway.
   const reopenable = canReopenApplication(actor, application);
   const confirmReopen = reopenable && query.reopen === "1";
-  const overlayOpen = assignTarget !== null || holder !== null || confirmReopen;
+  // Same rule for the delete prompt: only a draft raises it.
+  const deletable = canDeleteDraftAsAdmin(actor, application);
+  const confirmDelete = deletable && query.delete === "1";
+  const overlayOpen =
+    assignTarget !== null || holder !== null || confirmReopen || confirmDelete;
   const claimHref = `/admin/applications/${applicationId}${search ? `?volunteer=${encodeURIComponent(search)}` : ""}#claim`;
   // Both the trigger and the modal's cancel land back on the decision section
   // rather than the top of a long page.
   const decisionAnchor = "decision";
   const reopenHref = `/admin/applications/${applicationId}?reopen=1#${decisionAnchor}`;
   const decisionHref = `/admin/applications/${applicationId}#${decisionAnchor}`;
+  // The delete prompt keeps the queue view in its url: a deleted draft has no
+  // page to come back to, so the action lands on the queue the admin left.
+  const queueSearch = moderationSearch(queueView);
+  const deleteHref = `/admin/applications/${applicationId}?${queueSearch}&delete=1#${decisionAnchor}`;
+  const deleteCancelHref = `/admin/applications/${applicationId}?${queueSearch}#${decisionAnchor}`;
   // A refused reopen redirects back here, and the status it refused on decides
   // which branch below renders — so the alert is built once and shown by both.
   // (The refusal usually IS a status change: someone claimed the child.)
@@ -414,6 +435,14 @@ export default async function AdminApplicationPage({
           assignError={query.assignError ?? null}
         />
 
+        {/* Outside the branches below: a delete is refused because the parent
+            submitted, so by the time this renders the draft branch is gone. */}
+        {query.deleteError ? (
+          <p role="alert" className="text-sm font-medium text-red-700">
+            {t("deleteDraft.error")}
+          </p>
+        ) : null}
+
         {/* Only an application awaiting review can be decided; anything else is
             already final (the query guards this too). */}
         {application.status === "submitted" ? (
@@ -422,6 +451,25 @@ export default async function AdminApplicationPage({
             className="border-border bg-surface scroll-mt-4 rounded-lg border p-4"
           >
             <ModerationDecision applicationId={applicationId} />
+          </section>
+        ) : deletable ? (
+          // Never submitted, so nothing rests on it yet — an abandoned or
+          // duplicate draft can go. Confirms first: the delete takes the
+          // photos and certificate with it and cannot be undone.
+          <section
+            id={decisionAnchor}
+            className="border-border bg-surface scroll-mt-4 rounded-lg border p-4"
+          >
+            <h2 className="font-semibold">{t("deleteDraft.title")}</h2>
+            <p className="text-muted-foreground mt-2 text-sm">
+              {t("deleteDraft.intro")}
+            </p>
+            <Link
+              href={deleteHref}
+              className="border-border hover:bg-surface-muted focus-visible:outline-ring mt-3 inline-block rounded-md border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              {t("deleteDraft.cta")}
+            </Link>
           </section>
         ) : reopenable ? (
           // Decided, and the decision can still be undone: an approval that
@@ -449,10 +497,6 @@ export default async function AdminApplicationPage({
           // on this child (claimed/fulfilled), so release the claim first if
           // the decision really has to change. NOT a repeat of the status badge
           // above — it explains why there is no decision to make.
-          //
-          // A `draft` also lands here, where this copy reads wrong (nobody has
-          // reviewed it). Pre-existing, and left alone rather than fixed in
-          // passing — an admin reaching a draft at all is the rarer problem.
           <div className="flex flex-col gap-2">
             {reopenError}
             <p className="text-muted-foreground text-sm">
@@ -489,6 +533,22 @@ export default async function AdminApplicationPage({
           }
           confirmLabel={t("reopen.cta")}
           cancelHref={decisionHref}
+        />
+      ) : confirmDelete ? (
+        <ConfirmModal
+          action={deleteDraftAction.bind(null, applicationId, {
+            status: query.status,
+            campaign: query.campaign,
+            from: query.from,
+            to: query.to,
+            parent: query.parent,
+            claimedBy: query.claimedBy,
+            page: query.page,
+          })}
+          title={t("deleteDraft.confirmTitle")}
+          message={t("deleteDraft.confirmBody")}
+          confirmLabel={t("deleteDraft.cta")}
+          cancelHref={deleteCancelHref}
         />
       ) : holder ? (
         <ConfirmModal
