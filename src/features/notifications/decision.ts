@@ -5,9 +5,12 @@ import { applications, identities } from "@/db/schema";
 import { recordAuditLog } from "@/features/audit/log";
 import type { Actor } from "@/lib/actor";
 import { siteOrigin } from "@/lib/site";
-import { sendTelegramMessage } from "@/lib/telegramBot";
+import {
+  sendTelegramMessage,
+  type TelegramSendResult,
+} from "@/lib/telegramBot";
 
-type Decision = "approved" | "rejected";
+export type Decision = "approved" | "rejected";
 
 // The translator for `notifications.telegram`, narrowed to what this file uses
 // so the message builder stays pure and testable without a request scope.
@@ -54,12 +57,48 @@ async function getDecisionRecipient(
   return row ? { chatId: row.chatId, childName: row.childName ?? "" } : null;
 }
 
+// The audit action a delivered notification is logged as. The backfill script
+// skips applications that already have one, so a re-run never sends twice.
+export const PARENT_NOTIFIED_ACTION = "application.parent_notified";
+
+// Send one decision message and log the attempt under `admin` — the trail
+// answers "was this family told, and when", and a failure is as worth knowing
+// as a success. Nothing is logged when the environment has no bot token,
+// because nothing was attempted.
+export async function deliverDecisionNotification({
+  admin,
+  applicationId,
+  decision,
+  recipient,
+  t,
+}: {
+  admin: Actor;
+  applicationId: string;
+  decision: Decision;
+  recipient: { chatId: string; childName: string };
+  t: DecisionTranslator;
+}): Promise<TelegramSendResult> {
+  const result = await sendTelegramMessage(
+    recipient.chatId,
+    decisionMessage(t, decision, applicationId, recipient.childName),
+  );
+  if (!result.ok && result.reason === "not_configured") {
+    return result;
+  }
+  await recordAuditLog({
+    actor: admin,
+    action: result.ok
+      ? PARENT_NOTIFIED_ACTION
+      : `application.parent_notify_failed:${result.reason}`,
+    targetType: "application",
+    targetId: applicationId,
+  });
+  return result;
+}
+
 // Tell the parent their application was decided. Best effort by design: it runs
 // after the decision is committed, and a parent who never allowed the bot (or
 // blocked it) still sees the status in «Мої заявки». Never throws.
-//
-// Audit-logged under the deciding admin — the trail answers "was this family
-// told, and when", and a failure is as worth knowing as a success.
 export async function notifyParentOfDecision({
   admin,
   applicationId,
@@ -77,29 +116,20 @@ export async function notifyParentOfDecision({
       return;
     }
 
-    const result = await sendTelegramMessage(
-      recipient.chatId,
-      decisionMessage(t, decision, applicationId, recipient.childName),
-    );
-    if (!result.ok && result.reason === "not_configured") {
-      return;
-    }
-    if (!result.ok) {
+    const result = await deliverDecisionNotification({
+      admin,
+      applicationId,
+      decision,
+      recipient,
+      t,
+    });
+    if (!result.ok && result.reason !== "not_configured") {
       console.warn("Decision notification not delivered:", {
         applicationId,
         reason: result.reason,
         status: result.status,
       });
     }
-
-    await recordAuditLog({
-      actor: admin,
-      action: result.ok
-        ? "application.parent_notified"
-        : `application.parent_notify_failed:${result.reason}`,
-      targetType: "application",
-      targetId: applicationId,
-    });
   } catch (error) {
     console.error("notifyParentOfDecision failed:", { applicationId, error });
   }

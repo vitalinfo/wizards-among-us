@@ -588,6 +588,31 @@ pnpm photos:dedupe            # dry run — prints what it would remove
 pnpm photos:dedupe --apply    # deletes those rows, then their objects
 ```
 
+### Decision notifications (Telegram)
+
+When an admin approves or rejects an application, this environment's bot messages the parent:
+the child's first name, the status, and a link to the application on `CANONICAL_HOST` (never
+the rejection note — the parent reads that behind sign-in). It is best effort: a parent who
+unticked «allow messages» at login, or blocked the bot, gets a 403 and still sees the status in
+«Мої заявки». Every attempt is audit-logged as `application.parent_notified` or
+`application.parent_notify_failed:<reason>`.
+
+Applications decided before this existed are backfilled by a one-off script. It picks every
+application whose status is **currently** `approved` or `rejected` and that has no
+`application.parent_notified` row, so re-running it never messages a family twice:
+
+```bash
+pnpm notify:decisions                          # dry run — lists who would get a message
+pnpm notify:decisions --send --admin <email>   # sends, logged under that admin
+```
+
+Like the photo scripts it runs from a checkout and fills unset variables from `.env.local`, so
+pass all of the target's — `CANONICAL_HOST` included, or the links point at production:
+
+```bash
+env $(heroku config -s -a wau-staging | grep -E '^(DATABASE_URL|TELEGRAM_BOT_TOKEN|TELEGRAM_BOT_USERNAME|CANONICAL_HOST)=' | tr -d "'") pnpm notify:decisions
+```
+
 ### Project layout & scripts (Phase 0)
 
 ```
