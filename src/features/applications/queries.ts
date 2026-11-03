@@ -1,5 +1,6 @@
 import {
   and,
+  asc,
   count,
   desc,
   eq,
@@ -24,6 +25,7 @@ import {
 import type { ClaimTab } from "@/features/claims/queries";
 
 import { tabStatuses, type ApplicationTab } from "./applicationTabs";
+import { blankDraftCondition } from "./blankDrafts";
 import { toParentStatus, type ParentApplicationStatus } from "./mappers";
 
 // Data access for the parent application flow. Deliberately thin: every
@@ -137,15 +139,40 @@ export async function deleteDraftAsAdmin(
   return deleteDraft(id, undefined);
 }
 
+// Blank drafts outside the active campaign (blankDraftCondition), oldest
+// first — what `pnpm drafts:cleanup` would remove.
+export async function listBlankDrafts(): Promise<
+  { id: string; campaignTitle: string; createdAt: Date }[]
+> {
+  return getDb()
+    .select({
+      id: applications.id,
+      campaignTitle: campaigns.title,
+      createdAt: applications.createdAt,
+    })
+    .from(applications)
+    .innerJoin(campaigns, eq(campaigns.id, applications.campaignId))
+    .where(blankDraftCondition())
+    .orderBy(asc(applications.createdAt), asc(applications.id));
+}
+
+// The same delete again, with the whole blank condition repeated under the row
+// lock: a draft the parent wrote into since it was listed is kept.
+export async function deleteBlankDraft(
+  id: string,
+): Promise<{ deleted: boolean; storageKeys: string[] }> {
+  return deleteDraft(id, blankDraftCondition());
+}
+
 async function deleteDraft(
   id: string,
-  owner: SQL | undefined,
+  scope: SQL | undefined,
 ): Promise<{ deleted: boolean; storageKeys: string[] }> {
   return getDb().transaction(async (tx) => {
     const draft = and(
       eq(applications.id, id),
       eq(applications.status, "draft"),
-      owner,
+      scope,
     );
     const [locked] = await tx
       .select({ id: applications.id })

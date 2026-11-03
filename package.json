@@ -26,6 +26,7 @@
     "photos:normalize": "tsx src/scripts/normalizeStoredPhotos.ts",
     "photos:dedupe": "tsx src/scripts/dedupeApplicationFiles.ts",
     "notify:backfill": "tsx src/scripts/notifyBackfill.ts",
+    "drafts:cleanup": "tsx src/scripts/deleteBlankDrafts.ts",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f db",
