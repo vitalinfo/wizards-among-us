@@ -40,6 +40,13 @@ export function safeReturnPath(value: string | null | undefined): string {
   return value;
 }
 
+// Where a sign-in lands: the page it was sent from, or else the account — not
+// the home page, which is safeReturnPath's fallback for every other use.
+export function afterLoginPath(value: string | null | undefined): string {
+  const safe = safeReturnPath(value);
+  return safe === FALLBACK ? "/account" : safe;
+}
+
 // Build the sign-in URL for a protected page, so a user returns to what they
 // were trying to reach instead of being dropped on the home page.
 export function loginPathFor(returnTo: string): string {

@@ -11,7 +11,7 @@ import {
   DEV_LOGIN_ROLES,
   type DevLoginRoleKey,
 } from "@/lib/auth/devLogin";
-import { safeReturnPath } from "@/lib/auth/returnPath";
+import { afterLoginPath } from "@/lib/auth/returnPath";
 import { createSession } from "@/lib/auth/session";
 
 // Dev-only: find-or-create a deterministic test user for the chosen role preset
@@ -63,5 +63,5 @@ export async function devLogin(
   }
 
   await createSession({ actorType: "user", actorId: userId });
-  redirect(safeReturnPath(returnTo));
+  redirect(afterLoginPath(returnTo));
 }

@@ -5,12 +5,12 @@ import {
   createSessionRecord,
   sessionCookieOptions,
 } from "@/lib/auth/session";
-import { safeReturnPath } from "@/lib/auth/returnPath";
+import { afterLoginPath } from "@/lib/auth/returnPath";
 import { verifyTelegramLogin } from "@/lib/auth/telegram";
 import { findOrCreateTelegramUser } from "@/lib/auth/telegramUser";
 
 // Telegram Login Widget callback (redirect mode): Telegram sends the signed auth
-// data as query params. Verify → find-or-create user → session → redirect home.
+// data as query params. Verify → find-or-create user → session → redirect.
 // The cookie is set on the redirect response (cookies() mutations don't attach
 // to a custom NextResponse).
 export const dynamic = "force-dynamic";
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   // check, and it is re-validated because it round-tripped through a third
   // party and the browser.
   const { next, ...signed } = params;
-  const returnTo = safeReturnPath(next);
+  const returnTo = afterLoginPath(next);
   const result = verifyTelegramLogin(signed, botToken);
   if (!result.ok) {
     return redirectTo("/?login=failed");

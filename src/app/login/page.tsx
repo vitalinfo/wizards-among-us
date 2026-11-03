@@ -13,7 +13,7 @@ import { TelegramCard } from "@/components/site/TelegramCard";
 import { isAdmin, isUser } from "@/lib/authz";
 import { SITE } from "@/lib/site";
 import { isDevLoginEnabled } from "@/lib/auth/devLogin";
-import { safeReturnPath } from "@/lib/auth/returnPath";
+import { afterLoginPath } from "@/lib/auth/returnPath";
 import { telegramAuthUrl } from "@/lib/auth/telegramLogin";
 import { getSessionActor } from "@/lib/auth/session";
 
@@ -40,7 +40,7 @@ export default async function LoginPage({
   const { next } = await searchParams;
   // Validated here as well as on the way back — never trust it in either
   // direction (open redirect).
-  const returnTo = safeReturnPath(next);
+  const returnTo = afterLoginPath(next);
 
   // Only a signed-in USER is "already logged in" here. An ADMIN holds a session
   // but is not a user, and bouncing them onward is what created an infinite
