@@ -6,6 +6,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { FaqForm } from "@/components/admin/FaqForm";
 import { getAdminFaq } from "@/features/faqs/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import { isAdmin } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,10 @@ export default async function EditFaqPage({
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
+  }
+
+  if (!isUuid(faqId)) {
+    notFound();
   }
 
   const faq = await getAdminFaq(faqId);

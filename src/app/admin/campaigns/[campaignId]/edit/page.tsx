@@ -6,6 +6,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { CampaignForm } from "@/components/admin/CampaignForm";
 import { getAdminCampaign } from "@/features/campaigns/adminQueries";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import { isAdmin } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,10 @@ export default async function EditCampaignPage({
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
+  }
+
+  if (!isUuid(campaignId)) {
+    notFound();
   }
 
   const campaign = await getAdminCampaign(campaignId);

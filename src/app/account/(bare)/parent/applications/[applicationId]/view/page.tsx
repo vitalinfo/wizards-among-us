@@ -17,6 +17,7 @@ import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("parent.applications");
@@ -47,6 +48,10 @@ export default async function ApplicationViewPage({
         `/account/parent/applications/${applicationId}/view`,
       ),
     );
+  }
+
+  if (!isUuid(applicationId)) {
+    notFound();
   }
 
   const application = await getMyApplication(applicationId, actor.id);

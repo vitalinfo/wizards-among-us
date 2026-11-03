@@ -11,6 +11,7 @@ import { getMyApplication } from "@/features/applications/queries";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -40,6 +41,10 @@ export default async function SubmittedPage({
         `/account/parent/applications/${applicationId}/submitted`,
       ),
     );
+  }
+
+  if (!isUuid(applicationId)) {
+    notFound();
   }
 
   const application = await getMyApplication(applicationId, actor.id);

@@ -15,6 +15,7 @@ import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("volunteer.claims.meta");
@@ -44,6 +45,10 @@ export default async function ClaimDetailPage({
     redirect(
       signedOutRedirect(actor, `/account/volunteer/claims/${applicationId}`),
     );
+  }
+
+  if (!isUuid(applicationId)) {
+    notFound();
   }
 
   const claim = await getMyClaim(actor.id, applicationId);

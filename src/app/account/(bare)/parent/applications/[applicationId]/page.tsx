@@ -19,6 +19,7 @@ import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
+import { isUuid } from "@/lib/uuid";
 import { cn } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -46,6 +47,10 @@ export default async function ApplicationPage({
     redirect(
       signedOutRedirect(actor, `/account/parent/applications/${applicationId}`),
     );
+  }
+
+  if (!isUuid(applicationId)) {
+    notFound();
   }
 
   // Scoped to this parent. A wrong id 404s rather than revealing that someone
