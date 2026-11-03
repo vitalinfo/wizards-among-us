@@ -4,6 +4,7 @@ import {
   auditActorHref,
   auditHref,
   auditPageCount,
+  isDefaultAuditQuery,
   parseAuditQuery,
   auditTargetHref,
   splitAuditAction,
@@ -11,8 +12,33 @@ import {
 } from "../listQuery";
 
 describe("parseAuditQuery", () => {
-  it("starts at the newest page", () => {
-    expect(parseAuditQuery({})).toEqual({ page: 1 });
+  it("starts at the newest page, unfiltered", () => {
+    expect(parseAuditQuery({})).toEqual({
+      action: null,
+      targetId: null,
+      page: 1,
+    });
+  });
+
+  it("reads an action and a target id", () => {
+    expect(
+      parseAuditQuery({
+        action: "application.approved",
+        target: " d75c6aa0-d3c3-468b-bffa-6ca82a25a1da ",
+      }),
+    ).toEqual({
+      action: "application.approved",
+      targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
+      page: 1,
+    });
+  });
+
+  // Postgres errors on a malformed uuid, so one in the url must not reach it.
+  it("drops a blank action and a malformed id", () => {
+    const query = parseAuditQuery({ action: "  ", target: "index.php" });
+    expect(query.action).toBeNull();
+    expect(query.targetId).toBeNull();
+    expect(isDefaultAuditQuery(query)).toBe(true);
   });
 
   // A bad page in a url must never be able to blank the log — the one place
@@ -37,17 +63,24 @@ describe("auditPageCount", () => {
 });
 
 describe("auditHref", () => {
+  const unfiltered = parseAuditQuery({});
+
   it("keeps the first page's url plain", () => {
-    expect(auditHref(1)).toBe("/admin/audit");
+    expect(auditHref(unfiltered, 1)).toBe("/admin/audit");
   });
 
-  it("round-trips a later page", () => {
-    const href = auditHref(3);
+  it("round-trips a later page with its filters", () => {
+    const query = {
+      action: "application.approved",
+      targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
+      page: 1,
+    };
+    const href = auditHref(query, 3);
     expect(
       parseAuditQuery(
         Object.fromEntries(new URLSearchParams(href.split("?")[1])),
-      ).page,
-    ).toBe(3);
+      ),
+    ).toEqual({ ...query, page: 3 });
   });
 });
 

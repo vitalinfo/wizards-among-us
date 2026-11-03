@@ -1,3 +1,5 @@
+import { isUuid } from "@/lib/uuid";
+
 // The audit log view, parsed out of the url — same shape as the moderation
 // queue and the people list, so each view is addressable and a "back" link
 // returns to it.
@@ -5,14 +7,30 @@
 export const AUDIT_PAGE_SIZE = 50;
 
 export type AuditQuery = {
+  // Narrow to one action (its code without the ":detail" suffix), or to one
+  // target by id — "who decided this application?" is a question about one
+  // target_id.
+  action: string | null;
+  targetId: string | null;
   page: number;
 };
 
-export function parseAuditQuery(params: { page?: string }): AuditQuery {
+export function parseAuditQuery(params: {
+  action?: string;
+  target?: string;
+  page?: string;
+}): AuditQuery {
   const page = Number(params.page);
-  // Anything unparseable is page 1 rather than an error — a bad page number
-  // must never be able to blank the log.
-  return { page: Number.isInteger(page) && page >= 1 ? page : 1 };
+  const action = (params.action ?? "").trim();
+  const targetId = (params.target ?? "").trim();
+  return {
+    action: action === "" ? null : action,
+    // Anything but a uuid is dropped: Postgres errors on a malformed one.
+    targetId: isUuid(targetId) ? targetId : null,
+    // Anything unparseable is page 1 rather than an error — a bad page number
+    // must never be able to blank the log.
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+  };
 }
 
 export function auditPageCount(total: number): number {
@@ -20,8 +38,27 @@ export function auditPageCount(total: number): number {
   return Math.max(1, Math.ceil(total / AUDIT_PAGE_SIZE));
 }
 
-export function auditHref(page: number): string {
-  return page > 1 ? `/admin/audit?page=${page}` : "/admin/audit";
+// Whether anything is narrowed — drives whether a "reset" is worth showing.
+export function isDefaultAuditQuery(query: AuditQuery): boolean {
+  return query.action === null && query.targetId === null;
+}
+
+// Omits what is unset, so the plain url stays clean and older links keep
+// working.
+export function auditHref(query: AuditQuery, page?: number): string {
+  const params = new URLSearchParams();
+  if (query.action) {
+    params.set("action", query.action);
+  }
+  if (query.targetId) {
+    params.set("target", query.targetId);
+  }
+  const target = page ?? query.page;
+  if (target > 1) {
+    params.set("page", String(target));
+  }
+  const search = params.toString();
+  return search === "" ? "/admin/audit" : `/admin/audit?${search}`;
 }
 
 // An action code carries an optional ":detail" suffix — the file kind that was
