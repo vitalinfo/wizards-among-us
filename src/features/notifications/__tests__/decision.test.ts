@@ -1,5 +1,5 @@
 import { createTranslator } from "next-intl";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SITE } from "@/lib/site";
 
@@ -17,6 +17,10 @@ const ID = "0b6f7d0e-8a4c-4a52-9a43-2f1f6a0e9c11";
 const VIEW_URL = `${SITE.url}/account/parent/applications/${ID}/view`;
 
 describe("decisionMessage", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("names the child and links to the application on approval", () => {
     const text = decisionMessage(t, "approved", ID, "Марія");
 
@@ -34,6 +38,14 @@ describe("decisionMessage", () => {
       messages.notifications.telegram.rejected
         .replace("{childName}", "Марія")
         .replace("{url}", VIEW_URL),
+    );
+  });
+
+  it("links to this deploy's canonical host when one is set", () => {
+    vi.stubEnv("CANONICAL_HOST", "staging.wizards-among-us.pp.ua");
+
+    expect(decisionMessage(t, "approved", ID, "Марія")).toContain(
+      `https://staging.wizards-among-us.pp.ua/account/parent/applications/${ID}/view`,
     );
   });
 });

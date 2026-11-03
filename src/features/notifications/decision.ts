@@ -27,7 +27,12 @@ export function decisionMessage(
   applicationId: string,
   childName: string,
 ): string {
-  const url = `${SITE.url}/account/parent/applications/${applicationId}/view`;
+  // The link must land on the host THIS deploy serves — staging's bot sends a
+  // staging link. CANONICAL_HOST is that host (the middleware redirects to it);
+  // SITE.url is production's, the fallback where it isn't set.
+  const host = process.env.CANONICAL_HOST;
+  const origin = host ? `https://${host}` : SITE.url;
+  const url = `${origin}/account/parent/applications/${applicationId}/view`;
   return t(decision, { childName, url });
 }
 
