@@ -732,9 +732,10 @@ the dyno (R15).
   and picked a **4 GB** heap limit, then barely collected. 384 leaves ~128 MB for what lives
   outside the JS heap. Scale it with the dyno (~75% of the quota).
 - **`MALLOC_ARENA_MAX=2`.** The cap alone still left the dyno at ~600 MB, spiking with every
-  photo upload: sharp and tesseract (`features/applications/orientation.ts`) allocate natively
+  photo upload: sharp and Tesseract (orientation detection, since removed) allocated natively
   across threads, and glibc keeps up to 8 arenas per core (8 cores here) without returning freed
-  memory. Limiting the arenas kept production under quota through the next eleven uploads.
+  memory. Limiting the arenas kept production under quota for ~20 minutes of uploads, but not
+  for the rest of the day. Tesseract was removed next.
 
 Each dyno logs a line a minute (`lib/monitoring/memory.ts`):
 
