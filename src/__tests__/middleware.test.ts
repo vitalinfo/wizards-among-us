@@ -126,6 +126,45 @@ describe("middleware in production", () => {
   });
 });
 
+// Staging serves the same build as production, landing `index, follow` included.
+describe("middleware and search indexing", () => {
+  it("leaves production indexable", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CANONICAL_HOST", "wizards-among-us.pp.ua");
+    const response = middleware(
+      request("https://wizards-among-us.pp.ua/", {
+        "x-forwarded-proto": "https",
+        host: "wizards-among-us.pp.ua",
+      }),
+    );
+    expect(response.headers.get("x-robots-tag")).toBeNull();
+  });
+
+  it("keeps every other host out of the index, the landing included", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CANONICAL_HOST", "staging.wizards-among-us.pp.ua");
+    const response = middleware(
+      request("https://staging.wizards-among-us.pp.ua/", {
+        "x-forwarded-proto": "https",
+        host: "staging.wizards-among-us.pp.ua",
+      }),
+    );
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  });
+
+  it("keeps a host out of the index when CANONICAL_HOST is unset", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CANONICAL_HOST", "");
+    const response = middleware(
+      request("https://wau-staging.herokuapp.com/", {
+        "x-forwarded-proto": "https",
+        host: "wau-staging.herokuapp.com",
+      }),
+    );
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  });
+});
+
 describe("middleware in maintenance mode", () => {
   it("serves every route as the maintenance screen, with a 503", () => {
     vi.stubEnv("NODE_ENV", "development");

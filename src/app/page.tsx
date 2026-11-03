@@ -8,11 +8,15 @@ import { getCampaignStates } from "@/features/campaigns/queries";
 import { listActiveFaqs } from "@/features/faqs/queries";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { getSessionActor } from "@/lib/auth/session";
+import { SITE } from "@/lib/site";
 
 // The landing page is the ONLY indexable route (§10 crawler policy) — override
 // the app-wide noindex default set in the root layout.
+// The canonical is production's absolute URL, not one built from metadataBase,
+// so a copy served on any other host points back at production.
 export const metadata: Metadata = {
   robots: { index: true, follow: true },
+  alternates: { canonical: SITE.url },
 };
 
 // Reflect live campaign state per request; also keeps the DB out of the build
