@@ -82,6 +82,9 @@ export default async function AdminAuditPage({
                     {t("columns.actor")}
                   </th>
                   <th scope="col" className={cell}>
+                    {t("columns.ip")}
+                  </th>
+                  <th scope="col" className={cell}>
                     {t("columns.action")}
                   </th>
                   <th scope="col" className={cell}>
@@ -125,6 +128,17 @@ export default async function AdminAuditPage({
                         <p className="text-muted-foreground text-xs">
                           {t(`actorType.${row.actorType}`)}
                         </p>
+                      </td>
+                      <td className={cell}>
+                        {/* Empty for rows written before the address was
+                            recorded, and for writes outside a request. */}
+                        {row.ip ? (
+                          <span className="font-mono text-xs break-all">
+                            {row.ip}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className={cell}>
                         {/* Raw codes, not translated copy. They are the

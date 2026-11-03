@@ -44,15 +44,18 @@ export function rateLimitKey(
 // The client address, from Heroku's proxy headers.
 //
 // Heroku terminates TLS at its router, so the dyno never sees the real peer —
-// x-forwarded-for carries it. We take the FIRST entry: the chain is
-// "client, proxy1, proxy2", and later entries are our own infrastructure.
+// x-forwarded-for carries it. We take the LAST entry: the router APPENDS the
+// address it saw to whatever the client sent, so everything before it is the
+// client's own text. Checked on staging, 2026-11-03: a request sent with
+// `X-Forwarded-For: 198.51.100.77` was logged as
+// `fwd="198.51.100.77, <our real address>"`. (This used to take the first
+// entry, which let any caller name its own address — past the login rate limit,
+// and into the audit trail.)
 //
-// This header is client-controllable in principle, so a determined attacker can
-// rotate it. That is accepted: this gate raises the cost of casual abuse and
-// protects the admin password from a naive script. It is not a defence against
-// someone who knows what they are doing, and it should not be described as one.
+// The router is our only proxy (DNS is at NIC.UA, no CDN in front), so the last
+// entry is its. Put a proxy in front and this has to change with it.
 export function clientIp(headers: Headers): string | null {
   const forwarded = headers.get("x-forwarded-for");
-  const first = forwarded?.split(",")[0]?.trim();
-  return first && first.length > 0 ? first : null;
+  const last = forwarded?.split(",").at(-1)?.trim();
+  return last && last.length > 0 ? last : null;
 }
