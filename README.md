@@ -588,6 +588,16 @@ pnpm photos:dedupe            # dry run — prints what it would remove
 pnpm photos:dedupe --apply    # deletes those rows, then their objects
 ```
 
+A parent who opens a new application and leaves gets a draft with nothing in it. Once its
+campaign is no longer active, `drafts:cleanup` removes those — only drafts where every answer,
+consent and photo is empty (`blankDraftCondition` in `features/applications/blankDrafts.ts`);
+anything a parent wrote into stays. It needs only the target's `DATABASE_URL`:
+
+```bash
+pnpm drafts:cleanup            # dry run — prints what it would remove
+pnpm drafts:cleanup --apply    # deletes them
+```
+
 ### Telegram notifications
 
 This environment's bot messages the person on the other side of four moments:
