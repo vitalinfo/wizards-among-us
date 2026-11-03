@@ -1,9 +1,12 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { AdminNav } from "@/components/admin/AdminNav";
+import { CountLink } from "@/components/admin/CountLink";
 import { UserNoteForm } from "@/components/admin/UserNoteForm";
+import { userApplicationsHref } from "@/features/applications/moderationFilter";
 import { getUserForAdmin } from "@/features/users/adminQueries";
 import { resolveUserContact } from "@/features/users/contact";
 import { parseUsersQuery, usersHref } from "@/features/users/listQuery";
@@ -55,7 +58,7 @@ export default async function AdminUserPage({
   const name =
     [user.firstName, user.lastName].filter(Boolean).join(" ") || t("unnamed");
 
-  const facts: [string, string][] = [
+  const facts: [string, ReactNode][] = [
     [
       t("columns.contact"),
       contact === null
@@ -70,8 +73,24 @@ export default async function AdminUserPage({
         ? user.role.map((role) => tRoles(role)).join(", ")
         : t("noRole"),
     ],
-    [t("columns.applications"), String(user.applicationCount)],
-    [t("columns.claims"), String(user.claimCount)],
+    [
+      t("columns.applications"),
+      <CountLink
+        key="applications"
+        count={user.applicationCount}
+        href={userApplicationsHref("parent", user.id)}
+        label={t("applicationsFor", { name, count: user.applicationCount })}
+      />,
+    ],
+    [
+      t("columns.claims"),
+      <CountLink
+        key="claims"
+        count={user.claimCount}
+        href={userApplicationsHref("claimedBy", user.id)}
+        label={t("claimsFor", { name, count: user.claimCount })}
+      />,
+    ],
     [t("columns.joined"), format.dateTime(user.createdAt, "short")],
   ];
 
