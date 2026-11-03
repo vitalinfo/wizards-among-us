@@ -5,6 +5,7 @@ import type { Actor } from "@/lib/actor";
 import {
   canDeleteApplication,
   canDeleteApplicationFile,
+  canDeleteDraftAsAdmin,
   canReopenApplication,
   canRotateApplicationFile,
   canEditApplication,
@@ -71,9 +72,31 @@ describe("canDeleteApplication", () => {
     const draft = { ...own, status: "draft" as const };
     expect(canDeleteApplication(otherParent, draft)).toBe(false);
     expect(canDeleteApplication(volunteer, draft)).toBe(false);
-    // No operational override, unlike editing.
+    // Not through this predicate — the admin's delete is canDeleteDraftAsAdmin.
     expect(canDeleteApplication(admin, draft)).toBe(false);
     expect(canDeleteApplication(null, draft)).toBe(false);
+  });
+});
+
+describe("canDeleteDraftAsAdmin", () => {
+  it("lets an admin delete a draft", () => {
+    expect(canDeleteDraftAsAdmin(admin, { status: "draft" })).toBe(true);
+  });
+
+  // Submitted onwards is a family's application in the queue or with a
+  // volunteer — never deletable, by anyone.
+  it("refuses anything past draft", () => {
+    for (const status of APPLICATION_STATUSES.filter((s) => s !== "draft")) {
+      expect(canDeleteDraftAsAdmin(admin, { status })).toBe(false);
+    }
+  });
+
+  // The owner included: a parent deletes through canDeleteApplication, which
+  // also checks it is theirs.
+  it("refuses every non-admin", () => {
+    for (const actor of [parent, otherParent, volunteer, null]) {
+      expect(canDeleteDraftAsAdmin(actor, { status: "draft" })).toBe(false);
+    }
   });
 });
 

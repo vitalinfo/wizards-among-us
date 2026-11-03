@@ -12,15 +12,25 @@ import {
 import { describeChangedFields } from "@/features/applications/adminEdit";
 import type { AdminEditState } from "@/features/applications/adminEditState";
 import { moderationDecisionSchema } from "@/features/applications/moderation";
+import {
+  moderationCampaignScope,
+  moderationQueueHref,
+  parseModerationQuery,
+} from "@/features/applications/moderationFilter";
 import type { ModerationActionState } from "@/features/applications/moderationState";
 import { recordAuditLog } from "@/features/audit/log";
 import { notifyAfterResponse } from "@/features/notifications/afterResponse";
-import { getApplicationForFileAccess } from "@/features/applications/queries";
+import {
+  deleteDraftAsAdmin,
+  getApplicationForFileAccess,
+} from "@/features/applications/queries";
 import { adminApplicationEditSchema } from "@/features/applications/validation";
+import { listCampaigns } from "@/features/campaigns/adminQueries";
 import { assignVolunteer, releaseClaim } from "@/features/claims/queries";
 import { isContactable } from "@/features/users/contact";
 import { getUserContact } from "@/features/users/queries";
 import { requireAdmin } from "@/lib/auth/session";
+import { deleteStoredObjects } from "@/lib/storage/client";
 
 // Approve / reject. requireAdmin() first — a server action is a public
 // endpoint, so the fact that only /admin links here proves nothing.
@@ -99,6 +109,52 @@ export async function reopenApplicationAction(
   revalidatePath(`/account/parent/applications/${applicationId}`);
   redirect(
     `/admin/applications/${applicationId}${reopened ? "" : "?reopenError=1"}`,
+  );
+}
+
+// Delete a draft, from the confirmation on its detail page — the same hard
+// delete a parent gets on «Мої заявки», photos and certificate included.
+//
+// Only a draft, and that is decided in the SQL, not here: a parent can submit
+// in another tab between the page rendering the prompt and this running, and
+// then the application is in the queue and must stay.
+//
+// `view` is the queue filter the admin came from, bound by the page so they
+// land back on it. Bound arguments round-trip through the browser, so it is
+// re-parsed down to known values — never used as a url as given.
+export async function deleteDraftAction(
+  applicationId: string,
+  view: Record<string, unknown>,
+): Promise<void> {
+  const admin = await requireAdmin();
+
+  const { deleted, storageKeys } = await deleteDraftAsAdmin(applicationId);
+  await recordAuditLog({
+    actor: admin,
+    action: deleted
+      ? "application.draft_deleted_by_admin"
+      : "application.delete_noop",
+    targetType: "application",
+    targetId: applicationId,
+  });
+  if (!deleted) {
+    redirect(`/admin/applications/${applicationId}?deleteError=1`);
+  }
+  // After the rows are gone, so nothing can serve these objects any more.
+  await deleteStoredObjects(storageKeys);
+
+  const params = Object.fromEntries(
+    Object.entries(view).filter(([, value]) => typeof value === "string"),
+  ) as Record<string, string>;
+  revalidatePath("/admin/applications");
+  revalidatePath("/account/parent/applications");
+  redirect(
+    moderationQueueHref(
+      parseModerationQuery(
+        params,
+        moderationCampaignScope(await listCampaigns()),
+      ),
+    ),
   );
 }
 

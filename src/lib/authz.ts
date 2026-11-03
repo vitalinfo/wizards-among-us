@@ -27,6 +27,7 @@ export {
   canConfirmReceipt,
   canDeleteApplication,
   canDeleteApplicationFile,
+  canDeleteDraftAsAdmin,
   canEditApplication,
   canModerateApplications,
   canReopenApplication,

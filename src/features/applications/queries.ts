@@ -1,4 +1,14 @@
-import { and, count, desc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { HELD_STATUSES } from "@/db/enums";
@@ -115,11 +125,27 @@ export async function deleteMyDraft(
   id: string,
   parentId: string,
 ): Promise<{ deleted: boolean; storageKeys: string[] }> {
+  return deleteDraft(id, eq(applications.parentId, parentId));
+}
+
+// The same delete, from /admin: no owner in the condition, because the admin is
+// not the owner — but still `draft` in the SQL, so a parent submitting in the
+// meantime wins and their application stays in the queue.
+export async function deleteDraftAsAdmin(
+  id: string,
+): Promise<{ deleted: boolean; storageKeys: string[] }> {
+  return deleteDraft(id, undefined);
+}
+
+async function deleteDraft(
+  id: string,
+  owner: SQL | undefined,
+): Promise<{ deleted: boolean; storageKeys: string[] }> {
   return getDb().transaction(async (tx) => {
     const draft = and(
       eq(applications.id, id),
-      eq(applications.parentId, parentId),
       eq(applications.status, "draft"),
+      owner,
     );
     const [locked] = await tx
       .select({ id: applications.id })
