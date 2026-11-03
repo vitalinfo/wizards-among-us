@@ -10,7 +10,6 @@ import { countUsers, listUsers } from "@/features/users/adminQueries";
 import { userApplicationsHref } from "@/features/applications/moderationFilter";
 import { resolveUserContact } from "@/features/users/contact";
 import {
-  isDefaultUsersQuery,
   parseUsersQuery,
   userNoteHref,
   usersHref,
@@ -27,7 +26,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; id?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
@@ -39,11 +38,7 @@ export default async function AdminUsersPage({
   // Count before fetching: a stale ?page= (or a search that narrowed the list
   // under it) would otherwise render an empty table that reads as "there is
   // nobody".
-  const filter = {
-    search: query.search,
-    userId: query.userId ?? undefined,
-  };
-  const total = await countUsers(filter);
+  const total = await countUsers({ search: query.search });
   const pageCount = usersPageCount(total);
   const page = Math.min(query.page, pageCount);
   const offset = (page - 1) * USERS_PAGE_SIZE;
@@ -53,7 +48,11 @@ export default async function AdminUsersPage({
     getTranslations("admin.users"),
     getTranslations("admin.users.roles"),
     getFormatter(),
-    listUsers({ ...filter, limit: USERS_PAGE_SIZE, offset }),
+    listUsers({
+      limit: USERS_PAGE_SIZE,
+      offset,
+      search: query.search,
+    }),
   ]);
 
   const cell = "border-border border-b px-3 py-2 align-top";
@@ -71,7 +70,7 @@ export default async function AdminUsersPage({
 
         {rows.length === 0 ? (
           <p className="text-muted-foreground">
-            {isDefaultUsersQuery(query) ? t("empty") : t("noMatches")}
+            {query.search === "" ? t("empty") : t("noMatches")}
           </p>
         ) : (
           <>
