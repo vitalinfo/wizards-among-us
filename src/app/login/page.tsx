@@ -1,7 +1,9 @@
 import { getTranslations } from "next-intl/server";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { TelegramAuthReturn } from "@/components/auth/TelegramAuthReturn";
 import { TelegramLoginButton } from "@/components/auth/TelegramLoginButton";
 import { CheckIcon } from "@/components/icons";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -12,12 +14,23 @@ import { isAdmin, isUser } from "@/lib/authz";
 import { SITE } from "@/lib/site";
 import { isDevLoginEnabled } from "@/lib/auth/devLogin";
 import { safeReturnPath } from "@/lib/auth/returnPath";
+import { telegramAuthUrl } from "@/lib/auth/telegramLogin";
 import { getSessionActor } from "@/lib/auth/session";
 
 // Session-dependent → dynamic; inherits the root noindex default.
 export const dynamic = "force-dynamic";
 
 const POINTS = ["dataPoint", "privacyPoint"] as const;
+
+// The origin this page was requested on, which Telegram sends the person back
+// to. Not siteOrigin(): locally that is production's URL. Heroku's router
+// passes the public Host through and reports the scheme in x-forwarded-proto,
+// and the middleware has already moved the request to the canonical host.
+async function requestOrigin(): Promise<string> {
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  return `${proto}://${h.get("host")}`;
+}
 
 export default async function LoginPage({
   searchParams,
@@ -151,14 +164,18 @@ export default async function LoginPage({
               </div>
             ) : null}
 
-            {/* Telegram's Login Widget renders ITS OWN button, inside an iframe
-            we cannot style — so this is not the design's pill and cannot be
-            without changing how login works (see the PR). The redirect flow it
-            uses is the one whose signature the server verifies. */}
             <TelegramLoginButton
-              botUsername={process.env.TELEGRAM_BOT_USERNAME ?? null}
-              returnTo={returnTo}
+              href={
+                process.env.TELEGRAM_BOT_TOKEN
+                  ? telegramAuthUrl({
+                      botToken: process.env.TELEGRAM_BOT_TOKEN,
+                      origin: await requestOrigin(),
+                      returnTo,
+                    })
+                  : null
+              }
             />
+            <TelegramAuthReturn />
 
             <ul className="flex flex-col items-center gap-3">
               {POINTS.map((key) => (
