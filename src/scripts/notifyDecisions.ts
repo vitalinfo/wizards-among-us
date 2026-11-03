@@ -5,10 +5,9 @@ import { createTranslator } from "next-intl";
 import { getDb } from "@/db";
 import { admins, applications, auditLogs, identities } from "@/db/schema";
 import {
-  deliverDecisionNotification,
-  PARENT_NOTIFIED_ACTION,
-  type DecisionTranslator,
-} from "@/features/notifications/decision";
+  deliverNotice,
+  type NoticeTranslator,
+} from "@/features/notifications/telegram";
 import { siteOrigin } from "@/lib/site";
 
 import messages from "../../messages/uk.json";
@@ -23,9 +22,10 @@ import messages from "../../messages/uk.json";
 //
 // Each send is audit-logged exactly as a live decision's is, under the admin
 // named by --admin (the person running this is who decided these families get
-// a message now). An application that already has a successful send in the
-// audit log is skipped, so a re-run — after a failure, or by accident — never
-// messages a family twice; failed ones are retried.
+// a message now). An application that already has a successful send for its
+// current status in the audit log (notification.approved / .rejected) is
+// skipped, so a re-run — after a failure, or by accident — never messages a
+// family twice; failed ones are retried.
 //
 // Only CURRENT status counts: an application that was approved and has since
 // been claimed or fulfilled is not "approved" any more, and the family already
@@ -68,7 +68,7 @@ async function main() {
         sql`not exists (
           select 1 from ${auditLogs}
           where ${auditLogs.targetId} = ${applications.id}
-            and ${auditLogs.action} = ${PARENT_NOTIFIED_ACTION}
+            and ${auditLogs.action} = 'notification.' || ${applications.status}
         )`,
       ),
     )
@@ -106,7 +106,7 @@ async function main() {
     messages,
     namespace: "notifications.telegram",
   });
-  const t: DecisionTranslator = (key, values) => translator(key, values);
+  const t: NoticeTranslator = (key, values) => translator(key, values);
 
   const tally = { sent: 0, blocked: 0, error: 0, skipped: 0 };
   console.log("");
@@ -118,10 +118,10 @@ async function main() {
       tally.skipped += 1;
       continue;
     }
-    const result = await deliverDecisionNotification({
-      admin: { kind: "admin", ...admin },
+    const result = await deliverNotice({
+      actor: { kind: "admin", ...admin },
       applicationId: row.id,
-      decision: row.status,
+      notice: row.status,
       recipient: { chatId: row.chatId, childName: row.childName ?? "" },
       t,
     });

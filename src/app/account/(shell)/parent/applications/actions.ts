@@ -20,6 +20,7 @@ import {
 } from "@/features/applications/queries";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
 import { recordAuditLog } from "@/features/audit/log";
+import { notifyAfterResponse } from "@/features/notifications/afterResponse";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { getConfirmBlockReason } from "@/lib/authz";
@@ -98,6 +99,9 @@ export async function confirmReceiptAction(
     targetType: "application",
     targetId: applicationId,
   });
+  if (done) {
+    await notifyAfterResponse(actor, applicationId, "fulfilled");
+  }
 
   revalidatePath("/account/parent/applications");
   revalidatePath(`/account/parent/applications/${applicationId}`);

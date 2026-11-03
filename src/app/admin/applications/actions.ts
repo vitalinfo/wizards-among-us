@@ -1,9 +1,7 @@
 "use server";
 
-import { getTranslations } from "next-intl/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { after } from "next/server";
 
 import {
   decideApplication,
@@ -16,7 +14,7 @@ import type { AdminEditState } from "@/features/applications/adminEditState";
 import { moderationDecisionSchema } from "@/features/applications/moderation";
 import type { ModerationActionState } from "@/features/applications/moderationState";
 import { recordAuditLog } from "@/features/audit/log";
-import { notifyParentOfDecision } from "@/features/notifications/decision";
+import { notifyAfterResponse } from "@/features/notifications/afterResponse";
 import { getApplicationForFileAccess } from "@/features/applications/queries";
 import { adminApplicationEditSchema } from "@/features/applications/validation";
 import { assignVolunteer, releaseClaim } from "@/features/claims/queries";
@@ -63,17 +61,7 @@ export async function decideApplicationAction(
     targetId: applicationId,
   });
 
-  // After the response: the admin's queue must not wait on Telegram, and a
-  // failed send must not look like a failed decision.
-  const t = await getTranslations("notifications.telegram");
-  after(() =>
-    notifyParentOfDecision({
-      admin,
-      applicationId,
-      decision,
-      t: (key, values) => t(key, values),
-    }),
-  );
+  await notifyAfterResponse(admin, applicationId, decision);
 
   revalidatePath("/admin/applications");
   revalidatePath(`/admin/applications/${applicationId}`);
@@ -223,6 +211,9 @@ export async function assignVolunteerAction(
     targetType: "application",
     targetId: applicationId,
   });
+  if (outcome === "claimed") {
+    await notifyAfterResponse(admin, applicationId, "claimed");
+  }
 
   revalidatePath(`/admin/applications/${applicationId}`);
   revalidatePath("/account/volunteer/children");

@@ -588,18 +588,25 @@ pnpm photos:dedupe            # dry run — prints what it would remove
 pnpm photos:dedupe --apply    # deletes those rows, then their objects
 ```
 
-### Decision notifications (Telegram)
+### Telegram notifications
 
-When an admin approves or rejects an application, this environment's bot messages the parent:
-the child's first name, the status, and a link to the application on `CANONICAL_HOST` (never
-the rejection note — the parent reads that behind sign-in). It is best effort: a parent who
-unticked «allow messages» at login, or blocked the bot, gets a 403 and still sees the status in
-«Мої заявки». Every attempt is audit-logged as `application.parent_notified` or
-`application.parent_notify_failed:<reason>`.
+This environment's bot messages the person on the other side of four moments:
+
+| When | Who | Links to |
+| --- | --- | --- |
+| an admin approves / rejects | the parent | the application (where the rejection note is shown) |
+| a volunteer claims, or an admin assigns one | the parent | «Мої Чарівники» |
+| the parent confirms the gift arrived | the volunteer holding the claim | «Мої підопічні» |
+
+A message names the child's first name and the status, and links to `CANONICAL_HOST` — nothing
+else: no rejection note, no contact, no address. It is sent after the response and is best
+effort: someone who unticked «allow messages» at login, or blocked the bot, gets a 403 and still
+sees it in the app. Every attempt is audit-logged under whoever caused it, as
+`notification.<approved|rejected|claimed|fulfilled>` or `…_failed:<reason>`.
 
 Applications decided before this existed are backfilled by a one-off script. It picks every
 application whose status is **currently** `approved` or `rejected` and that has no
-`application.parent_notified` row, so re-running it never messages a family twice:
+`notification.<status>` row, so re-running it never messages a family twice:
 
 ```bash
 pnpm notify:decisions                          # dry run — lists who would get a message
