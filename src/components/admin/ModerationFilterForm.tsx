@@ -37,6 +37,13 @@ export async function ModerationFilterForm({
   // not by the order in the string.
   const field =
     "border-border bg-surface focus-visible:outline-ring rounded-md border py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
+  // iOS Safari gives a native date input an intrinsic width that ignores
+  // w-full and min-w-0, so on a phone it ran past its grid column, and an
+  // empty one stood taller than the selects. appearance-none hands the box
+  // back to CSS; the fixed height is the selects' (20px line + py-2 + border),
+  // and iOS would otherwise centre the value. Desktop browsers keep their
+  // picker button. Chrome's device mode doesn't reproduce any of this.
+  const dateField = `${field} h-[38px] w-full min-w-0 appearance-none px-3 sm:w-auto [&::-webkit-date-and-time-value]:text-left`;
 
   return (
     // Keyed by the applied query. The controls are uncontrolled (defaultValue),
@@ -119,7 +126,7 @@ export async function ModerationFilterForm({
           id="from"
           name="from"
           defaultValue={query.submittedFrom ?? ""}
-          className={`${field} w-full min-w-0 px-3 sm:w-auto`}
+          className={dateField}
         />
       </div>
 
@@ -132,7 +139,7 @@ export async function ModerationFilterForm({
           id="to"
           name="to"
           defaultValue={query.submittedTo ?? ""}
-          className={`${field} w-full min-w-0 px-3 sm:w-auto`}
+          className={dateField}
         />
       </div>
 
