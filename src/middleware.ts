@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { isMaintenanceMode, MAINTENANCE_PATH } from "@/lib/maintenance";
+import { SITE } from "@/lib/site";
 
 // Edge-of-app request hygiene: force HTTPS and a single canonical host.
 //
@@ -17,6 +18,12 @@ import { isMaintenanceMode, MAINTENANCE_PATH } from "@/lib/maintenance";
 // request.url (that's the internal address; see src/app/auth/telegram/route.ts).
 
 const HSTS_MAX_AGE_SECONDS = 31_536_000; // 1 year
+
+// Only production may be indexed. Staging serves the same build — including the
+// landing page's `index, follow` — so without this a crawler that finds it lists
+// a second copy of the landing. Decided per request, not per build: the Heroku
+// pipeline promotes staging's slug to production unchanged.
+const PRODUCTION_HOST = new URL(SITE.url).host;
 
 // The app calling ITSELF. When a server action invoked from the browser ends in
 // redirect(), Next renders the target by fetching it from its own server —
@@ -91,6 +98,9 @@ export function middleware(request: NextRequest): NextResponse {
     "Strict-Transport-Security",
     `max-age=${HSTS_MAX_AGE_SECONDS}`,
   );
+  if (host !== PRODUCTION_HOST) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
   return response;
 }
 
