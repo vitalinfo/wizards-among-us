@@ -1635,6 +1635,17 @@
         "admin": "адміністратор",
         "user": "користувач"
       },
+      "actionGroups": {
+        "application": "Анкети",
+        "campaign": "Кампанії",
+        "children": "Список дітей",
+        "claim": "Взяті діти",
+        "faq": "FAQ",
+        "review": "Відгуки",
+        "settings": "Налаштування",
+        "user": "Користувачі",
+        "volunteer": "Волонтери"
+      },
       "actions": {
         "application": {
           "approved": "Анкету схвалено",

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronRightIcon } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/buttonStyles";
 
-import { auditActionLabel } from "@/features/audit/actionLabel";
+import { groupAuditActions } from "@/features/audit/actionLabel";
 import {
   auditHref,
   isDefaultAuditQuery,
@@ -25,15 +25,12 @@ export async function AuditFilterForm({
 
   // An action from the url that nothing has logged yet still has to show as
   // selected — otherwise the select reads «Усі дії» over a filtered list.
-  // Sorted by what the admin reads, not by the code: the codes' order is
-  // meaningless once each shows as its label.
-  const options = (
+  const groups = groupAuditActions(
+    t,
     query.action && !actions.includes(query.action)
       ? [query.action, ...actions]
-      : actions
-  )
-    .map((action) => ({ action, label: auditActionLabel(t, action) }))
-    .sort((a, b) => a.label.localeCompare(b.label, "uk"));
+      : actions,
+  );
 
   const field =
     "border-border bg-surface focus-visible:outline-ring rounded-md border py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -63,10 +60,14 @@ export async function AuditFilterForm({
             className={`${field} w-full appearance-none truncate pr-9 pl-3 sm:w-auto sm:max-w-80`}
           >
             <option value="">{t("filter.allActions")}</option>
-            {options.map(({ action, label }) => (
-              <option key={action} value={action}>
-                {label}
-              </option>
+            {groups.map((group) => (
+              <optgroup key={group.entity} label={group.label}>
+                {group.options.map(({ action, label }) => (
+                  <option key={action} value={action}>
+                    {label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
           <ChevronRightIcon
