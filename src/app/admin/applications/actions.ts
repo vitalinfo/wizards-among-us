@@ -14,6 +14,7 @@ import type { AdminEditState } from "@/features/applications/adminEditState";
 import { moderationDecisionSchema } from "@/features/applications/moderation";
 import type { ModerationActionState } from "@/features/applications/moderationState";
 import { recordAuditLog } from "@/features/audit/log";
+import { notifyAfterResponse } from "@/features/notifications/afterResponse";
 import { getApplicationForFileAccess } from "@/features/applications/queries";
 import { adminApplicationEditSchema } from "@/features/applications/validation";
 import { assignVolunteer, releaseClaim } from "@/features/claims/queries";
@@ -59,6 +60,9 @@ export async function decideApplicationAction(
     targetType: "application",
     targetId: applicationId,
   });
+
+  await notifyAfterResponse(admin, applicationId, decision);
+
   revalidatePath("/admin/applications");
   revalidatePath(`/admin/applications/${applicationId}`);
   return { status: "done" };
@@ -207,6 +211,9 @@ export async function assignVolunteerAction(
     targetType: "application",
     targetId: applicationId,
   });
+  if (outcome === "claimed") {
+    await notifyAfterResponse(admin, applicationId, "claimed");
+  }
 
   revalidatePath(`/admin/applications/${applicationId}`);
   revalidatePath("/account/volunteer/children");

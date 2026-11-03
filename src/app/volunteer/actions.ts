@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { recordAuditLog } from "@/features/audit/log";
+import { notifyAfterResponse } from "@/features/notifications/afterResponse";
 import {
   claimApplication,
   getActiveClaim,
@@ -129,6 +130,9 @@ export async function claimAction(
     targetType: "application",
     targetId: applicationId,
   });
+  if (outcome === "claimed") {
+    await notifyAfterResponse(actor, applicationId, "claimed");
+  }
 
   revalidatePath("/account/volunteer/children");
   revalidatePath("/account/volunteer/claims");

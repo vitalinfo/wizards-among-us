@@ -588,6 +588,40 @@ pnpm photos:dedupe            # dry run — prints what it would remove
 pnpm photos:dedupe --apply    # deletes those rows, then their objects
 ```
 
+### Telegram notifications
+
+This environment's bot messages the person on the other side of four moments:
+
+| When | Who | Links to |
+| --- | --- | --- |
+| an admin approves / rejects | the parent | the application (where the rejection note is shown) |
+| a volunteer claims, or an admin assigns one | the parent | «Мої Чарівники» |
+| the parent confirms the gift arrived | the volunteer holding the claim | «Мої підопічні» |
+
+A message names the child's first name and the status, and links to `CANONICAL_HOST` — nothing
+else: no rejection note, no contact, no address. It is sent after the response and is best
+effort: someone who unticked «allow messages» at login, or blocked the bot, gets a 403 and still
+sees it in the app. Every attempt is audit-logged under whoever caused it, as
+`notification.<approved|rejected|claimed|fulfilled>` or `…_failed:<reason>`.
+
+Applications that got somewhere before notices existed are backfilled by a one-off script. Each
+gets **one** notice, for its **current** status — the latest thing that happened, not the
+history: `approved`/`rejected` → the decision, `claimed`/`processed` → «знайшовся чарівник» to
+the parent, `fulfilled` → «подарунок отримано» to the volunteer. One whose notice is already in
+the audit log is skipped, so re-running it never messages anyone twice:
+
+```bash
+pnpm notify:backfill                          # dry run — lists who would get which message
+pnpm notify:backfill --send --admin <email>   # sends, logged under that admin
+```
+
+Like the photo scripts it runs from a checkout and fills unset variables from `.env.local`, so
+pass all of the target's — `CANONICAL_HOST` included, or the links point at production:
+
+```bash
+env $(heroku config -s -a wau-staging | grep -E '^(DATABASE_URL|TELEGRAM_BOT_TOKEN|TELEGRAM_BOT_USERNAME|CANONICAL_HOST)=' | tr -d "'") pnpm notify:backfill
+```
+
 ### Project layout & scripts (Phase 0)
 
 ```
