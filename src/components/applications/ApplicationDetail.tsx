@@ -193,16 +193,26 @@ export async function ApplicationDetail({
                 label={t("fields.deliveryInformation")}
                 value={application.deliveryInformation}
               />
-              <DetailRow
-                label={t("fields.contact")}
-                value={
-                  contact === null
-                    ? null
-                    : contact.method === "telegram"
-                      ? `@${contact.value}`
-                      : contact.value
-                }
-              />
+              {/* Tappable, as on «Мої Чарівники»: Telegram opens the chat, a
+                  phone dials. */}
+              {contact ? (
+                <DetailRow label={t("fields.contact")}>
+                  {contact.method === "telegram" ? (
+                    <a
+                      href={`https://t.me/${contact.value}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className={CONTACT_LINK}
+                    >
+                      @{contact.value}
+                    </a>
+                  ) : (
+                    <a href={`tel:${contact.value}`} className={CONTACT_LINK}>
+                      {contact.value}
+                    </a>
+                  )}
+                </DetailRow>
+              ) : null}
             </DetailSection>
 
             {children}
@@ -214,3 +224,6 @@ export async function ApplicationDetail({
     </>
   );
 }
+
+const CONTACT_LINK =
+  "text-primary focus-visible:outline-ring underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2";
