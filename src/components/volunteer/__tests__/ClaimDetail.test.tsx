@@ -102,6 +102,32 @@ describe("ClaimDetail", () => {
     expect(screen.queryByText(/javascript:/)).not.toBeInTheDocument();
   });
 
+  it("links the family's Telegram handle to the chat", async () => {
+    await renderDetail();
+
+    expect(screen.getByRole("link", { name: "@wedmejatko" })).toHaveAttribute(
+      "href",
+      "https://t.me/wedmejatko",
+    );
+  });
+
+  it("links a phone contact to dial it", async () => {
+    await renderDetail({
+      contact: { method: "phone", value: "+380501234567" },
+    });
+
+    expect(screen.getByRole("link", { name: "+380501234567" })).toHaveAttribute(
+      "href",
+      "tel:+380501234567",
+    );
+  });
+
+  it("leaves the contact row out when there is no contact", async () => {
+    await renderDetail({ contact: null });
+
+    expect(screen.queryByText(tShared.fields.contact)).not.toBeInTheDocument();
+  });
+
   it("opens each photo through the authorized route", async () => {
     await renderDetail();
 
