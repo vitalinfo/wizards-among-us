@@ -54,14 +54,7 @@ function searchCondition(term: string) {
   );
 }
 
-type UsersFilterInput = { search?: string; userId?: string };
-
-function usersConditions(filter: UsersFilterInput) {
-  return and(
-    searchCondition(filter.search ?? ""),
-    filter.userId ? eq(users.id, filter.userId) : undefined,
-  );
-}
+type UsersFilterInput = { search?: string };
 
 export async function countUsers(
   filter: UsersFilterInput = {},
@@ -69,7 +62,7 @@ export async function countUsers(
   const [row] = await getDb()
     .select({ total: count() })
     .from(users)
-    .where(usersConditions(filter));
+    .where(searchCondition(filter.search ?? ""));
   return row?.total ?? 0;
 }
 
@@ -118,7 +111,7 @@ export async function listUsers(
       ...userCounts(),
     })
     .from(users)
-    .where(usersConditions(params))
+    .where(searchCondition(params.search ?? ""))
     .orderBy(desc(users.createdAt), desc(users.id))
     .limit(params.limit)
     .offset(params.offset);

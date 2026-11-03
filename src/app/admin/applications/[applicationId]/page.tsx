@@ -29,7 +29,6 @@ import {
   reopenApplicationAction,
 } from "../actions";
 import { resolveUserContact } from "@/features/users/contact";
-import { userHref } from "@/features/users/listQuery";
 import { getSessionActor } from "@/lib/auth/session";
 import { isUuid } from "@/lib/uuid";
 import {
@@ -218,10 +217,10 @@ export default async function AdminApplicationPage({
       fields: [
         [
           t("fields.parentName"),
-          // The family's row on /admin/users — where the note is added.
+          // The family's page on /admin/users — where the note is added.
           application.parentName ? (
             <Link
-              href={userHref(application.parentId)}
+              href={`/admin/users/${application.parentId}`}
               className="text-primary font-semibold underline underline-offset-4"
             >
               {application.parentName}
@@ -335,7 +334,7 @@ export default async function AdminApplicationPage({
               {parentNote.note}
             </p>
             <Link
-              href={userHref(application.parentId)}
+              href={`/admin/users/${application.parentId}`}
               className="text-primary mt-2 inline-block text-xs font-semibold underline underline-offset-4"
             >
               {t("parentNote.edit")}
