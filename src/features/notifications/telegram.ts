@@ -3,6 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db";
 import { applications, claims, identities } from "@/db/schema";
 import { recordAuditLog } from "@/features/audit/log";
+import type { ApplicationStatus } from "@/db/enums";
 import type { Actor } from "@/lib/actor";
 import { siteOrigin } from "@/lib/site";
 import {
@@ -59,6 +60,25 @@ export function noticeMessage(
   return t(notice, { childName, url });
 }
 
+// The one notice an application in this status is owed, for the backfill: the
+// LATEST thing that happened to it. A family whose child is already claimed
+// learns nothing from a late "approved", so it gets "claimed" alone.
+// `processed` is a volunteer's own mark on a child they still hold, so its
+// family's news is still the claim. Drafts and submissions are owed nothing.
+export function backfillNotice(status: ApplicationStatus): Notice | null {
+  switch (status) {
+    case "approved":
+    case "rejected":
+    case "claimed":
+    case "fulfilled":
+      return status;
+    case "processed":
+      return "claimed";
+    default:
+      return null;
+  }
+}
+
 // The audit action a delivered notice is logged as. The backfill script skips
 // applications that already have one, so a re-run never sends twice.
 export const noticeSentAction = (notice: Notice) => `notification.${notice}`;
@@ -67,10 +87,11 @@ export type NoticeRecipient = { chatId: string; childName: string };
 
 // The recipient's Telegram id (= the chat id) and the child's first name. The
 // volunteer is whoever holds the ACTIVE claim — a released one is history.
-async function getRecipient(
+export async function getNoticeRecipient(
   applicationId: string,
-  audience: "parent" | "volunteer",
+  notice: Notice,
 ): Promise<NoticeRecipient | null> {
+  const { audience } = NOTICES[notice];
   const db = getDb();
   const rows =
     audience === "parent"
@@ -166,10 +187,7 @@ export async function notify({
   t: NoticeTranslator;
 }): Promise<void> {
   try {
-    const recipient = await getRecipient(
-      applicationId,
-      NOTICES[notice].audience,
-    );
+    const recipient = await getNoticeRecipient(applicationId, notice);
     if (!recipient) {
       return;
     }

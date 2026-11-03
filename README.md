@@ -604,20 +604,22 @@ effort: someone who unticked «allow messages» at login, or blocked the bot, ge
 sees it in the app. Every attempt is audit-logged under whoever caused it, as
 `notification.<approved|rejected|claimed|fulfilled>` or `…_failed:<reason>`.
 
-Applications decided before this existed are backfilled by a one-off script. It picks every
-application whose status is **currently** `approved` or `rejected` and that has no
-`notification.<status>` row, so re-running it never messages a family twice:
+Applications that got somewhere before notices existed are backfilled by a one-off script. Each
+gets **one** notice, for its **current** status — the latest thing that happened, not the
+history: `approved`/`rejected` → the decision, `claimed`/`processed` → «знайшовся чарівник» to
+the parent, `fulfilled` → «подарунок отримано» to the volunteer. One whose notice is already in
+the audit log is skipped, so re-running it never messages anyone twice:
 
 ```bash
-pnpm notify:decisions                          # dry run — lists who would get a message
-pnpm notify:decisions --send --admin <email>   # sends, logged under that admin
+pnpm notify:backfill                          # dry run — lists who would get which message
+pnpm notify:backfill --send --admin <email>   # sends, logged under that admin
 ```
 
 Like the photo scripts it runs from a checkout and fills unset variables from `.env.local`, so
 pass all of the target's — `CANONICAL_HOST` included, or the links point at production:
 
 ```bash
-env $(heroku config -s -a wau-staging | grep -E '^(DATABASE_URL|TELEGRAM_BOT_TOKEN|TELEGRAM_BOT_USERNAME|CANONICAL_HOST)=' | tr -d "'") pnpm notify:decisions
+env $(heroku config -s -a wau-staging | grep -E '^(DATABASE_URL|TELEGRAM_BOT_TOKEN|TELEGRAM_BOT_USERNAME|CANONICAL_HOST)=' | tr -d "'") pnpm notify:backfill
 ```
 
 ### Project layout & scripts (Phase 0)

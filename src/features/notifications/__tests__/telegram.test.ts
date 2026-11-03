@@ -4,7 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { SITE } from "@/lib/site";
 
 import messages from "../../../../messages/uk.json";
-import { noticeMessage, type NoticeTranslator } from "../telegram";
+import {
+  backfillNotice,
+  noticeMessage,
+  type NoticeTranslator,
+} from "../telegram";
 
 const translator = createTranslator({
   locale: "uk",
@@ -67,5 +71,22 @@ describe("noticeMessage", () => {
         .replace("{childName}", "Марія")
         .replace("{url}", `${SITE.url}/account/volunteer/claims`),
     );
+  });
+});
+
+describe("backfillNotice", () => {
+  it("owes each status the latest thing that happened to it", () => {
+    expect(backfillNotice("approved")).toBe("approved");
+    expect(backfillNotice("rejected")).toBe("rejected");
+    expect(backfillNotice("claimed")).toBe("claimed");
+    // A volunteer's own mark on a child they still hold: the family's news is
+    // still the claim.
+    expect(backfillNotice("processed")).toBe("claimed");
+    expect(backfillNotice("fulfilled")).toBe("fulfilled");
+  });
+
+  it("owes nothing to an application nobody has acted on", () => {
+    expect(backfillNotice("draft")).toBeNull();
+    expect(backfillNotice("submitted")).toBeNull();
   });
 });

@@ -1,39 +1,44 @@
 import { loadEnvConfig } from "@next/env";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, like } from "drizzle-orm";
 import { createTranslator } from "next-intl";
 
 import { getDb } from "@/db";
-import { admins, applications, auditLogs, identities } from "@/db/schema";
+import { admins, applications, auditLogs } from "@/db/schema";
 import {
+  backfillNotice,
   deliverNotice,
+  getNoticeRecipient,
+  noticeSentAction,
   type NoticeTranslator,
 } from "@/features/notifications/telegram";
 import { siteOrigin } from "@/lib/site";
 
 import messages from "../../messages/uk.json";
 
-// One-off backfill: send the Telegram decision message to the parents of
-// applications that were approved or rejected before decisions sent one.
+// One-off backfill: send the Telegram notice an application is owed for what
+// happened to it before notices existed.
 //
-//   pnpm notify:decisions                          dry run — reads, sends
-//                                                  nothing, prints who would
-//                                                  get a message
-//   pnpm notify:decisions --send --admin <email>   sends them
+//   pnpm notify:backfill                          dry run — reads, sends
+//                                                 nothing, prints who would
+//                                                 get which message
+//   pnpm notify:backfill --send --admin <email>   sends them
 //
-// Each send is audit-logged exactly as a live decision's is, under the admin
-// named by --admin (the person running this is who decided these families get
-// a message now). An application that already has a successful send for its
-// current status in the audit log (notification.approved / .rejected) is
-// skipped, so a re-run — after a failure, or by accident — never messages a
-// family twice; failed ones are retried.
+// Each application gets ONE notice, for its current status (backfillNotice):
+//   approved / rejected   → the parent, the decision
+//   claimed / processed   → the parent, "a volunteer was found"
+//   fulfilled             → the volunteer holding the claim, "receipt confirmed"
+// Not the whole history: a family whose child is claimed already knows more
+// than a late "approved" would tell them.
 //
-// Only CURRENT status counts: an application that was approved and has since
-// been claimed or fulfilled is not "approved" any more, and the family already
-// knows more than this message would tell them.
+// Each send is audit-logged exactly as a live one is, but under the admin named
+// by --admin (the person running this is who decided these messages go out
+// now). An application that already has a successful send of its notice in the
+// audit log is skipped, so a re-run — after a failure, or by accident — never
+// messages anyone twice; failed ones are retried.
 //
 // Run against another environment the way photos:normalize is (README,
 // "Uploaded photos"), passing that app's DATABASE_URL, TELEGRAM_BOT_TOKEN and
-// CANONICAL_HOST — the last one is the host the link points at. It prints all
+// CANONICAL_HOST — the last one is the host the links point at. It prints all
 // three (never a secret) before doing anything.
 loadEnvConfig(process.cwd());
 
@@ -47,39 +52,53 @@ async function main() {
   const adminEmail = adminFlag === -1 ? undefined : args[adminFlag + 1];
   printTarget();
 
-  const pending = await getDb()
-    .select({
-      id: applications.id,
-      status: applications.status,
-      childName: applications.childName,
-      chatId: identities.providerUserId,
-    })
+  const decided = await getDb()
+    .select({ id: applications.id, status: applications.status })
     .from(applications)
-    .leftJoin(
-      identities,
-      and(
-        eq(identities.userId, applications.parentId),
-        eq(identities.provider, "telegram"),
-      ),
-    )
     .where(
-      and(
-        inArray(applications.status, ["approved", "rejected"]),
-        sql`not exists (
-          select 1 from ${auditLogs}
-          where ${auditLogs.targetId} = ${applications.id}
-            and ${auditLogs.action} = 'notification.' || ${applications.status}
-        )`,
-      ),
+      inArray(applications.status, [
+        "approved",
+        "rejected",
+        "claimed",
+        "processed",
+        "fulfilled",
+      ]),
     )
     .orderBy(asc(applications.submittedAt), asc(applications.id));
 
+  const alreadySent = new Set(
+    (
+      await getDb()
+        .select({ targetId: auditLogs.targetId, action: auditLogs.action })
+        .from(auditLogs)
+        .where(
+          and(
+            eq(auditLogs.targetType, "application"),
+            like(auditLogs.action, "notification.%"),
+          ),
+        )
+    ).map((row) => `${row.targetId}:${row.action}`),
+  );
+
+  const pending = [];
+  for (const row of decided) {
+    const notice = backfillNotice(row.status);
+    if (!notice || alreadySent.has(`${row.id}:${noticeSentAction(notice)}`)) {
+      continue;
+    }
+    pending.push({
+      id: row.id,
+      notice,
+      recipient: await getNoticeRecipient(row.id, notice),
+    });
+  }
+
   console.log(
-    `${send ? "SENDING" : "DRY RUN — nothing will be sent"}: ${pending.length} decided applications whose parent hasn't been notified\n`,
+    `${send ? "SENDING" : "DRY RUN — nothing will be sent"}: ${pending.length} applications owed a notice\n`,
   );
   for (const row of pending) {
     console.log(
-      `${row.id.slice(0, 8)} ${row.status.padEnd(8)} ${row.chatId ? "" : "(no Telegram identity — will be skipped)"}`,
+      `${row.id.slice(0, 8)} ${row.notice.padEnd(9)} ${row.recipient ? "" : "(no Telegram identity — will be skipped)"}`,
     );
   }
   if (!send || pending.length === 0) {
@@ -111,18 +130,15 @@ async function main() {
   const tally = { sent: 0, blocked: 0, error: 0, skipped: 0 };
   console.log("");
   for (const row of pending) {
-    if (
-      !row.chatId ||
-      (row.status !== "approved" && row.status !== "rejected")
-    ) {
+    if (!row.recipient) {
       tally.skipped += 1;
       continue;
     }
     const result = await deliverNotice({
       actor: { kind: "admin", ...admin },
       applicationId: row.id,
-      notice: row.status,
-      recipient: { chatId: row.chatId, childName: row.childName ?? "" },
+      notice: row.notice,
+      recipient: row.recipient,
       t,
     });
     const outcome = result.ok ? "sent" : result.reason;
@@ -130,7 +146,7 @@ async function main() {
       throw new Error("TELEGRAM_BOT_TOKEN disappeared mid-run.");
     }
     tally[outcome] += 1;
-    console.log(`${row.id.slice(0, 8)} ${outcome}`);
+    console.log(`${row.id.slice(0, 8)} ${row.notice.padEnd(9)} ${outcome}`);
     await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
   }
 
