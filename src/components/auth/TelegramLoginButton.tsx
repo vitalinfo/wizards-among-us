@@ -16,7 +16,13 @@ export function TelegramLoginButton({ href }: { href: string | null }) {
   return (
     <a href={href} className={cn(ctaBase, ctaVariants.primary, "gap-3")}>
       <TelegramIcon className="size-6" />
-      {t("cta")}
+      {/* One span: inside the flex row, a bare text node and the <b> would be
+          separate items, with the gap between them. */}
+      <span>
+        {t.rich("cta", {
+          b: (chunks) => <b className="font-semibold">{chunks}</b>,
+        })}
+      </span>
     </a>
   );
 }

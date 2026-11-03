@@ -20,7 +20,9 @@ describe("TelegramLoginButton", () => {
     const href = "https://oauth.telegram.org/auth?bot_id=1";
     const { container } = renderButton(href);
     expect(
-      screen.getByRole("link", { name: messages.login.cta }),
+      screen.getByRole("link", {
+        name: messages.login.cta.replace(/<\/?b>/g, ""),
+      }),
     ).toHaveAttribute("href", href);
     expect(await axe(container)).toHaveNoViolations();
   });
