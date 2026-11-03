@@ -232,9 +232,9 @@ export function canRotateApplicationFile(
 //                             2026-10-23, from the Figma 118:420 card and the
 //                             §4.3 list he supplied with it). See below.
 //   child_with_letter_photo — admin, the owning parent, or the volunteer
-//   confirmation              holding the ACTIVE claim — for the child photo,
-//                             only if the parent consented to it
-//                             (childWithLetterPhotoConsent). The confirmation photo
+//   confirmation              holding the ACTIVE claim. Passing the child photo
+//                             to that volunteer is a required consent at submit
+//                             (Vital, 2026-11-03). The confirmation photo
 //                             deliberately reaches the claiming volunteer
 //                             (Vital, Phase 7): they bought the gift, and
 //                             seeing it arrive is the point of the whole thing.
@@ -255,7 +255,7 @@ export function canRotateApplicationFile(
 // widened by a change to the sensitive-field rule.
 export function canViewApplicationFile(
   actor: MaybeActor,
-  application: Pick<Application, "parentId" | "childWithLetterPhotoConsent">,
+  application: Pick<Application, "parentId">,
   claim: Pick<Claim, "volunteerId" | "releasedAt"> | null | undefined,
   kind: FileKind,
   ctx: {
@@ -270,14 +270,6 @@ export function canViewApplicationFile(
   }
   if (kind === "letter_photo" && ctx.browsable && hasRole(actor, "volunteer")) {
     return true;
-  }
-  if (
-    kind === "child_with_letter_photo" &&
-    application.childWithLetterPhotoConsent !== true &&
-    !isAdmin(actor) &&
-    !ownsApplication(actor, application)
-  ) {
-    return false;
   }
   return canViewSensitiveChildData(actor, application, claim);
 }

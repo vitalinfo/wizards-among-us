@@ -36,9 +36,10 @@ const posted = () =>
 const REQUIRED = [
   "privacyConsent",
   "contactConsent",
+  "childWithLetterPhotoConsent",
   "confirmationConsent",
 ] as const;
-const OPTIONAL = ["childWithLetterPhotoConsent", "socialMediaConsent"] as const;
+const OPTIONAL = ["socialMediaConsent"] as const;
 
 // The privacy label carries a link, so its accessible name is the label text
 // without the markup.
@@ -46,8 +47,8 @@ const label = (key: (typeof REQUIRED)[number] | (typeof OPTIONAL)[number]) =>
   t[key].label.replace(/<\/?link>/g, "");
 
 describe("ConsentStep", () => {
-  // Three consents gate submit; the two optional ones never do.
-  it("requires the three required consents and not the optional ones", () => {
+  // Four consents gate submit; the optional one never does.
+  it("requires the four required consents and not the optional one", () => {
     renderStep();
 
     for (const key of REQUIRED) {
@@ -74,10 +75,7 @@ describe("ConsentStep", () => {
   });
 
   it("remembers an optional «yes» already given", () => {
-    renderStep({
-      childWithLetterPhotoConsent: "true",
-      socialMediaConsent: "true",
-    });
+    renderStep({ socialMediaConsent: "true" });
 
     for (const key of OPTIONAL) {
       expect(screen.getByRole("checkbox", { name: label(key) })).toBeChecked();

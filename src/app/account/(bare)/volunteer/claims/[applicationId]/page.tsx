@@ -59,8 +59,7 @@ export default async function ClaimDetailPage({
 
   const files = await listApplicationFiles(applicationId);
   // Through the same predicate as the file route, so the page never asks for
-  // a photo the route would refuse — the child photo without the parent's
-  // consent.
+  // a photo the route would refuse.
   const photos = latestByKind(files, CLAIM_VISIBLE_KINDS).filter((file) =>
     canViewApplicationFile(
       actor,

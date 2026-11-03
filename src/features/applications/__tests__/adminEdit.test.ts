@@ -215,13 +215,14 @@ describe("adminApplicationEditSchema", () => {
     expect(no.success && no.data.socialMediaConsent).toBe(false);
   });
 
-  it("treats an unanswered child-photo consent as unset, not No", () => {
-    const result = forDraft.safeParse({ childWithLetterPhotoConsent: "" });
-    expect(result.success && result.data.childWithLetterPhotoConsent).toBe(
-      undefined,
+  // Required at submit and never stored, so there is nothing for an admin to
+  // edit — and the column it used to live in is being dropped.
+  it("ignores the child-photo consent", () => {
+    const result = forDraft.safeParse({ childWithLetterPhotoConsent: "false" });
+    expect(result.success).toBe(true);
+    expect(result.success && "childWithLetterPhotoConsent" in result.data).toBe(
+      false,
     );
-    const yes = forDraft.safeParse({ childWithLetterPhotoConsent: "true" });
-    expect(yes.success && yes.data.childWithLetterPhotoConsent).toBe(true);
   });
 });
 

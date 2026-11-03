@@ -43,18 +43,18 @@ const applicationFields = {
   // Campaign-type-specific extras — e.g. the St Nicholas shop link. Validated
   // per campaign type (see stNicholasTypeFieldsSchema).
   typeFields: z.record(z.string(), z.unknown()).optional(),
-  // Required consents — data processing, passing the contact to the chosen
-  // volunteer, and confirming receipt (§11). Hard gates at submit, so they are
-  // NOT persisted — a submitted application has them by definition;
-  // applications.submitted_at is the timestamp that carries information.
+  // Required consents — data processing, passing the contact and the
+  // child-with-letter photo to the chosen volunteer, and confirming receipt
+  // (§11). Hard gates at submit, so a submitted application has them by
+  // definition; applications.submitted_at is the timestamp that carries
+  // information.
   privacyConsent: z.literal(true),
   contactConsent: z.literal(true),
+  childWithLetterPhotoConsent: z.literal(true),
   confirmationConsent: z.literal(true),
-  // SEPARATE, optional-in-substance consents: may the claiming volunteer see
-  // the child-with-letter photo, and may we publish materials on social media?
-  // The parent must answer, but either answer is valid — so they're booleans,
-  // never a literal(true).
-  childWithLetterPhotoConsent: z.boolean(),
+  // SEPARATE, optional-in-substance consent: may we publish materials on
+  // social media? The parent must answer, but either answer is valid — so it's
+  // a boolean, never a literal(true).
   socialMediaConsent: z.boolean(),
 };
 
@@ -197,10 +197,6 @@ export const applicationDraftFormSchema = z.object({
   // has no Telegram handle, and it's stored on `users` (one contact per person,
   // never a per-application snapshot).
   phone: text(userPhoneSchema),
-  childWithLetterPhotoConsent: z.preprocess(
-    (value) => (value === undefined ? undefined : value === "true"),
-    z.boolean().optional(),
-  ),
   socialMediaConsent: z.preprocess(
     (value) => (value === undefined ? undefined : value === "true"),
     z.boolean().optional(),
@@ -277,11 +273,9 @@ export function adminApplicationEditSchema(context: {
     .omit({
       phone: true,
       socialMediaConsent: true,
-      childWithLetterPhotoConsent: true,
     })
     .extend({
       socialMediaConsent: triStateBoolean,
-      childWithLetterPhotoConsent: triStateBoolean,
       // Widened back to every oblast. The parent form offers only the occupied
       // and front-line ones, but an application recorded before that narrowing
       // must stay editable — an admin fixing a delivery address should not be

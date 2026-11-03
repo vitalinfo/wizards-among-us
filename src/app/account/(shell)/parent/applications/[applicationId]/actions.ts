@@ -182,6 +182,7 @@ export async function submitApplicationAction(
             "step",
             "privacyConsent",
             "contactConsent",
+            "childWithLetterPhotoConsent",
             "confirmationConsent",
             "turnstileToken",
           ].includes(key),
@@ -280,7 +281,8 @@ export async function submitApplicationAction(
     privacyConsent: formData.get("privacyConsent") === "true",
     contactConsent: formData.get("contactConsent") === "true",
     confirmationConsent: formData.get("confirmationConsent") === "true",
-    childWithLetterPhotoConsent: fresh.childWithLetterPhotoConsent ?? undefined,
+    childWithLetterPhotoConsent:
+      formData.get("childWithLetterPhotoConsent") === "true",
     socialMediaConsent: fresh.socialMediaConsent ?? undefined,
   });
 

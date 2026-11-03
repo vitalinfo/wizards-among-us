@@ -35,12 +35,11 @@ export function ConsentStep({ values, errors, turnstileSiteKey }: StepProps) {
       ),
     );
 
-  // The three required ones are NOT persisted — they gate submit, so a
-  // submitted application has them by definition (submitted_at is the record).
-  // The two optional ones are stored, so the hidden «false» comes FIRST: the
-  // form keeps the last value of a repeated name, so a ticked box overrides it
-  // and an unticked one leaves it, and the answer is always recorded rather
-  // than left unknown.
+  // The four required ones gate submit, so a submitted application has them
+  // by definition (submitted_at is the record). The optional one is stored, so
+  // the hidden «false» comes FIRST: the form keeps the last value of a repeated
+  // name, so a ticked box overrides it and an unticked one leaves it, and the
+  // answer is always recorded rather than left unknown.
   const consent = (key: ConsentKey, required: boolean) => (
     <Fragment key={key}>
       {required ? null : <input type="hidden" name={key} value="false" />}
@@ -72,9 +71,7 @@ export function ConsentStep({ values, errors, turnstileSiteKey }: StepProps) {
 
       {consent("privacyConsent", true)}
       {consent("contactConsent", true)}
-      {/* Optional: without it the claiming volunteer is never shown the
-          child-with-letter photo (canViewApplicationFile). */}
-      {consent("childWithLetterPhotoConsent", false)}
+      {consent("childWithLetterPhotoConsent", true)}
       {consent("confirmationConsent", true)}
       {consent("socialMediaConsent", false)}
 
