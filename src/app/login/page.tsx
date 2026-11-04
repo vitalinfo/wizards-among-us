@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { LoginSafety } from "@/components/auth/LoginSafety";
 import { TelegramLoginButton } from "@/components/auth/TelegramLoginButton";
 import { CheckIcon } from "@/components/icons";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -9,16 +10,16 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { BrandMark } from "@/components/site/BrandMark";
 import { TelegramCard } from "@/components/site/TelegramCard";
 import { isAdmin, isUser } from "@/lib/authz";
-import { SITE } from "@/lib/site";
+import { SITE, siteOrigin } from "@/lib/site";
 import { isDevLoginEnabled } from "@/lib/auth/devLogin";
 import { afterLoginPath } from "@/lib/auth/returnPath";
-import { telegramClient } from "@/lib/auth/telegramOidc";
+import { TELEGRAM_ISSUER, telegramClient } from "@/lib/auth/telegramOidc";
 import { getSessionActor } from "@/lib/auth/session";
 
 // Session-dependent → dynamic; inherits the root noindex default.
 export const dynamic = "force-dynamic";
 
-const POINTS = ["dataPoint", "privacyPoint"] as const;
+const POINTS = ["dataPoint", "botPoint", "privacyPoint"] as const;
 
 export default async function LoginPage({
   searchParams,
@@ -174,6 +175,11 @@ export default async function LoginPage({
                 </li>
               ))}
             </ul>
+
+            <LoginSafety
+              telegramHost={new URL(TELEGRAM_ISSUER).host}
+              siteHost={new URL(siteOrigin()).host}
+            />
 
             <p className="text-muted-foreground text-base">
               {/* One message with a <link> tag rather than two keys glued
