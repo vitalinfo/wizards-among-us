@@ -216,3 +216,57 @@ describe("middleware in maintenance mode", () => {
     }
   });
 });
+
+// A layout is never told its url, so the middleware hands the /account layout
+// the path that was asked for — otherwise a signed-out deep link signs in to
+// the account's front page instead of the page it opened.
+describe("middleware and the request path", () => {
+  // Next forwards request-header overrides to the app this way.
+  function forwardedPath(response: Response): string | null {
+    return response.headers.get("x-middleware-request-x-request-path");
+  }
+
+  it("forwards the path and query in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CANONICAL_HOST", "wizards-among-us.pp.ua");
+    const response = middleware(
+      request(
+        "https://wizards-among-us.pp.ua/account/parent/applications/abc/view?x=1",
+        { "x-forwarded-proto": "https", host: "wizards-among-us.pp.ua" },
+      ),
+    );
+    expect(forwardedPath(response)).toBe(
+      "/account/parent/applications/abc/view?x=1",
+    );
+  });
+
+  it("forwards it outside production and on loopback too", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    expect(
+      forwardedPath(
+        middleware(request("http://localhost:3003/account/parent")),
+      ),
+    ).toBe("/account/parent");
+
+    vi.stubEnv("NODE_ENV", "production");
+    expect(
+      forwardedPath(
+        middleware(
+          request("http://localhost:9652/account/volunteer", {
+            host: "localhost:9652",
+          }),
+        ),
+      ),
+    ).toBe("/account/volunteer");
+  });
+
+  it("overwrites a value the client sent under the same name", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const response = middleware(
+      request("http://localhost:3003/account/parent", {
+        "x-request-path": "/account/somewhere-else",
+      }),
+    );
+    expect(forwardedPath(response)).toBe("/account/parent");
+  });
+});

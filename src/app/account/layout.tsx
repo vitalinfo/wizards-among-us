@@ -1,8 +1,13 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { isUser } from "@/lib/actor";
-import { signedOutRedirect } from "@/lib/auth/returnPath";
+import {
+  accountReturnPath,
+  REQUEST_PATH_HEADER,
+  signedOutRedirect,
+} from "@/lib/auth/returnPath";
 import { getSessionActor } from "@/lib/auth/session";
 
 // The guard for everything signed-in, and nothing else.
@@ -26,8 +31,15 @@ export default async function AccountLayout({
 }) {
   const actor = await getSessionActor();
   if (!isUser(actor)) {
+    // This redirect runs before the page's own guard, so it must carry the
+    // page's path: a hardcoded "/account" sent every deep link back to the
+    // account's front page after sign-in. A layout has no url of its own, so
+    // the middleware hands it over in a header.
+    const returnTo = accountReturnPath(
+      (await headers()).get(REQUEST_PATH_HEADER),
+    );
     // An admin lands on /admin rather than a sign-in page they are past.
-    redirect(signedOutRedirect(actor, "/account"));
+    redirect(signedOutRedirect(actor, returnTo));
   }
   return <>{children}</>;
 }

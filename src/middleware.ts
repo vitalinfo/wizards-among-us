@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { REQUEST_PATH_HEADER } from "@/lib/auth/returnPath";
 import { isMaintenanceMode, MAINTENANCE_PATH } from "@/lib/maintenance";
 import { SITE } from "@/lib/site";
 
@@ -50,9 +51,20 @@ function isLoopback(host: string | null): boolean {
 
 // Where a request goes once it is allowed through: to the page it asked for,
 // or, in maintenance mode, to the maintenance screen.
+//
+// On its way it carries the path it asked for, which a layout is otherwise
+// never told — the /account layout needs it to send a signed-out deep link to
+// /login with the right `next`. `set`, not append: a client-sent header of the
+// same name is overwritten. (nextUrl has Next's internal `_rsc` already
+// stripped.)
 function proceed(request: NextRequest): NextResponse {
   if (!isMaintenanceMode()) {
-    return NextResponse.next();
+    const headers = new Headers(request.headers);
+    headers.set(
+      REQUEST_PATH_HEADER,
+      request.nextUrl.pathname + request.nextUrl.search,
+    );
+    return NextResponse.next({ request: { headers } });
   }
   const url = request.nextUrl.clone();
   url.pathname = MAINTENANCE_PATH;
