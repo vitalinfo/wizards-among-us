@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { TelegramAuthReturn } from "@/components/auth/TelegramAuthReturn";
 import { TelegramLoginButton } from "@/components/auth/TelegramLoginButton";
 import { CheckIcon } from "@/components/icons";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -175,7 +174,6 @@ export default async function LoginPage({
                   : null
               }
             />
-            <TelegramAuthReturn />
 
             <ul className="flex flex-col items-center gap-3">
               {POINTS.map((key) => (
