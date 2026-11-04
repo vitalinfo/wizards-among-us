@@ -524,6 +524,15 @@ One export per campaign: the «Експорт» button on the campaigns list dow
 working CSV (`/admin/export/download?campaignId=…`), admin-gated and audit-logged as
 `campaign.exported`.
 
+The applications queue has a second one: «Експорт» on `/admin/applications`
+downloads the queue **under its current filter** — status, dates, name search, all pages —
+as the coordinators' working list, with Ukrainian headings
+(`/admin/applications/export?…`, the queue's own query string). Logged as
+`campaign.applications_exported`; the audit row names the campaign, not the filter (the table
+has nowhere to put it). The letter photo and the child-with-letter photo go in as **links** to
+the authorized file route, so opening one still needs an admin session and is logged as a
+file view. «Усі кампанії» is refused, for the reason below.
+
 It carries the fields the child-data invariant calls sensitive — parent name, current town,
 delivery information, family story and the family's contact — so **the file itself is the most
 dangerous artifact this system produces**. Treat it accordingly: keep it only where it is
