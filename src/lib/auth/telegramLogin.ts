@@ -26,32 +26,51 @@ function botIdFromToken(botToken: string): string | null {
   return /^\d+$/.test(id) ? id : null;
 }
 
-// Where the "Log in with Telegram" link points. `origin` must be the domain
-// set on the bot with BotFather; `returnTo` is an already-validated path to
-// land on afterwards, carried through Telegram as
-// /auth/telegram/return?next=….
+// Where /auth/telegram/start sends the browser. `origin` must be the domain
+// set on the bot with BotFather.
+//
+// `return_to` carries NO query string. On the FIRST accept for a bot (a new
+// user, or anyone who disconnected the site in Telegram), Telegram returns
+// `#tgAuthResult=false` instead of the signed data when return_to has one —
+// and the person sees "you have successfully logged in" in Telegram while our
+// site never hears of it. Repeat logins were unaffected, which is why it only
+// hit brand-new users (staging + prod, Nov 2026, reproduced by hand: the same
+// return_to with and without `?next=`). So the return path travels in a
+// cookie instead — see TELEGRAM_NEXT_COOKIE.
 export function telegramAuthUrl({
   botToken,
   origin,
-  returnTo,
 }: {
   botToken: string;
   origin: string;
-  returnTo: string;
 }): string | null {
   const botId = botIdFromToken(botToken);
   if (!botId) {
     return null;
-  }
-  const back = new URL(TELEGRAM_RETURN_PATH, origin);
-  if (returnTo !== "/") {
-    back.searchParams.set("next", returnTo);
   }
   const url = new URL(TELEGRAM_AUTH_URL);
   url.searchParams.set("bot_id", botId);
   url.searchParams.set("origin", origin);
   // Lets our bot message the person — the same permission the widget asked for.
   url.searchParams.set("request_access", "write");
-  url.searchParams.set("return_to", back.toString());
+  url.searchParams.set(
+    "return_to",
+    new URL(TELEGRAM_RETURN_PATH, origin).toString(),
+  );
   return url.toString();
 }
+
+// Holds the already-validated path to land on after login, from
+// /auth/telegram/start until /auth/telegram reads it (and re-validates it: a
+// cookie is client input too). Scoped to /auth/telegram so no other request
+// carries it; ten minutes covers a person switching to the Telegram app and
+// back. Lax is enough — the return from Telegram is a top-level GET.
+export const TELEGRAM_NEXT_COOKIE = "tg_next";
+
+export const telegramNextCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/auth/telegram",
+  maxAge: 600,
+};

@@ -7,6 +7,10 @@ import {
 } from "@/lib/auth/session";
 import { afterLoginPath } from "@/lib/auth/returnPath";
 import { verifyTelegramLogin } from "@/lib/auth/telegram";
+import {
+  TELEGRAM_NEXT_COOKIE,
+  telegramNextCookieOptions,
+} from "@/lib/auth/telegramLogin";
 import { findOrCreateTelegramUser } from "@/lib/auth/telegramUser";
 
 // Telegram Login Widget callback (redirect mode): Telegram sends the signed auth
@@ -23,8 +27,17 @@ export const dynamic = "force-dynamic";
 // address, so that produced a real redirect to `localhost:<PORT>` in staging —
 // login appeared to "do nothing". A relative Location needs no host detection
 // and is correct on every host, proxied or not.
+// Every exit also drops the return-path cookie: it was for this one login.
 function redirectTo(path: string): NextResponse {
-  return new NextResponse(null, { status: 302, headers: { Location: path } });
+  const response = new NextResponse(null, {
+    status: 302,
+    headers: { Location: path },
+  });
+  response.cookies.set(TELEGRAM_NEXT_COOKIE, "", {
+    ...telegramNextCookieOptions,
+    maxAge: 0,
+  });
+  return response;
 }
 
 export async function GET(request: NextRequest) {
@@ -35,10 +48,13 @@ export async function GET(request: NextRequest) {
 
   const params = Object.fromEntries(request.nextUrl.searchParams);
   // `next` is ours, not Telegram's — it must NOT take part in the signature
-  // check, and it is re-validated because it round-tripped through a third
-  // party and the browser.
+  // check, and it is re-validated because it round-tripped through the
+  // browser. It normally comes from the cookie /auth/telegram/start set; the
+  // query param is what a login started before that route existed carries.
   const { next, ...signed } = params;
-  const returnTo = afterLoginPath(next);
+  const returnTo = afterLoginPath(
+    next ?? request.cookies.get(TELEGRAM_NEXT_COOKIE)?.value,
+  );
   const result = verifyTelegramLogin(signed, botToken);
   if (!result.ok) {
     return redirectTo("/?login=failed");

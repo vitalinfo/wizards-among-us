@@ -16,8 +16,8 @@ function renderButton(href: string | null) {
 }
 
 describe("TelegramLoginButton", () => {
-  it("is a link to Telegram's auth page", async () => {
-    const href = "https://oauth.telegram.org/auth?bot_id=1";
+  it("links to the Telegram login route", async () => {
+    const href = "/auth/telegram/start?next=%2Faccount";
     const { container } = renderButton(href);
     expect(
       screen.getByRole("link", {
