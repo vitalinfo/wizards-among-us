@@ -4,9 +4,9 @@ import { TelegramIcon } from "@/components/icons";
 import { ctaBase, ctaVariants } from "@/components/ui/ctaStyles";
 import { cn } from "@/lib/utils";
 
-// A plain link to Telegram's auth page, which returns to /login with the
-// result in the fragment (see lib/auth/telegramLogin.ts for why this replaced
-// Telegram's Login Widget). A plain <a>, not next/link: it leaves the site.
+// A plain link to /auth/telegram/start, which sends the browser on to
+// Telegram's OpenID Connect login (see lib/auth/telegramOidc.ts for why this
+// replaced Telegram's Login Widget). A plain <a>, not next/link: it leaves the site.
 export function TelegramLoginButton({ href }: { href: string | null }) {
   const t = useTranslations("login");
 

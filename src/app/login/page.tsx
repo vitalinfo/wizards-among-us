@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -13,23 +12,13 @@ import { isAdmin, isUser } from "@/lib/authz";
 import { SITE } from "@/lib/site";
 import { isDevLoginEnabled } from "@/lib/auth/devLogin";
 import { afterLoginPath } from "@/lib/auth/returnPath";
-import { telegramAuthUrl } from "@/lib/auth/telegramLogin";
+import { telegramClient } from "@/lib/auth/telegramOidc";
 import { getSessionActor } from "@/lib/auth/session";
 
 // Session-dependent → dynamic; inherits the root noindex default.
 export const dynamic = "force-dynamic";
 
 const POINTS = ["dataPoint", "privacyPoint"] as const;
-
-// The origin this page was requested on, which Telegram sends the person back
-// to. Not siteOrigin(): locally that is production's URL. Heroku's router
-// passes the public Host through and reports the scheme in x-forwarded-proto,
-// and the middleware has already moved the request to the canonical host.
-async function requestOrigin(): Promise<string> {
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${h.get("host")}`;
-}
 
 export default async function LoginPage({
   searchParams,
@@ -165,12 +154,8 @@ export default async function LoginPage({
 
             <TelegramLoginButton
               href={
-                process.env.TELEGRAM_BOT_TOKEN
-                  ? telegramAuthUrl({
-                      botToken: process.env.TELEGRAM_BOT_TOKEN,
-                      origin: await requestOrigin(),
-                      returnTo,
-                    })
+                telegramClient()
+                  ? `/auth/telegram/start?next=${encodeURIComponent(returnTo)}`
                   : null
               }
             />
