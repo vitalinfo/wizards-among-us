@@ -1399,6 +1399,8 @@
         "status": "Статус",
         "submittedFrom": "Подано з",
         "submittedTo": "Подано по",
+        "search": "Імʼя дитини або батьків",
+        "searchPlaceholder": "Наприклад, Марія або Коваль",
         "byParent": "Анкети користувача: {name}",
         "byVolunteer": "Взяті діти користувача: {name}",
         "apply": "Застосувати",

@@ -15,6 +15,8 @@ import {
   parseModerationPage,
   userApplicationsHref,
   MODERATION_PAGE_SIZE,
+  MODERATION_SEARCH_MAX_LENGTH,
+  nameSearchPatterns,
 } from "../moderationFilter";
 
 const APPLICATION_ID = "11111111-2222-3333-4444-555555555555";
@@ -171,6 +173,7 @@ describe("parseModerationQuery", () => {
       submittedTo: null,
       parentId: null,
       claimedBy: null,
+      search: "",
       page: 1,
     });
   });
@@ -190,6 +193,7 @@ describe("parseModerationQuery", () => {
       submittedTo: "2026-09-01",
       parentId: null,
       claimedBy: null,
+      search: "",
       page: 3,
     });
   });
@@ -251,6 +255,19 @@ describe("moderationSearch", () => {
       page: "2",
     });
 
+    expect(
+      parseModerationQuery(
+        Object.fromEntries(new URLSearchParams(moderationSearch(query))),
+      ),
+    ).toEqual(query);
+  });
+
+  // Opening an application from a search and going "back" must land on the
+  // same search, not on the whole queue.
+  it("round-trips a name search", () => {
+    const query = parseModerationQuery({ status: "all", q: "Марія Коваль" });
+
+    expect(moderationSearch(query)).toContain("q=");
     expect(
       parseModerationQuery(
         Object.fromEntries(new URLSearchParams(moderationSearch(query))),
@@ -371,5 +388,46 @@ describe("isDefaultModerationQuery", () => {
     expect(
       isDefaultModerationQuery(parseModerationQuery({ status: "all" })),
     ).toBe(false);
+  });
+});
+
+describe("moderation name search", () => {
+  it("trims the term and treats blank as no search", () => {
+    expect(parseModerationQuery({ q: "  Марія " }).search).toBe("Марія");
+    expect(parseModerationQuery({ q: "   " }).search).toBe("");
+    expect(parseModerationQuery({}).search).toBe("");
+  });
+
+  it("cuts an over-long term rather than querying it whole", () => {
+    const query = parseModerationQuery({ q: "а".repeat(500) });
+    expect(query.search).toHaveLength(MODERATION_SEARCH_MAX_LENGTH);
+  });
+
+  it("counts as narrowing, so a reset is offered", () => {
+    expect(isDefaultModerationQuery(parseModerationQuery({ q: "Марія" }))).toBe(
+      false,
+    );
+  });
+
+  // Applied to the stored names too (in SQL), so the two meet in the middle.
+  it("matches each word as a lower-cased substring", () => {
+    expect(nameSearchPatterns("Олена  КОВАЛЬ")).toEqual([
+      "%олена%",
+      "%коваль%",
+    ]);
+    expect(nameSearchPatterns("   ")).toEqual([]);
+  });
+
+  // «Марʼяна», «Мар'яна» and «Мар’яна» are the same name typed on three
+  // keyboards; a parent and an admin rarely use the same one.
+  it("ignores which apostrophe was typed", () => {
+    for (const name of ["Марʼяна", "Мар'яна", "Мар’яна", "Мар`яна"]) {
+      expect(nameSearchPatterns(name)).toEqual(["%маряна%"]);
+    }
+  });
+
+  // An admin typing «_» or «%» means the character, not LIKE's wildcard.
+  it("escapes LIKE's own wildcards", () => {
+    expect(nameSearchPatterns("50%_a\\b")).toEqual(["%50\\%\\_a\\\\b%"]);
   });
 });

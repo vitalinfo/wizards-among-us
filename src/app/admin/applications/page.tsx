@@ -38,6 +38,7 @@ export default async function AdminApplicationsPage({
     to?: string;
     parent?: string;
     claimedBy?: string;
+    q?: string;
     page?: string;
   }>;
 }) {
@@ -58,6 +59,7 @@ export default async function AdminApplicationsPage({
     ...submittedRange(query),
     parentId: query.parentId ?? undefined,
     claimedBy: query.claimedBy ?? undefined,
+    search: query.search,
   };
 
   // Count first: the requested page has to be clamped to what exists before we

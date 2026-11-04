@@ -117,8 +117,39 @@ export type ModerationQuery = {
   // /admin/users link to.
   parentId: string | null;
   claimedBy: string | null;
+  // Free text over the child's and the parent's name, as typed on the form.
+  // Empty means "no name constraint".
+  search: string;
   page: number;
 };
+
+// A name is short; anything longer than this is a paste gone wrong, and is cut
+// rather than sent to the database whole.
+export const MODERATION_SEARCH_MAX_LENGTH = 100;
+
+function parseModerationSearch(value: string | undefined): string {
+  return (value ?? "").trim().slice(0, MODERATION_SEARCH_MAX_LENGTH).trim();
+}
+
+// Apostrophes a Ukrainian name is typed with: the ASCII one, the typographic
+// one, the modifier letter the orthography prescribes («Марʼяна»), and a
+// backtick from a layout that puts it on that key. A parent and an admin rarely
+// pick the same one, so the search removes them on both sides before matching.
+export const NAME_APOSTROPHES = "'’ʼ`";
+const APOSTROPHE_PATTERN = new RegExp(`[${NAME_APOSTROPHES}]`, "g");
+
+// The LIKE patterns a name search runs, one per word typed: lower-cased,
+// apostrophes removed, and LIKE's own wildcards escaped — a name never means
+// «%» or «_» as "anything". Substring rather than prefix: an admin is as likely
+// to remember the end of a surname as its start.
+export function nameSearchPatterns(term: string): string[] {
+  return term
+    .toLowerCase()
+    .replace(APOSTROPHE_PATTERN, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => `%${word.replace(/[\\%_]/g, (char) => `\\${char}`)}%`);
+}
 
 // Anything but a uuid is dropped: Postgres answers a malformed one with an
 // error, and a mangled link should widen the queue, not break it.
@@ -134,6 +165,7 @@ export function parseModerationQuery(
     to?: string;
     parent?: string;
     claimedBy?: string;
+    q?: string;
     page?: string;
   },
   campaigns: ModerationCampaignScope = NO_CAMPAIGNS,
@@ -149,6 +181,7 @@ export function parseModerationQuery(
     submittedTo: to && from && to < from ? null : to,
     parentId: parseUserId(params.parent),
     claimedBy: parseUserId(params.claimedBy),
+    search: parseModerationSearch(params.q),
     page: parseModerationPage(params.page),
   };
 }
@@ -197,6 +230,7 @@ export function moderationSearch(
           submittedTo: null,
           parentId: null,
           claimedBy: null,
+          search: "",
           page: 1,
         }
       : query;
@@ -215,6 +249,9 @@ export function moderationSearch(
   }
   if (q.claimedBy) {
     params.set("claimedBy", q.claimedBy);
+  }
+  if (q.search !== "") {
+    params.set("q", q.search);
   }
   const target = page ?? q.page;
   if (target > 1) {
@@ -235,7 +272,8 @@ export function isDefaultModerationQuery(
     query.submittedFrom === null &&
     query.submittedTo === null &&
     query.parentId === null &&
-    query.claimedBy === null
+    query.claimedBy === null &&
+    query.search === ""
   );
 }
 
@@ -252,6 +290,7 @@ export function userApplicationsHref(
     submittedTo: null,
     parentId: scope === "parent" ? userId : null,
     claimedBy: scope === "claimedBy" ? userId : null,
+    search: "",
     page: 1,
   });
 }

@@ -56,6 +56,27 @@ describe("ModerationFilterForm", () => {
     expect(screen.getByLabelText(t.status)).toBeVisible();
     expect(screen.getByLabelText(t.submittedFrom)).toBeVisible();
     expect(screen.getByLabelText(t.submittedTo)).toBeVisible();
+    expect(screen.getByLabelText(t.search)).toBeVisible();
+  });
+
+  it("searches by name through a search input named for the url param", async () => {
+    await renderForm({});
+    const input = screen.getByRole("searchbox", { name: t.search });
+
+    expect(input).toHaveAttribute("name", "q");
+    expect(input).toHaveValue("");
+  });
+
+  // Submitted together with the other controls, so a name search stays inside
+  // the chosen status and campaign rather than replacing them.
+  it("shows the search that is applied and offers to reset it", async () => {
+    const { container } = await renderForm({ status: "all", q: "Коваль" });
+
+    expect(screen.getByLabelText(t.search)).toHaveValue("Коваль");
+    expect(screen.getByRole("link", { name: t.reset })).toBeVisible();
+    const data = new FormData(container.querySelector("form")!);
+    expect(data.get("q")).toBe("Коваль");
+    expect(data.get("status")).toBe("all");
   });
 
   // Native date inputs: the browser gives the picker, the locale format and the
@@ -192,7 +213,7 @@ describe("ModerationFilterForm", () => {
   });
 
   it("has no accessibility violations", async () => {
-    const { container } = await renderForm({ status: "all" });
+    const { container } = await renderForm({ status: "all", q: "Марія" });
     expect(await axe(container)).toHaveNoViolations();
   });
 });
