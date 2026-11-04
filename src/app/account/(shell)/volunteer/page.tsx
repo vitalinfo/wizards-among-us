@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { becomeVolunteerAction } from "@/app/volunteer/actions";
 import { CabinetIntro } from "@/components/account/CabinetIntro";
-import { ctaVariants } from "@/components/ui/ctaStyles";
-import { cn } from "@/lib/utils";
+import { VolunteerCabinetAction } from "@/components/account/VolunteerCabinetAction";
 import { canBrowseChildren } from "@/lib/authz";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
@@ -36,16 +33,6 @@ export default async function VolunteerCabinetPage() {
   const joined = canBrowseChildren(actor);
 
   const t = await getTranslations("account.volunteer");
-  const tInitiatives = await getTranslations("initiatives");
-
-  // 64 tall at every width, which is what the design draws here — the shared
-  // ctaBase grows to 78 from lg, and overriding that would put two height
-  // utilities in one class string for Tailwind's emit order to settle.
-  // Colours stay shared; only the geometry is local.
-  const cta = cn(
-    ctaVariants.primary,
-    "focus-visible:outline-ring inline-flex h-16 items-center justify-center gap-2 rounded-full px-8 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:px-14",
-  );
 
   return (
     <CabinetIntro
@@ -53,26 +40,7 @@ export default async function VolunteerCabinetPage() {
         em: (chunks) => <span className="text-primary">{chunks}</span>,
       })}
       body={t("body")}
-      action={
-        joined ? (
-          <Link href="/account/volunteer/children" className={cta}>
-            <span aria-hidden="true">🔍</span>
-            {t("cta")}
-          </Link>
-        ) : (
-          // A form, not a link: joining is a write. Works with no JS.
-          <form action={becomeVolunteerAction}>
-            <input
-              type="hidden"
-              name="next"
-              value="/account/volunteer/children"
-            />
-            <button type="submit" className={cta}>
-              {tInitiatives("volunteer")}
-            </button>
-          </form>
-        )
-      }
+      action={<VolunteerCabinetAction joined={joined} />}
     />
   );
 }

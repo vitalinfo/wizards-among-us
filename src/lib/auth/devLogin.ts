@@ -32,6 +32,8 @@ export const DEV_LOGIN_ROLES = {
   parent: ["parent"],
   volunteer: ["volunteer"],
   both: ["parent", "volunteer"],
+  // A fresh Telegram account: lands on /account's chooser, not a cabinet.
+  none: [],
 } as const satisfies Record<string, readonly UserRole[]>;
 
 export type DevLoginRoleKey = keyof typeof DEV_LOGIN_ROLES;
