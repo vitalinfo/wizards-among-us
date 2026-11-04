@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import { ModerationExportLink } from "@/components/admin/ModerationExportLink";
 import { ChevronRightIcon } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/buttonStyles";
 
@@ -32,6 +33,7 @@ export async function ModerationFilterForm({
 }) {
   const t = await getTranslations("admin.applications.filter");
   const tStatus = await getTranslations("parent.applications.status");
+  const tExport = await getTranslations("admin.applications.export");
 
   // No horizontal padding here: the select needs room on the right for its
   // chevron, and appending pr-* after px-* is settled by Tailwind's emit order,
@@ -44,7 +46,7 @@ export async function ModerationFilterForm({
   // back to CSS; the fixed height is the selects' (20px line + py-2 + border),
   // and iOS would otherwise centre the value. Desktop browsers keep their
   // picker button. Chrome's device mode doesn't reproduce any of this.
-  const dateField = `${field} h-[38px] w-full min-w-0 appearance-none px-3 sm:w-auto [&::-webkit-date-and-time-value]:text-left`;
+  const dateField = `${field} h-[38px] w-full min-w-0 appearance-none px-3 [&::-webkit-date-and-time-value]:text-left`;
 
   return (
     // Keyed by the applied query. The controls are uncontrolled (defaultValue),
@@ -57,13 +59,14 @@ export async function ModerationFilterForm({
       action="/admin/applications"
       aria-label={t("legend")}
       // On a phone, a two-column grid: the two selects share a row, the two
-      // dates the next, the buttons the last. From sm up the controls fit one
-      // wrapping row, as before.
-      className="border-border bg-surface-muted grid grid-cols-2 items-end gap-3 rounded-lg border p-4 sm:flex sm:flex-wrap"
+      // dates the next, the buttons the last. From md up, four columns, so the
+      // controls end where the search input does; the dates keep a floor so
+      // the native picker never clips its value.
+      className="border-border bg-surface-muted grid grid-cols-2 items-end gap-3 rounded-lg border p-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_minmax(8.5rem,1fr)_minmax(8.5rem,1fr)]"
     >
       {/* Its own full-width row: a name is the one thing here an admin types,
           and squeezed between the selects it would be the narrowest field. */}
-      <div className="col-span-2 flex min-w-0 flex-col gap-1 sm:basis-full">
+      <div className="col-span-2 flex min-w-0 flex-col gap-1 md:col-span-4">
         <label htmlFor="q" className="text-xs font-medium">
           {t("search")}
         </label>
@@ -87,7 +90,7 @@ export async function ModerationFilterForm({
             id="campaign"
             name="campaign"
             defaultValue={query.campaign}
-            className={`${field} w-full appearance-none truncate pr-9 pl-3 sm:w-auto sm:max-w-64`}
+            className={`${field} w-full appearance-none truncate pr-9 pl-3`}
           >
             <option value="all">{t("allCampaigns")}</option>
             {campaigns.map((campaign) => (
@@ -116,7 +119,7 @@ export async function ModerationFilterForm({
             id="status"
             name="status"
             defaultValue={query.filter}
-            className={`${field} w-full appearance-none truncate pr-9 pl-3 sm:w-auto`}
+            className={`${field} w-full appearance-none truncate pr-9 pl-3`}
           >
             <option value="all">{t("all")}</option>
             {APPLICATION_STATUSES.map((status) => (
@@ -170,7 +173,7 @@ export async function ModerationFilterForm({
         <input type="hidden" name="claimedBy" value={query.claimedBy} />
       ) : null}
 
-      <div className="col-span-2 flex items-center gap-3">
+      <div className="col-span-2 flex flex-wrap items-center gap-3 md:col-span-4">
         <button
           type="submit"
           className="bg-primary text-primary-foreground focus-visible:outline-ring rounded-md px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -190,6 +193,15 @@ export async function ModerationFilterForm({
             {t("reset")}
           </Link>
         )}
+
+        {/* Pushed to the row's right edge: it acts on the applied filter, not
+            on this form, so it stands apart from the two buttons that do. */}
+        <ModerationExportLink
+          query={query}
+          label={tExport("cta")}
+          campaignRequired={tExport("campaignRequired")}
+          className="ml-auto"
+        />
       </div>
     </form>
   );

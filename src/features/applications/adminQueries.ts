@@ -17,8 +17,12 @@ import { getDb } from "@/db";
 import type { ApplicationStatus } from "@/db/enums";
 import { applications, campaigns, claims, users } from "@/db/schema";
 import {
+  campaignToId,
+  filterToStatus,
   NAME_APOSTROPHES,
   nameSearchPatterns,
+  submittedRange,
+  type ModerationQuery,
 } from "@/features/applications/moderationFilter";
 
 // Admin-side application data access. Authorization lives in the server actions
@@ -40,7 +44,7 @@ export type ModerationRow = {
   submittedAt: Date | null;
 };
 
-type ModerationFilterInput = {
+export type ModerationFilterInput = {
   campaignId?: string;
   status?: ApplicationStatus;
   // Half-open [submittedFrom, submittedBefore) in UTC. The caller turns the
@@ -54,6 +58,22 @@ type ModerationFilterInput = {
   // Free text over the child's and the parent's name (see nameSearchCondition).
   search?: string;
 };
+
+// The url's query as the database filter. Shared by the queue and its export,
+// so the file an admin downloads is exactly the list on screen — a second copy
+// of this mapping is how the two would come apart.
+export function moderationFilterInput(
+  query: ModerationQuery,
+): ModerationFilterInput {
+  return {
+    status: filterToStatus(query.filter),
+    campaignId: campaignToId(query.campaign),
+    ...submittedRange(query),
+    parentId: query.parentId ?? undefined,
+    claimedBy: query.claimedBy ?? undefined,
+    search: query.search,
+  };
+}
 
 // The same normalisation nameSearchPatterns applies to the term: lower case,
 // apostrophes removed.
@@ -80,7 +100,7 @@ function nameSearchCondition(term: string | undefined) {
   );
 }
 
-function moderationConditions(filter: ModerationFilterInput) {
+export function moderationConditions(filter: ModerationFilterInput) {
   return [
     filter.campaignId
       ? eq(applications.campaignId, filter.campaignId)
@@ -114,6 +134,17 @@ function moderationConditions(filter: ModerationFilterInput) {
   ].filter(Boolean);
 }
 
+// The queue's order, which its export follows too. id is the tiebreaker:
+// without a total order, two rows sharing a submitted_at could swap between
+// pages and one would never be seen.
+export function moderationOrder() {
+  return [
+    asc(applications.submittedAt),
+    desc(applications.updatedAt),
+    asc(applications.id),
+  ];
+}
+
 // Total matching the same filter, for the pager. A separate COUNT rather than
 // counting returned rows — the whole point of paging is not to fetch them all.
 export async function countForModeration(
@@ -135,32 +166,24 @@ export async function listForModeration(
 ): Promise<ModerationRow[]> {
   const conditions = moderationConditions(filter);
 
-  return (
-    getDb()
-      .select({
-        id: applications.id,
-        childName: applications.childName,
-        childAge: applications.childAge,
-        homeRegion: applications.homeRegion,
-        homeTown: applications.homeTown,
-        displacedYear: applications.displacedYear,
-        giftDescription: applications.giftDescription,
-        giftPrice: applications.giftPrice,
-        status: applications.status,
-        submittedAt: applications.submittedAt,
-      })
-      .from(applications)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      // id is the tiebreaker: without a total order, two rows sharing a
-      // submitted_at could swap between pages and one would never be seen.
-      .orderBy(
-        asc(applications.submittedAt),
-        desc(applications.updatedAt),
-        asc(applications.id),
-      )
-      .limit(filter.limit)
-      .offset(filter.offset)
-  );
+  return getDb()
+    .select({
+      id: applications.id,
+      childName: applications.childName,
+      childAge: applications.childAge,
+      homeRegion: applications.homeRegion,
+      homeTown: applications.homeTown,
+      displacedYear: applications.displacedYear,
+      giftDescription: applications.giftDescription,
+      giftPrice: applications.giftPrice,
+      status: applications.status,
+      submittedAt: applications.submittedAt,
+    })
+    .from(applications)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(...moderationOrder())
+    .limit(filter.limit)
+    .offset(filter.offset);
 }
 
 // Full detail for review: the application, its campaign, and the parent's live

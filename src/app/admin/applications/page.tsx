@@ -9,16 +9,14 @@ import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
 import {
   countForModeration,
   listForModeration,
+  moderationFilterInput,
 } from "@/features/applications/adminQueries";
 import {
-  campaignToId,
-  filterToStatus,
   moderationCampaignScope,
   moderationPageCount,
   moderationQueueHref,
   moderationSearch,
   parseModerationQuery,
-  submittedRange,
   MODERATION_PAGE_SIZE,
 } from "@/features/applications/moderationFilter";
 import { listCampaigns } from "@/features/campaigns/adminQueries";
@@ -53,14 +51,7 @@ export default async function AdminApplicationsPage({
   ]);
   const campaignScope = moderationCampaignScope(campaigns);
   const query = parseModerationQuery(params, campaignScope);
-  const filters = {
-    status: filterToStatus(query.filter),
-    campaignId: campaignToId(query.campaign),
-    ...submittedRange(query),
-    parentId: query.parentId ?? undefined,
-    claimedBy: query.claimedBy ?? undefined,
-    search: query.search,
-  };
+  const filters = moderationFilterInput(query);
 
   // Count first: the requested page has to be clamped to what exists before we
   // fetch, or a stale ?page= (say, after a batch was approved away) shows an

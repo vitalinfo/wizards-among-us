@@ -1536,6 +1536,25 @@
       "parentNote": {
         "title": "Нотатка про родину",
         "edit": "Змінити в списку користувачів"
+      },
+      "export": {
+        "cta": "Експорт",
+        "campaignRequired": "Щоб експортувати анкети, оберіть одну кампанію.",
+        "columns": {
+          "childName": "Прізвище імʼя дитини",
+          "childAge": "Вік",
+          "homeTown": "Рідне місто",
+          "homeRegion": "Рідна область",
+          "currentTown": "Місто зараз",
+          "currentRegion": "Область зараз",
+          "familyStory": "Історія родини",
+          "giftDescription": "Опис подарунка",
+          "giftUrls": "Посилання на товар",
+          "letterPhoto": "Фото листа",
+          "childWithLetterPhoto": "Фото дитини з листом",
+          "deliveryInformation": "Куди доставити",
+          "contact": "Контакт родини"
+        }
       }
     },
     "settings": {
@@ -1673,6 +1692,7 @@
           "activated": "Кампанію активовано",
           "archived": "Кампанію архівовано",
           "exported": "Дані кампанії експортовано",
+          "applications_exported": "Анкети кампанії експортовано зі списку анкет",
           "intake_opened": "Прийом анкет у кампанії відкрито",
           "intake_closed": "Прийом анкет у кампанії закрито"
         },

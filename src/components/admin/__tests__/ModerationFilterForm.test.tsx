@@ -49,6 +49,20 @@ describe("ModerationFilterForm", () => {
     expect(form).toHaveAttribute("action", "/admin/applications");
   });
 
+  // Inside the filter block, but a link out of it: it downloads the applied
+  // query and submits nothing.
+  it("offers the export of the applied filter", async () => {
+    await renderForm({ campaign: ACTIVE, status: "approved" });
+
+    const link = screen.getByRole("link", {
+      name: messages.admin.applications.export.cta,
+    });
+    expect(link).toHaveAttribute(
+      "href",
+      `/admin/applications/export?status=approved&campaign=${ACTIVE}`,
+    );
+  });
+
   it("labels every control", async () => {
     await renderForm({});
 
