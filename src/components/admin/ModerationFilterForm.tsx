@@ -8,6 +8,7 @@ import { APPLICATION_STATUSES } from "@/db/enums";
 import {
   DEFAULT_MODERATION_FILTER,
   isDefaultModerationQuery,
+  MODERATION_SEARCH_MAX_LENGTH,
   moderationQueueHref,
   moderationSearch,
   type ModerationCampaignScope,
@@ -60,6 +61,23 @@ export async function ModerationFilterForm({
       // wrapping row, as before.
       className="border-border bg-surface-muted grid grid-cols-2 items-end gap-3 rounded-lg border p-4 sm:flex sm:flex-wrap"
     >
+      {/* Its own full-width row: a name is the one thing here an admin types,
+          and squeezed between the selects it would be the narrowest field. */}
+      <div className="col-span-2 flex min-w-0 flex-col gap-1 sm:basis-full">
+        <label htmlFor="q" className="text-xs font-medium">
+          {t("search")}
+        </label>
+        <input
+          type="search"
+          id="q"
+          name="q"
+          defaultValue={query.search}
+          placeholder={t("searchPlaceholder")}
+          maxLength={MODERATION_SEARCH_MAX_LENGTH}
+          className={`${field} w-full px-3`}
+        />
+      </div>
+
       <div className="flex min-w-0 flex-col gap-1">
         <label htmlFor="campaign" className="text-xs font-medium">
           {t("campaign")}

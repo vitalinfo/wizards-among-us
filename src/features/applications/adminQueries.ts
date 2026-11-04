@@ -8,12 +8,18 @@ import {
   inArray,
   isNull,
   lt,
+  or,
   sql,
+  type Column,
 } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import type { ApplicationStatus } from "@/db/enums";
 import { applications, campaigns, claims, users } from "@/db/schema";
+import {
+  NAME_APOSTROPHES,
+  nameSearchPatterns,
+} from "@/features/applications/moderationFilter";
 
 // Admin-side application data access. Authorization lives in the server actions
 // (requireAdmin); these execute, they don't adjudicate.
@@ -45,7 +51,34 @@ type ModerationFilterInput = {
   parentId?: string;
   // An ACTIVE claim only — the same rule as the «Взятих дітей» count.
   claimedBy?: string;
+  // Free text over the child's and the parent's name (see nameSearchCondition).
+  search?: string;
 };
+
+// The same normalisation nameSearchPatterns applies to the term: lower case,
+// apostrophes removed.
+function normalisedName(column: Column) {
+  return sql`translate(lower(coalesce(${column}, '')), ${NAME_APOSTROPHES}, '')`;
+}
+
+// Search by the child's or the parent's name, as written on the application.
+// Every word typed has to appear in one of the two names — so «Олена Коваль»
+// finds a parent who wrote «Коваль Олена Петрівна», and «Коваль Марія» finds
+// Марія whose mother is a Коваль.
+function nameSearchCondition(term: string | undefined) {
+  const patterns = nameSearchPatterns(term ?? "");
+  if (patterns.length === 0) {
+    return undefined;
+  }
+  return and(
+    ...patterns.map((pattern) =>
+      or(
+        sql`${normalisedName(applications.childName)} like ${pattern}`,
+        sql`${normalisedName(applications.parentName)} like ${pattern}`,
+      ),
+    ),
+  );
+}
 
 function moderationConditions(filter: ModerationFilterInput) {
   return [
@@ -77,6 +110,7 @@ function moderationConditions(filter: ModerationFilterInput) {
             ),
         )
       : undefined,
+    nameSearchCondition(filter.search),
   ].filter(Boolean);
 }
 

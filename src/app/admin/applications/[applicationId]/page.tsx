@@ -66,6 +66,7 @@ export default async function AdminApplicationPage({
     to?: string;
     parent?: string;
     claimedBy?: string;
+    q?: string;
     page?: string;
     // Claim controls: the volunteer search term and the pending confirmation.
     volunteer?: string;
@@ -534,6 +535,7 @@ export default async function AdminApplicationPage({
             to: query.to,
             parent: query.parent,
             claimedBy: query.claimedBy,
+            q: query.q,
             page: query.page,
           })}
           title={t("deleteDraft.confirmTitle")}
