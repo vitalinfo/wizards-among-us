@@ -13,6 +13,7 @@ const OPTIONS = [
   { key: "parent", label: "Sign in as parent" },
   { key: "volunteer", label: "Sign in as volunteer" },
   { key: "both", label: "Sign in as parent + volunteer" },
+  { key: "none", label: "Sign in with no role" },
 ] as const;
 
 export default async function DevLoginPage({

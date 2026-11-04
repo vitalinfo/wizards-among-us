@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next-intl/server", async () =>
@@ -35,7 +36,11 @@ function user(roles: ("parent" | "volunteer")[]) {
 
 async function renderPage() {
   const ui = await VolunteerCabinetPage();
-  return render(<>{ui}</>);
+  return render(
+    <NextIntlClientProvider locale="uk" messages={messages}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
 }
 
 // «Кабінет Чарівника» is open to everyone signed in (Vital). Joining is what
