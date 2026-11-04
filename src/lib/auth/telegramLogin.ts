@@ -11,10 +11,12 @@
 // Sending the browser to Telegram's auth page in the SAME tab avoids all of
 // that: with no popup to report to, Telegram sends the person back to
 // `return_to` with the signed data in the fragment, `#tgAuthResult=<base64url
-// JSON>`. A fragment never reaches a server, so the login page reads it and
-// forwards it to /auth/telegram, which verifies the signature as before.
+// JSON>`. A fragment never reaches a server, so /auth/telegram/return reads it
+// and forwards it to /auth/telegram, which verifies the signature as before
+// (see telegramReturnScript.ts).
 
 const TELEGRAM_AUTH_URL = "https://oauth.telegram.org/auth";
+const TELEGRAM_RETURN_PATH = "/auth/telegram/return";
 
 // The bot's numeric id is the part of its token before the colon. It is public
 // (Telegram puts it in every widget embed); the secret after the colon never
@@ -26,7 +28,8 @@ function botIdFromToken(botToken: string): string | null {
 
 // Where the "Log in with Telegram" link points. `origin` must be the domain
 // set on the bot with BotFather; `returnTo` is an already-validated path to
-// land on afterwards, carried through Telegram as /login?next=….
+// land on afterwards, carried through Telegram as
+// /auth/telegram/return?next=….
 export function telegramAuthUrl({
   botToken,
   origin,
@@ -40,7 +43,7 @@ export function telegramAuthUrl({
   if (!botId) {
     return null;
   }
-  const back = new URL("/login", origin);
+  const back = new URL(TELEGRAM_RETURN_PATH, origin);
   if (returnTo !== "/") {
     back.searchParams.set("next", returnTo);
   }
@@ -51,43 +54,4 @@ export function telegramAuthUrl({
   url.searchParams.set("request_access", "write");
   url.searchParams.set("return_to", back.toString());
   return url.toString();
-}
-
-const AUTH_RESULT = /[#&]tgAuthResult=([A-Za-z0-9_=-]*)$/;
-
-// Turns the fragment Telegram returns with into the /auth/telegram URL that
-// signs the person in, or null when there is nothing (valid-looking) to send.
-// Nothing here is trusted: the route checks the signature, and re-validates
-// `next`.
-export function authCallbackFromFragment(
-  hash: string,
-  search: string,
-): string | null {
-  const match = AUTH_RESULT.exec(hash);
-  if (!match) {
-    return null;
-  }
-  let data: unknown;
-  try {
-    const base64 = match[1].replace(/-/g, "+").replace(/_/g, "/");
-    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-    // UTF-8, not atob's Latin-1: a Cyrillic first name must reach the
-    // signature check byte-for-byte as Telegram signed it.
-    data = JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    return null;
-  }
-  if (typeof data !== "object" || data === null || !("hash" in data)) {
-    return null;
-  }
-
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(data)) {
-    params.set(key, String(value));
-  }
-  const next = new URLSearchParams(search).get("next");
-  if (next) {
-    params.set("next", next);
-  }
-  return `/auth/telegram?${params.toString()}`;
 }
