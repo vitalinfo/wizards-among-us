@@ -56,6 +56,33 @@ export function loginPathFor(returnTo: string): string {
     : `/login?next=${encodeURIComponent(safe)}`;
 }
 
+// The request header carrying the path (and query) the visitor asked for. Set
+// by the middleware on every request it sees, overwriting anything the client
+// sent under the same name; read by the /account layout, which — being a
+// layout — is not told the url it is rendering for.
+export const REQUEST_PATH_HEADER = "x-request-path";
+
+const ACCOUNT_ROOT = "/account";
+
+// Where the /account layout's sign-in should return to: the deep link the
+// visitor opened (a bot notification's «переглянути заявку», say), not the
+// account's front page.
+//
+// Only a path under /account is taken. The layout only ever renders for one, so
+// anything else means the header is missing (a route the middleware matcher
+// skips) or was not set by us — and the account root is the honest answer to
+// both. The result still goes through loginPathFor → safeReturnPath.
+export function accountReturnPath(value: string | null | undefined): string {
+  if (
+    value === ACCOUNT_ROOT ||
+    value?.startsWith(`${ACCOUNT_ROOT}/`) ||
+    value?.startsWith(`${ACCOUNT_ROOT}?`)
+  ) {
+    return value;
+  }
+  return ACCOUNT_ROOT;
+}
+
 // Where to send an actor that reached a parent/volunteer page without being a
 // signed-in USER.
 //

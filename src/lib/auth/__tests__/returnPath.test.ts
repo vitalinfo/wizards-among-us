@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  accountReturnPath,
   afterLoginPath,
   loginPathFor,
   safeReturnPath,
@@ -109,5 +110,62 @@ describe("signedOutRedirect", () => {
   // A user reaching this helper is a caller bug, but it must not loop either.
   it("still refuses a hostile destination", () => {
     expect(signedOutRedirect(null, "https://evil.com")).toBe("/login");
+  });
+});
+
+// The /account layout's guard runs before any page's, so the path it is handed
+// decides where a signed-out deep link (a bot notification) lands after login.
+describe("accountReturnPath", () => {
+  it("keeps a deep link under /account, query string included", () => {
+    expect(
+      accountReturnPath("/account/parent/applications/4a69e2b0/view"),
+    ).toBe("/account/parent/applications/4a69e2b0/view");
+    expect(
+      accountReturnPath("/account/volunteer/children?region=kyivska"),
+    ).toBe("/account/volunteer/children?region=kyivska");
+    expect(accountReturnPath("/account")).toBe("/account");
+    expect(accountReturnPath("/account?x=1")).toBe("/account?x=1");
+  });
+
+  it("falls back to the account root when the header is missing", () => {
+    expect(accountReturnPath(null)).toBe("/account");
+    expect(accountReturnPath(undefined)).toBe("/account");
+    expect(accountReturnPath("")).toBe("/account");
+  });
+
+  // The layout only renders under /account; anything else was not set by us.
+  it("refuses anything outside /account", () => {
+    for (const foreign of [
+      "/admin",
+      "/accounting",
+      "/login?next=/account",
+      "https://evil.com/account",
+      "//evil.com/account",
+    ]) {
+      expect(accountReturnPath(foreign), foreign).toBe("/account");
+    }
+  });
+
+  it("becomes a sign-in url that returns to the deep link", () => {
+    expect(
+      signedOutRedirect(
+        null,
+        accountReturnPath("/account/parent/applications/4a69e2b0/view?tab=1"),
+      ),
+    ).toBe(
+      "/login?next=%2Faccount%2Fparent%2Fapplications%2F4a69e2b0%2Fview%3Ftab%3D1",
+    );
+    expect(signedOutRedirect(null, accountReturnPath(null))).toBe(
+      "/login?next=%2Faccount",
+    );
+  });
+
+  it("still sends an admin to their own panel", () => {
+    expect(
+      signedOutRedirect(
+        { kind: "admin" },
+        accountReturnPath("/account/parent"),
+      ),
+    ).toBe("/admin");
   });
 });
