@@ -16,7 +16,7 @@ import { SITE } from "@/lib/site";
 //
 // Heroku terminates TLS at its router, so the dyno always sees a plain HTTP
 // request — the original scheme is in `x-forwarded-proto`. Never infer it from
-// request.url (that's the internal address; see src/app/auth/telegram/route.ts).
+// request.url (that's the internal address; see src/app/auth/telegram/callback/route.ts).
 
 const HSTS_MAX_AGE_SECONDS = 31_536_000; // 1 year
 

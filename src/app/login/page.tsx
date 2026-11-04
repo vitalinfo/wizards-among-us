@@ -12,6 +12,7 @@ import { isAdmin, isUser } from "@/lib/authz";
 import { SITE } from "@/lib/site";
 import { isDevLoginEnabled } from "@/lib/auth/devLogin";
 import { afterLoginPath } from "@/lib/auth/returnPath";
+import { telegramClient } from "@/lib/auth/telegramOidc";
 import { getSessionActor } from "@/lib/auth/session";
 
 // Session-dependent → dynamic; inherits the root noindex default.
@@ -153,7 +154,7 @@ export default async function LoginPage({
 
             <TelegramLoginButton
               href={
-                process.env.TELEGRAM_BOT_TOKEN
+                telegramClient()
                   ? `/auth/telegram/start?next=${encodeURIComponent(returnTo)}`
                   : null
               }

@@ -1,34 +1,28 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { requestOrigin } from "@/lib/auth/requestOrigin";
 import { afterLoginPath } from "@/lib/auth/returnPath";
 import {
-  TELEGRAM_NEXT_COOKIE,
+  TELEGRAM_CALLBACK_PATH,
+  TELEGRAM_LOGIN_COOKIE,
+  encodePendingLogin,
+  pkceChallenge,
+  randomToken,
   telegramAuthUrl,
-  telegramNextCookieOptions,
-} from "@/lib/auth/telegramLogin";
+  telegramClient,
+  telegramLoginCookieOptions,
+} from "@/lib/auth/telegramOidc";
 
-// What the "Увійти через Telegram" button links to. Remembers where to land
-// afterwards in a cookie, then sends the browser to Telegram's auth page —
-// because Telegram fails a first-time login when its return_to carries a query
-// string (see telegramAuthUrl), so `next` can't ride along there.
+// What the "Увійти через Telegram" button links to. Starts an OpenID Connect
+// login (see lib/auth/telegramOidc.ts): remembers the state, the PKCE verifier
+// and where to land afterwards in a short-lived cookie, then sends the browser
+// to Telegram.
 export const dynamic = "force-dynamic";
 
-// The origin the person is on, which Telegram sends them back to. Not
-// siteOrigin(): locally that is production's URL. Heroku's router passes the
-// public Host through and reports the scheme in x-forwarded-proto, and the
-// middleware has already moved the request to the canonical host.
-function requestOrigin(request: NextRequest): string {
-  const proto = request.headers.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${request.headers.get("host")}`;
-}
-
 export function GET(request: NextRequest) {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const url = botToken
-    ? telegramAuthUrl({ botToken, origin: requestOrigin(request) })
-    : null;
-  if (!url) {
-    // Relative, like every redirect in /auth/telegram: request.url is the
+  const client = telegramClient();
+  if (!client) {
+    // Relative, like every redirect under /auth/telegram: request.url is the
     // dyno's internal address behind Heroku's router.
     return new NextResponse(null, {
       status: 302,
@@ -36,11 +30,25 @@ export function GET(request: NextRequest) {
     });
   }
 
-  const response = NextResponse.redirect(url, 302);
+  const state = randomToken();
+  const verifier = randomToken();
+  const response = NextResponse.redirect(
+    telegramAuthUrl({
+      clientId: client.clientId,
+      redirectUri: requestOrigin(request.headers) + TELEGRAM_CALLBACK_PATH,
+      state,
+      codeChallenge: pkceChallenge(verifier),
+    }),
+    302,
+  );
   response.cookies.set(
-    TELEGRAM_NEXT_COOKIE,
-    afterLoginPath(request.nextUrl.searchParams.get("next")),
-    telegramNextCookieOptions,
+    TELEGRAM_LOGIN_COOKIE,
+    encodePendingLogin({
+      state,
+      verifier,
+      next: afterLoginPath(request.nextUrl.searchParams.get("next")),
+    }),
+    telegramLoginCookieOptions,
   );
   return response;
 }

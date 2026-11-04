@@ -90,7 +90,9 @@ DIRECT_DATABASE_URL=    # optional: Neon's direct string, used only by migration
 
 # Auth
 AUTH_SECRET=            # session/JWT signing
-TELEGRAM_BOT_TOKEN=     # secret; verifies Telegram login hashes (its numeric prefix is the bot id)
+TELEGRAM_BOT_TOKEN=     # secret; the bot that messages people
+TELEGRAM_CLIENT_ID=     # Telegram login (OpenID Connect): the bot's numeric id
+TELEGRAM_CLIENT_SECRET= # secret; BotFather → bot → Login Widget (OpenID Connect)
 TELEGRAM_BOT_USERNAME=  # the bot's @username (no @); used by notify:backfill
 ADMIN_ALLOWLIST=        # comma-separated emails allowed to self-provision as admin
 DEV_LOGIN=              # local only: 1 enables /dev/login (see below). Never set in a deploy.
@@ -713,6 +715,8 @@ against production's own config vars.
 | `MAINTENANCE_MODE` | Optional. `true` (or `1`) serves every page and API route as the maintenance screen (`/maintenance`, the 404/500 layout with its own copy) with a `503`. Static assets still load. Flip it with `heroku config:set MAINTENANCE_MODE=true -a <app>` and `heroku config:unset MAINTENANCE_MODE -a <app>` — a config change restarts the dyno, no rebuild |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `TELEGRAM_BOT_TOKEN` | BotFather token for **this** environment's bot |
+| `TELEGRAM_CLIENT_ID` | That bot's numeric id — the OpenID Connect client id for Telegram login |
+| `TELEGRAM_CLIENT_SECRET` | That bot's client secret: BotFather → bot → **Login Widget** → *Switch to OpenID Connect Login*. Register `https://<host>/auth/telegram/callback` as a redirect URL there. Without both vars the login button is hidden |
 | `TELEGRAM_BOT_USERNAME` | That bot's @username (no `@`) |
 | `ADMIN_ALLOWLIST` | Comma-separated admin emails |
 | `SENTRY_DSN` | Optional. Error reporting; unset = no reporting initialised. **One project for all environments** — separated by the `environment` tag, not by project. Payloads are scrubbed: error contexts here can carry child data |
