@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import { Landing } from "@/components/landing";
 import { manifestoHrefs } from "@/components/landing/manifestoHrefs";
@@ -9,6 +10,7 @@ import { listActiveFaqs } from "@/features/faqs/queries";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { getSessionActor } from "@/lib/auth/session";
 import { SITE } from "@/lib/site";
+import { landingJsonLd, serializeJsonLd } from "@/lib/structuredData";
 
 // The landing page is the ONLY indexable route (§10 crawler policy) — override
 // the app-wide noindex default set in the root layout.
@@ -27,15 +29,24 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   // Independent reads — one round trip each, so run them together. All four
   // swallow their own failures: the landing renders even with no database.
-  const [campaigns, settings, faqs, actor] = await Promise.all([
+  const [campaigns, settings, faqs, actor, t] = await Promise.all([
     getCampaignStates(),
     getResolvedSettings(),
     listActiveFaqs(),
     currentActor(),
+    getTranslations("meta"),
   ]);
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(
+            landingJsonLd({ name: t("title"), description: t("description") }),
+          ),
+        }}
+      />
       <SiteHeader />
       <Landing
         campaigns={campaigns}
