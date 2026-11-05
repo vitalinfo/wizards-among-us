@@ -60,7 +60,7 @@ export async function ChildCard({
           column dissolves (`contents`) so the photo can sit between them —
           the button comes after the letter, not before it. */}
       <div className="contents lg:flex lg:min-w-0 lg:flex-1 lg:flex-col lg:gap-5">
-        <div className="flex min-w-0 flex-col gap-3">
+        <div className="@container flex min-w-0 flex-col gap-3">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             {/* The name alone. There is no icon here: the 118:420 card draws
               «Олена» and nothing beside it, and the gender the column was added
@@ -82,7 +82,7 @@ export async function ChildCard({
             set to — a volunteer looking for families from their own region
             should see the region they matched on. */}
           <Field label={tCard("homeTown")} value={homePlace} />
-          <Field label={tCard("story")} value={row.familyStory} stacked prose />
+          <Field label={tCard("story")} value={row.familyStory} prose />
           <Field label={tCard("gift")} value={row.giftDescription} prose />
 
           {row.giftUrls.length > 0 ? (
@@ -119,19 +119,18 @@ export async function ChildCard({
   );
 }
 
-// A labelled line. Side by side from lg, stacked on a phone — except the family
-// story, which is stacked at every width because it is a paragraph and a
-// 203px label beside it would leave the text a third of the card.
+// A labelled line, the same rows as the claim page's DetailRow, the family
+// story included. Side by side once the COLUMN is wide enough (a container
+// query, not lg): from 1024px the letter photo and the account sidebar leave
+// this column ~290px, and a 203px label beside it left the text 67px.
 function Field({
   label,
   value,
-  stacked = false,
   prose = false,
   children,
 }: {
   label: string;
   value?: string | null;
-  stacked?: boolean;
   prose?: boolean;
   children?: React.ReactNode;
 }) {
@@ -139,22 +138,12 @@ function Field({
     return null;
   }
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-2 text-sm tracking-[-0.06em]",
-        stacked ? "lg:gap-[9px]" : "lg:flex-row lg:gap-[21px]",
-      )}
-    >
+    <div className="flex flex-col gap-2 text-sm tracking-[-0.06em] @md:flex-row @md:gap-[21px]">
       {/* --muted-foreground, not the design's #403d3a at 56%: that composites
           to 3.40:1 on white, and these labels are 14px text carrying meaning
           («Історія родини»), not decoration. Same call globals.css already
           makes for the accent button's label. */}
-      <span
-        className={cn(
-          "text-muted-foreground",
-          stacked ? null : "lg:w-[203px] lg:shrink-0",
-        )}
-      >
+      <span className="text-muted-foreground @md:w-[203px] @md:shrink-0">
         {label}
       </span>
       {children ?? (
