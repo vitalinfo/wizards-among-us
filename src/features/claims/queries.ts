@@ -78,7 +78,11 @@ export async function countBrowsable(filters: BrowseFilters): Promise<number> {
 }
 
 export async function listBrowsable(
-  filters: BrowseFilters & { limit: number; offset: number },
+  filters: BrowseFilters & {
+    volunteerId: string;
+    limit: number;
+    offset: number;
+  },
 ): Promise<BrowseRow[]> {
   // No join on claims: `approved` already means nobody holds it, because
   // claiming moves the status. There is nothing left to ask.
@@ -86,10 +90,17 @@ export async function listBrowsable(
     .select({ application: applications })
     .from(applications)
     .where(and(...browseConditions(filters)))
-    // Oldest approval first so the longest-waiting child is seen first, with id
-    // as the tiebreaker — without a total order, rows can swap between pages
-    // and one would never be shown.
-    .orderBy(asc(applications.updatedAt), asc(applications.id))
+    // A shuffle of its own for each volunteer (Vital, 2026-11-05): with one
+    // shared order everyone sees the same first page, so those children are
+    // taken first and everyone races for the same card. Seeded by the
+    // volunteer's id rather than random(), so it is stable for them — a
+    // random() order reshuffles on every page request, and with offset paging
+    // a child would show twice and another never. id breaks a hash tie, so the
+    // order stays total.
+    .orderBy(
+      sql`md5(${filters.volunteerId}::text || ${applications.id}::text)`,
+      asc(applications.id),
+    )
     .limit(filters.limit)
     .offset(filters.offset);
 
