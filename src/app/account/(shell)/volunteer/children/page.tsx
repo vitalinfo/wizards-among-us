@@ -77,6 +77,7 @@ export default async function BrowseChildrenPage({
   const page = Math.min(query.page, pageCount);
   const rows = await listBrowsable({
     ...filters,
+    volunteerId: actor.id,
     limit: per,
     offset: (page - 1) * per,
   });
