@@ -82,8 +82,8 @@ export async function ChildCard({
             set to — a volunteer looking for families from their own region
             should see the region they matched on. */}
           <Field label={tCard("homeTown")} value={homePlace} />
-          <Field label={tCard("story")} value={row.familyStory} stacked />
-          <Field label={tCard("gift")} value={row.giftDescription} />
+          <Field label={tCard("story")} value={row.familyStory} stacked prose />
+          <Field label={tCard("gift")} value={row.giftDescription} prose />
 
           {row.giftUrls.length > 0 ? (
             <Field label={tCard("giftUrls")}>
@@ -126,11 +126,13 @@ function Field({
   label,
   value,
   stacked = false,
+  prose = false,
   children,
 }: {
   label: string;
   value?: string | null;
   stacked?: boolean;
+  prose?: boolean;
   children?: React.ReactNode;
 }) {
   if (!children && !value) {
@@ -155,7 +157,16 @@ function Field({
       >
         {label}
       </span>
-      {children ?? <span className="min-w-0 whitespace-pre-wrap">{value}</span>}
+      {children ?? (
+        <span
+          className={cn(
+            "min-w-0 whitespace-pre-wrap",
+            prose && "[word-spacing:0.15rem]",
+          )}
+        >
+          {value}
+        </span>
+      )}
     </div>
   );
 }
