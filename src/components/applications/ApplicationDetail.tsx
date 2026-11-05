@@ -152,6 +152,7 @@ export async function ApplicationDetail({
               <DetailRow
                 label={t("fields.familyStory")}
                 value={application.familyStory}
+                prose
               />
             </dl>
 
@@ -159,6 +160,7 @@ export async function ApplicationDetail({
               <DetailRow
                 label={t("fields.giftDescription")}
                 value={application.giftDescription}
+                prose
               />
               {urls.length > 0 ? (
                 <DetailRow label={t("fields.giftUrls")}>
