@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CountLink } from "@/components/admin/CountLink";
 import { UserNoteForm } from "@/components/admin/UserNoteForm";
+import { UserRolesForm } from "@/components/admin/UserRolesForm";
 import { userApplicationsHref } from "@/features/applications/moderationFilter";
 import { getUserForAdmin } from "@/features/users/adminQueries";
 import { resolveUserContact } from "@/features/users/contact";
@@ -16,7 +17,7 @@ import { isAdmin } from "@/lib/authz";
 
 export const dynamic = "force-dynamic";
 
-// One person, and the note about them.
+// One person: their roles, and the note about them.
 //
 // A page rather than a textarea in every table row: fifty rows meant fifty
 // forms, fifty submit buttons and fifty tab stops between one row and the next,
@@ -123,6 +124,14 @@ export default async function AdminUserPage({
             </div>
           ))}
         </dl>
+
+        <UserRolesForm
+          userId={user.id}
+          roles={user.role}
+          applicationCount={user.applicationCount}
+          claimCount={user.claimCount}
+          returnTo={backHref}
+        />
 
         <UserNoteForm
           userId={user.id}

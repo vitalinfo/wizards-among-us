@@ -50,7 +50,7 @@ export function usersHref(query: UsersQuery, page?: number): string {
   return search === "" ? "/admin/users" : `/admin/users?${search}`;
 }
 
-export function userNoteHref(userId: string, query: UsersQuery): string {
+export function userHref(userId: string, query: UsersQuery): string {
   const params = new URLSearchParams();
   if (query.search !== "") {
     params.set("q", query.search);
