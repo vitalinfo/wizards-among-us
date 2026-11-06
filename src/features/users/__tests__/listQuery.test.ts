@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   isDefaultUsersQuery,
   parseUsersQuery,
-  userNoteHref,
+  userHref,
   usersHref,
   usersPageCount,
   USERS_PAGE_SIZE,
@@ -66,10 +66,10 @@ describe("usersHref", () => {
 
 // Editing a note has to come back to the list the admin was looking at, not
 // reset it — the same reason the moderation queue carries its filter through.
-describe("userNoteHref", () => {
+describe("userHref", () => {
   it("carries the view into the note page", () => {
     const query = parseUsersQuery({ q: "Коваль", page: "2" });
-    const href = userNoteHref("u1", query);
+    const href = userHref("u1", query);
 
     expect(href.startsWith("/admin/users/u1?")).toBe(true);
     const params = new URLSearchParams(href.split("?")[1]);
@@ -78,7 +78,7 @@ describe("userNoteHref", () => {
   });
 
   it("omits an empty view", () => {
-    expect(userNoteHref("u1", parseUsersQuery({}))).toBe("/admin/users/u1");
+    expect(userHref("u1", parseUsersQuery({}))).toBe("/admin/users/u1");
   });
 });
 

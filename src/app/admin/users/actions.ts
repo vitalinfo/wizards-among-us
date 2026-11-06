@@ -4,12 +4,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { recordAuditLog } from "@/features/audit/log";
-import { setUserNote } from "@/features/users/adminQueries";
+import type { UserRole } from "@/db/enums";
+import { setUserNote, setUserRoles } from "@/features/users/adminQueries";
 import {
   MAX_USER_NOTE_LENGTH,
   type UserNoteState,
 } from "@/features/users/noteState";
+import type { UserRolesState } from "@/features/users/roleState";
 import { requireAdmin } from "@/lib/auth/session";
+import { userRoleSchema } from "@/lib/enumSchemas";
 
 // requireAdmin() first — a server action is a public endpoint, so hiding the UI
 // proves nothing. It throws rather than returning, so a non-admin can't fall
@@ -56,5 +59,56 @@ export async function saveUserNoteAction(
   // Back to the list, as the admin application edit does. Staying on the form
   // after a save is the "did that work?" state we removed from the parent flow;
   // it also makes this POST → redirect → GET, so a reload cannot re-submit.
+  redirect(returnTo);
+}
+
+// Grant or revoke a person's roles by hand. The form posts every role it
+// should end up with — a locked role, whose checkbox is disabled, rides along
+// in a hidden field — so a missing value always means "revoke", and the query
+// refuses a revoke that is no longer allowed.
+export async function saveUserRolesAction(
+  userId: string,
+  returnTo: string,
+  _prev: UserRolesState,
+  formData: FormData,
+): Promise<UserRolesState> {
+  const admin = await requireAdmin();
+
+  const wanted = new Set<UserRole>();
+  for (const value of formData.getAll("role")) {
+    const parsed = userRoleSchema.safeParse(value);
+    if (parsed.success) {
+      wanted.add(parsed.data);
+    }
+  }
+
+  const result = await setUserRoles(userId, [...wanted]);
+  if (result.status !== "saved") {
+    return result;
+  }
+
+  // One event per role, named for the role: "who made this person a
+  // volunteer" is the question the trail has to answer before a child is
+  // assigned to them.
+  for (const role of result.granted) {
+    await recordAuditLog({
+      actor: admin,
+      action: `user.${role}_granted`,
+      targetType: "user",
+      targetId: userId,
+    });
+  }
+  for (const role of result.revoked) {
+    await recordAuditLog({
+      actor: admin,
+      action: `user.${role}_revoked`,
+      targetType: "user",
+      targetId: userId,
+    });
+  }
+
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+
   redirect(returnTo);
 }

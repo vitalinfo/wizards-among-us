@@ -1,7 +1,7 @@
 import { and, count, desc, eq, isNull, or, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import type { UserRole } from "@/db/enums";
+import { USER_ROLES, type UserRole } from "@/db/enums";
 import { applications, claims, users } from "@/db/schema";
 
 // Admin-side people data access. Authorization lives in the server actions
@@ -156,6 +156,71 @@ export async function setUserNote(
     .where(eq(users.id, userId))
     .returning({ id: users.id });
   return updated.length > 0;
+}
+
+export type SetUserRolesResult =
+  | { status: "saved"; granted: UserRole[]; revoked: UserRole[] }
+  | { status: "not_found" }
+  | { status: "locked"; role: UserRole };
+
+// Set a person's roles by hand — for someone who signed in and never took
+// either path (no application submitted, never pressed «Стати чарівником»), and
+// so can't be found when an admin assigns a volunteer.
+//
+// Granting is always allowed. REVOKING is refused while the role is in use:
+// `parent` while the person has any application, `volunteer` while they hold a
+// claim (the same unreleased claims the admin sees counted). The check lives
+// here, not only in the disabled checkbox — a claim can land between the page
+// loading and the admin pressing save.
+//
+// The user row is locked FOR UPDATE first: a claim or an application insert
+// takes a KEY SHARE lock on it through the foreign key, so one that is in
+// flight finishes before the checks below read, and is seen by them.
+export async function setUserRoles(
+  userId: string,
+  wanted: readonly UserRole[],
+): Promise<SetUserRolesResult> {
+  return getDb().transaction(async (tx) => {
+    const [user] = await tx
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .for("update");
+    if (!user) {
+      return { status: "not_found" };
+    }
+
+    const revoked = user.role.filter((role) => !wanted.includes(role));
+    const granted = wanted.filter((role) => !user.role.includes(role));
+
+    if (revoked.includes("parent")) {
+      const [application] = await tx
+        .select({ id: applications.id })
+        .from(applications)
+        .where(eq(applications.parentId, userId))
+        .limit(1);
+      if (application) {
+        return { status: "locked", role: "parent" };
+      }
+    }
+    if (revoked.includes("volunteer")) {
+      const [claim] = await tx
+        .select({ id: claims.id })
+        .from(claims)
+        .where(and(eq(claims.volunteerId, userId), isNull(claims.releasedAt)))
+        .limit(1);
+      if (claim) {
+        return { status: "locked", role: "volunteer" };
+      }
+    }
+
+    if (granted.length > 0 || revoked.length > 0) {
+      // In USER_ROLES order, so the same set always reads the same way.
+      const role = USER_ROLES.filter((r) => wanted.includes(r));
+      await tx.update(users).set({ role }).where(eq(users.id, userId));
+    }
+    return { status: "saved", granted, revoked };
+  });
 }
 
 // The note shown at the top of an application, resolved through the owning

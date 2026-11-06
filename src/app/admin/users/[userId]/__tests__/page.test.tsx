@@ -21,11 +21,14 @@ const data = vi.hoisted(() => ({ user: null as AdminUserRow | null }));
 vi.mock("@/features/users/adminQueries", () => ({
   getUserForAdmin: async () => data.user,
 }));
-// AdminNav is async (RTL cannot render it nested); UserNoteForm has its own
-// spec and pulls in a server action.
+// AdminNav is async (RTL cannot render it nested); the two forms have their
+// own specs and pull in server actions.
 vi.mock("@/components/admin/AdminNav", () => ({ AdminNav: () => null }));
 vi.mock("@/components/admin/UserNoteForm", () => ({
   UserNoteForm: () => null,
+}));
+vi.mock("@/components/admin/UserRolesForm", () => ({
+  UserRolesForm: () => null,
 }));
 
 import messages from "../../../../../../messages/uk.json";

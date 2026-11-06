@@ -11,7 +11,7 @@ import { userApplicationsHref } from "@/features/applications/moderationFilter";
 import { resolveUserContact } from "@/features/users/contact";
 import {
   parseUsersQuery,
-  userNoteHref,
+  userHref,
   usersHref,
   usersPageCount,
   USERS_PAGE_SIZE,
@@ -106,6 +106,10 @@ export default async function AdminUsersPage({
                     <th scope="col" className={cell}>
                       {t("columns.note")}
                     </th>
+                    {/* Named for a screen reader; the links say it visually. */}
+                    <th scope="col" className={cell}>
+                      <span className="sr-only">{t("columns.view")}</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -167,28 +171,27 @@ export default async function AdminUsersPage({
                           {format.dateTime(user.createdAt, "short")}
                         </td>
                         <td className={cell}>
-                          <div className="flex flex-col items-start gap-1">
-                            {user.note ? (
-                              <p className="max-w-80 whitespace-pre-wrap">
-                                {user.note}
-                              </p>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                            {/* The link names the PERSON, not just the action:
-                                seven identical "Змінити" links in a column tell
-                                a screen-reader user nothing about which is
-                                which. */}
-                            <Link
-                              href={userNoteHref(user.id, view)}
-                              className="text-primary text-xs font-semibold underline underline-offset-4"
-                              aria-label={t("note.editFor", {
-                                name: name ?? t("unnamed"),
-                              })}
-                            >
-                              {user.note ? t("note.edit") : t("note.add")}
-                            </Link>
-                          </div>
+                          {user.note ? (
+                            <p className="max-w-80 whitespace-pre-wrap">
+                              {user.note}
+                            </p>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className={cell}>
+                          {/* The link names the PERSON, not just the action:
+                              fifty identical «Переглянути» links tell a
+                              screen-reader user nothing about which is which. */}
+                          <Link
+                            href={userHref(user.id, view)}
+                            className="text-primary text-xs font-semibold whitespace-nowrap underline underline-offset-4"
+                            aria-label={t("viewFor", {
+                              name: name ?? t("unnamed"),
+                            })}
+                          >
+                            {t("view")}
+                          </Link>
                         </td>
                       </tr>
                     );
