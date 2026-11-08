@@ -16,9 +16,10 @@ import type { ContactMethod } from "@/db/enums";
 // @ and strip it, so stored values match users.username and can become a t.me link.
 const TELEGRAM_HANDLE = /^[A-Za-z0-9_]{5,32}$/;
 
-// The fallback a user supplies when they have no Telegram handle. Any country:
-// a displaced family may only have a Polish or German SIM by now. A number with
-// no country code is read as Ukrainian, so «067 123 45 67» works as typed.
+// The fallback a user supplies when they have no Telegram handle. Any country —
+// a displaced family may only have a Polish or German SIM by now — but always in
+// international format: with no default country the parser rejects anything
+// that doesn't start with «+» and a country code, so nothing is guessed.
 // Stored as E.164 (+380671234567) so numbers stay comparable and tel:-linkable.
 // `/max` metadata validates against each country's real number ranges, not just
 // length; this schema runs only on the server, so its size costs no bundle.
@@ -26,7 +27,7 @@ export const userPhoneSchema = z
   .string()
   .trim()
   .transform((value, ctx) => {
-    const phone = parsePhoneNumberFromString(value, "UA");
+    const phone = parsePhoneNumberFromString(value);
     if (!phone?.isValid()) {
       ctx.addIssue({ code: "custom", message: "invalid_phone" });
       return z.NEVER;

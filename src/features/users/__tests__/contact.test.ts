@@ -37,9 +37,10 @@ describe("userPhoneSchema", () => {
     expect(userPhoneSchema.parse("+380 (67) 123-45-67")).toBe("+380671234567");
   });
 
-  it("reads a number without a country code as Ukrainian", () => {
-    expect(userPhoneSchema.parse("067 123 45 67")).toBe("+380671234567");
-    expect(userPhoneSchema.parse("380671234567")).toBe("+380671234567");
+  it("requires international format — no country is guessed", () => {
+    expect(userPhoneSchema.safeParse("067 123 45 67").success).toBe(false);
+    expect(userPhoneSchema.safeParse("380671234567").success).toBe(false);
+    expect(userPhoneSchema.safeParse("00380671234567").success).toBe(false);
   });
 
   it("accepts a valid foreign number — a displaced family may have no Ukrainian SIM", () => {
