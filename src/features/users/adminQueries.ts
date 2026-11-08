@@ -26,9 +26,8 @@ export type AdminUserRow = {
 // «...Коваль» or the last four digits as the start of either.
 //
 // The phone is matched on DIGITS ONLY, on both sides. A stored number is
-// normalised (userPhoneSchema strips spaces, brackets and dashes) but the
-// person typing rarely is: "067 123" has to find "+380671234567", and a plain
-// LIKE never would.
+// E.164 (userPhoneSchema normalises it) but the person typing rarely is:
+// "067 123" has to find "+380671234567", and a plain LIKE never would.
 //
 // A term with no digits skips the phone branch entirely rather than matching
 // against an empty needle, which every phone would satisfy.
