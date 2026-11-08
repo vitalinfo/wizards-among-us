@@ -1,3 +1,4 @@
+import { parsePhoneNumberFromString } from "libphonenumber-js/max";
 import { z } from "zod";
 
 import type { ContactMethod } from "@/db/enums";
@@ -14,16 +15,25 @@ import type { ContactMethod } from "@/db/enums";
 // Telegram usernames: 5–32 chars, letters/digits/underscore. We accept a leading
 // @ and strip it, so stored values match users.username and can become a t.me link.
 const TELEGRAM_HANDLE = /^[A-Za-z0-9_]{5,32}$/;
-// Ukrainian mobile in the shape the 2025 form asked for: +38 0XX XXX XX XX.
-const UA_PHONE = /^\+380\d{9}$/;
 
-// The fallback a user supplies when they have no Telegram handle. Normalized so
-// stored numbers are comparable (the form let people type spaces and dashes).
+// The fallback a user supplies when they have no Telegram handle. Any country —
+// a displaced family may only have a Polish or German SIM by now — but always in
+// international format: with no default country the parser rejects anything
+// that doesn't start with «+» and a country code, so nothing is guessed.
+// Stored as E.164 (+380671234567) so numbers stay comparable and tel:-linkable.
+// `/max` metadata validates against each country's real number ranges, not just
+// length; this schema runs only on the server, so its size costs no bundle.
 export const userPhoneSchema = z
   .string()
   .trim()
-  .transform((value) => value.replace(/[\s()-]/g, ""))
-  .refine((value) => UA_PHONE.test(value), { message: "invalid_ua_phone" });
+  .transform((value, ctx) => {
+    const phone = parsePhoneNumberFromString(value);
+    if (!phone?.isValid()) {
+      ctx.addIssue({ code: "custom", message: "invalid_phone" });
+      return z.NEVER;
+    }
+    return phone.number;
+  });
 
 export const telegramHandleSchema = z
   .string()
