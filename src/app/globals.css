@@ -124,6 +124,11 @@
   --warning-foreground: #a96500;
 
   --ring: #4696f0;
+
+  /* The admin campaign analytics chart, one per line: waiting red, claimed
+     blue. Checked for colour-blind separation, so both lines can be solid. */
+  --chart-waiting: #d93025;
+  --chart-claimed: #1e5299;
 }
 
 @theme inline {
@@ -175,6 +180,8 @@
   --color-warning-surface: var(--warning-surface);
   --color-warning-foreground: var(--warning-foreground);
   --color-ring: var(--ring);
+  --color-chart-claimed: var(--chart-claimed);
+  --color-chart-waiting: var(--chart-waiting);
   --font-sans: var(--font-raleway);
   --font-display: var(--font-caveat);
 }
