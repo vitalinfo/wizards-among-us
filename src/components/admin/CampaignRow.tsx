@@ -94,6 +94,12 @@ export async function CampaignRow({ campaign }: { campaign: AdminCampaign }) {
             {t("archive")}
           </Link>
         ) : null}
+        <Link
+          href={`/admin/campaigns/${campaign.id}/analytics`}
+          className={ACTION}
+        >
+          {t("analyticsCta")}
+        </Link>
         {/* A plain <a>, not <Link>: the route answers with
             Content-Disposition: attachment, so the browser saves the file and
             leaves the page where it is. Admin-gated and audit-logged there. */}
