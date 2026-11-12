@@ -79,7 +79,8 @@ export async function countBrowsable(filters: BrowseFilters): Promise<number> {
 
 export async function listBrowsable(
   filters: BrowseFilters & {
-    volunteerId: string;
+    // browseOrderSeed(): the volunteer's id plus the current hour.
+    orderSeed: string;
     limit: number;
     offset: number;
   },
@@ -92,13 +93,13 @@ export async function listBrowsable(
     .where(and(...browseConditions(filters)))
     // A shuffle of its own for each volunteer (Vital, 2026-11-05): with one
     // shared order everyone sees the same first page, so those children are
-    // taken first and everyone races for the same card. Seeded by the
-    // volunteer's id rather than random(), so it is stable for them — a
-    // random() order reshuffles on every page request, and with offset paging
-    // a child would show twice and another never. id breaks a hash tie, so the
-    // order stays total.
+    // taken first and everyone races for the same card. Seeded rather than
+    // random(), so it is stable while the seed is — a random() order
+    // reshuffles on every page request, and with offset paging a child would
+    // show twice and another never. The seed changes hourly (browseOrderSeed).
+    // id breaks a hash tie, so the order stays total.
     .orderBy(
-      sql`md5(${filters.volunteerId}::text || ${applications.id}::text)`,
+      sql`md5(${filters.orderSeed}::text || ${applications.id}::text)`,
       asc(applications.id),
     )
     .limit(filters.limit)

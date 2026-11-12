@@ -13,6 +13,7 @@ import {
   BROWSE_ANCHOR,
   parseBrowseQuery,
 } from "@/features/claims/browseFilters";
+import { browseOrderSeed } from "@/features/claims/browseOrder";
 import { countBrowsable, listBrowsable } from "@/features/claims/queries";
 import { getActiveCampaignForIntake } from "@/features/campaigns/queries";
 import { recordAuditLog } from "@/features/audit/log";
@@ -77,7 +78,7 @@ export default async function BrowseChildrenPage({
   const page = Math.min(query.page, pageCount);
   const rows = await listBrowsable({
     ...filters,
-    volunteerId: actor.id,
+    orderSeed: browseOrderSeed(actor.id, new Date()),
     limit: per,
     offset: (page - 1) * per,
   });
