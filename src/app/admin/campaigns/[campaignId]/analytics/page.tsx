@@ -98,16 +98,16 @@ export default async function CampaignAnalyticsPage({
                 ...series,
               }}
             />
-            <AnalyticsTable
-              rows={rows}
-              labels={{ caption: t("tableCaption"), day: t("day"), ...series }}
-            />
             <RegionChart
               bars={buildRegionCounts(regionCounts, (region) => tr(region))}
               labels={{
                 title: t("regionsTitle"),
                 description: t("regionsDescription"),
               }}
+            />
+            <AnalyticsTable
+              rows={rows}
+              labels={{ caption: t("tableCaption"), day: t("day"), ...series }}
             />
           </>
         )}
