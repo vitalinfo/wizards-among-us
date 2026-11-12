@@ -2,7 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { StateEvent } from "@/features/campaigns/analytics";
-import type { RegionCount } from "@/features/campaigns/regionCounts";
+import type { ChildGender, UkraineRegion } from "@/db/enums";
+import type { Count } from "@/features/campaigns/breakdowns";
 import { axe } from "@/test/axe";
 
 vi.mock("next-intl/server", async () =>
@@ -11,7 +12,9 @@ vi.mock("next-intl/server", async () =>
 const data = vi.hoisted(() => ({
   actor: { kind: "admin", id: "a1", email: "admin@example.com" } as unknown,
   events: [] as StateEvent[],
-  regionCounts: [] as RegionCount[],
+  byRegion: [] as Count<UkraineRegion>[],
+  byAge: [] as Count<number>[],
+  byGender: [] as Count<ChildGender>[],
 }));
 vi.mock("@/lib/auth/session", () => ({
   getSessionActor: async () => data.actor,
@@ -27,7 +30,9 @@ vi.mock("@/features/campaigns/adminQueries", () => ({
 }));
 vi.mock("@/features/campaigns/analyticsQueries", () => ({
   listCampaignStateEvents: async () => data.events,
-  countCampaignApplicationsByRegion: async () => data.regionCounts,
+  countCampaignApplicationsByRegion: async () => data.byRegion,
+  countCampaignApplicationsByAge: async () => data.byAge,
+  countCampaignApplicationsByGender: async () => data.byGender,
 }));
 vi.mock("@/components/admin/AdminNav", () => ({ AdminNav: () => null }));
 const redirect = vi.hoisted(() =>
@@ -59,7 +64,9 @@ async function renderPage(campaignId = ID) {
 beforeEach(() => {
   data.actor = { kind: "admin", id: "a1", email: "admin@example.com" };
   data.events = [];
-  data.regionCounts = [];
+  data.byRegion = [];
+  data.byAge = [];
+  data.byGender = [];
 });
 
 describe("the campaign analytics page", () => {
@@ -116,9 +123,9 @@ describe("the campaign analytics page", () => {
 
   it("splits the campaign's applications by the region the family left", async () => {
     data.events = [{ applicationId: "a", day: "2026-11-01", state: "waiting" }];
-    data.regionCounts = [
-      { region: "donetsk", count: 3 },
-      { region: "kharkiv", count: 1 },
+    data.byRegion = [
+      { value: "donetsk", count: 3 },
+      { value: "kharkiv", count: 1 },
     ];
     const { container } = await renderPage();
 
@@ -132,6 +139,34 @@ describe("the campaign analytics page", () => {
     expect(
       within(figure).getByText(messages.regions.crimea).closest("li"),
     ).toHaveTextContent(`${messages.regions.crimea}0`);
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("splits the campaign's applications by the child's age and sex", async () => {
+    data.events = [{ applicationId: "a", day: "2026-11-01", state: "waiting" }];
+    data.byAge = [
+      { value: 1, count: 2 },
+      { value: 5, count: 1 },
+    ];
+    data.byGender = [{ value: "girl", count: 3 }];
+    const { container } = await renderPage();
+
+    const age = screen.getByRole("figure", { name: t.ageTitle });
+    const ages = within(age).getAllByRole("listitem");
+    // Every year the form accepts, youngest first, in Ukrainian plurals.
+    expect(ages).toHaveLength(18);
+    expect(ages[0]).toHaveTextContent("0 років0");
+    expect(ages[1]).toHaveTextContent("1 рік2");
+    expect(ages[2]).toHaveTextContent("2 роки0");
+    expect(ages[5]).toHaveTextContent("5 років1");
+
+    const gender = screen.getByRole("figure", { name: t.genderTitle });
+    expect(
+      within(gender)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual([`${messages.genders.boy}0`, `${messages.genders.girl}3`]);
 
     expect(await axe(container)).toHaveNoViolations();
   });
