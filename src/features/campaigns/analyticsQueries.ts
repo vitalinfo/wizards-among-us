@@ -1,10 +1,11 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { applications, auditLogs } from "@/db/schema";
 import { timeZone } from "@/i18n/config";
 
 import { STATE_EVENTS, type StateEvent } from "./analytics";
+import { REGION_COUNTED_STATUSES, type RegionCount } from "./regionCounts";
 
 // Admin-only read behind the analytics page: status changes, never a row of
 // child data. Authorization is the page's (isAdmin); this executes.
@@ -36,4 +37,26 @@ export async function listCampaignStateEvents(
     day,
     state: STATE_EVENTS[action as keyof typeof STATE_EVENTS],
   }));
+}
+
+// How many of the campaign's applications came from each home region. Grouped
+// in SQL, so no application row leaves the database.
+export async function countCampaignApplicationsByRegion(
+  campaignId: string,
+): Promise<RegionCount[]> {
+  const rows = await getDb()
+    .select({ region: applications.homeRegion, count: count() })
+    .from(applications)
+    .where(
+      and(
+        eq(applications.campaignId, campaignId),
+        inArray(applications.status, REGION_COUNTED_STATUSES),
+        isNotNull(applications.homeRegion),
+      ),
+    )
+    .groupBy(applications.homeRegion);
+
+  return rows.flatMap(({ region, count }) =>
+    region ? [{ region, count }] : [],
+  );
 }

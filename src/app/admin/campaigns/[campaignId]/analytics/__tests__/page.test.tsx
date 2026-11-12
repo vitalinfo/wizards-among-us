@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { StateEvent } from "@/features/campaigns/analytics";
+import type { RegionCount } from "@/features/campaigns/regionCounts";
 import { axe } from "@/test/axe";
 
 vi.mock("next-intl/server", async () =>
@@ -10,6 +11,7 @@ vi.mock("next-intl/server", async () =>
 const data = vi.hoisted(() => ({
   actor: { kind: "admin", id: "a1", email: "admin@example.com" } as unknown,
   events: [] as StateEvent[],
+  regionCounts: [] as RegionCount[],
 }));
 vi.mock("@/lib/auth/session", () => ({
   getSessionActor: async () => data.actor,
@@ -25,6 +27,7 @@ vi.mock("@/features/campaigns/adminQueries", () => ({
 }));
 vi.mock("@/features/campaigns/analyticsQueries", () => ({
   listCampaignStateEvents: async () => data.events,
+  countCampaignApplicationsByRegion: async () => data.regionCounts,
 }));
 vi.mock("@/components/admin/AdminNav", () => ({ AdminNav: () => null }));
 const redirect = vi.hoisted(() =>
@@ -56,6 +59,7 @@ async function renderPage(campaignId = ID) {
 beforeEach(() => {
   data.actor = { kind: "admin", id: "a1", email: "admin@example.com" };
   data.events = [];
+  data.regionCounts = [];
 });
 
 describe("the campaign analytics page", () => {
@@ -99,13 +103,35 @@ describe("the campaign analytics page", () => {
     ).toBeInTheDocument();
     // The legend names the lines in text, so no line is told apart by
     // colour alone.
-    const figure = screen.getByRole("figure");
+    const figure = screen.getAllByRole("figure")[0]; // the day chart is first
     expect(within(figure).getByText(t.chartTitle)).toBeInTheDocument();
     expect(
       within(figure)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
     ).toEqual([t.series.waiting, t.series.claimed]);
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("splits the campaign's applications by the region the family left", async () => {
+    data.events = [{ applicationId: "a", day: "2026-11-01", state: "waiting" }];
+    data.regionCounts = [
+      { region: "donetsk", count: 3 },
+      { region: "kharkiv", count: 1 },
+    ];
+    const { container } = await renderPage();
+
+    const figure = screen.getByRole("figure", {
+      name: t.regionsTitle,
+    });
+    const items = within(figure).getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent(`${messages.regions.donetsk}3`);
+    expect(items[1]).toHaveTextContent(`${messages.regions.kharkiv}1`);
+    // The regions the form offers stay on the chart at zero.
+    expect(
+      within(figure).getByText(messages.regions.crimea).closest("li"),
+    ).toHaveTextContent(`${messages.regions.crimea}0`);
 
     expect(await axe(container)).toHaveNoViolations();
   });
