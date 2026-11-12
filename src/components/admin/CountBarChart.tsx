@@ -1,25 +1,29 @@
-export type RegionBar = { region: string; label: string; count: number };
+export type CountBar = { key: string; label: string; count: number };
 
-// Applications per home region as horizontal bars: a region's name is too long
-// to sit under a column. Plain HTML, no client JavaScript. Each row says its
-// number in text, so the bars carry nothing a screen reader would miss and
-// they are hidden from it.
-export function RegionChart({
+// A count per category as horizontal bars, on the campaign analytics page:
+// a label such as a region's name is too long to sit under a column. Plain
+// HTML, no client JavaScript. Each row says its number in text, so the bars
+// carry nothing a screen reader would miss and they are hidden from it.
+export function CountBarChart({
+  id,
   bars,
   labels,
 }: {
-  bars: RegionBar[];
+  // Names the figure; unique on the page, which shows several of these.
+  id: string;
+  bars: CountBar[];
   labels: { title: string; description: string };
 }) {
   const max = Math.max(0, ...bars.map(({ count }) => count));
+  const titleId = `${id}-title`;
 
   return (
     <figure
-      aria-labelledby="region-chart-title"
+      aria-labelledby={titleId}
       className="border-border bg-surface flex flex-col gap-3 rounded-lg border p-3"
     >
       <figcaption>
-        <span id="region-chart-title" className="font-semibold">
+        <span id={titleId} className="font-semibold">
           {labels.title}
         </span>
         <span className="text-muted-foreground mt-1 block text-sm">
@@ -27,9 +31,9 @@ export function RegionChart({
         </span>
       </figcaption>
       <ul className="flex flex-col gap-2 text-sm">
-        {bars.map(({ region, label, count }) => (
+        {bars.map(({ key, label, count }) => (
           <li
-            key={region}
+            key={key}
             className="grid grid-cols-[minmax(0,11rem)_1fr] items-center gap-x-3 gap-y-1 sm:grid-cols-[14rem_1fr]"
           >
             <span>{label}</span>

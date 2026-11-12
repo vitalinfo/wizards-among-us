@@ -5,14 +5,21 @@ import { notFound, redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AnalyticsChart } from "@/components/admin/AnalyticsChart";
 import { AnalyticsTable } from "@/components/admin/AnalyticsTable";
-import { RegionChart } from "@/components/admin/RegionChart";
+import { CountBarChart } from "@/components/admin/CountBarChart";
 import { buildAnalyticsDays } from "@/features/campaigns/analytics";
 import {
+  countCampaignApplicationsByAge,
+  countCampaignApplicationsByGender,
   countCampaignApplicationsByRegion,
   listCampaignStateEvents,
 } from "@/features/campaigns/analyticsQueries";
 import { getAdminCampaign } from "@/features/campaigns/adminQueries";
-import { buildRegionCounts } from "@/features/campaigns/regionCounts";
+import {
+  buildAgeBars,
+  buildGenderBars,
+  buildRegionBars,
+  type Bar,
+} from "@/features/campaigns/breakdowns";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
 import { isUuid } from "@/lib/uuid";
@@ -40,14 +47,18 @@ export default async function CampaignAnalyticsPage({
     notFound();
   }
 
-  const [t, tc, tr, format, events, regionCounts] = await Promise.all([
-    getTranslations("admin.campaigns.analytics"),
-    getTranslations("admin.campaigns"),
-    getTranslations("regions"),
-    getFormatter(),
-    listCampaignStateEvents(campaignId),
-    countCampaignApplicationsByRegion(campaignId),
-  ]);
+  const [t, tc, tRegion, tGender, format, events, byRegion, byAge, byGender] =
+    await Promise.all([
+      getTranslations("admin.campaigns.analytics"),
+      getTranslations("admin.campaigns"),
+      getTranslations("regions"),
+      getTranslations("genders"),
+      getFormatter(),
+      listCampaignStateEvents(campaignId),
+      countCampaignApplicationsByRegion(campaignId),
+      countCampaignApplicationsByAge(campaignId),
+      countCampaignApplicationsByGender(campaignId),
+    ]);
 
   // A running campaign runs to today, so the days since the last change show
   // the state as it still is.
@@ -64,6 +75,32 @@ export default async function CampaignAnalyticsPage({
       shortLabel: format.dateTime(at, { day: "2-digit", month: "2-digit" }),
     };
   });
+
+  const breakdowns = [
+    {
+      id: "by-region",
+      bars: buildRegionBars(byRegion, (region) => tRegion(region)),
+      title: t("regionsTitle"),
+      description: t("regionsDescription"),
+    },
+    {
+      id: "by-age",
+      bars: buildAgeBars(byAge, (age) => t("ageLabel", { age })),
+      title: t("ageTitle"),
+      description: t("ageDescription"),
+    },
+    {
+      id: "by-gender",
+      bars: buildGenderBars(byGender, (gender) => tGender(gender)),
+      title: t("genderTitle"),
+      description: t("genderDescription"),
+    },
+  ] satisfies {
+    id: string;
+    bars: Bar<string | number>[];
+    title: string;
+    description: string;
+  }[];
 
   const series = {
     waiting: t("series.waiting"),
@@ -102,13 +139,18 @@ export default async function CampaignAnalyticsPage({
               rows={rows}
               labels={{ caption: t("tableCaption"), day: t("day"), ...series }}
             />
-            <RegionChart
-              bars={buildRegionCounts(regionCounts, (region) => tr(region))}
-              labels={{
-                title: t("regionsTitle"),
-                description: t("regionsDescription"),
-              }}
-            />
+            {breakdowns.map(({ id, bars, title, description }) => (
+              <CountBarChart
+                key={id}
+                id={id}
+                bars={bars.map(({ value, label, count }) => ({
+                  key: String(value),
+                  label,
+                  count,
+                }))}
+                labels={{ title, description }}
+              />
+            ))}
           </>
         )}
       </main>

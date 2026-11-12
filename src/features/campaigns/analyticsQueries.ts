@@ -1,11 +1,20 @@
-import { and, asc, count, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  inArray,
+  isNotNull,
+  sql,
+  type Column,
+} from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { applications, auditLogs } from "@/db/schema";
 import { timeZone } from "@/i18n/config";
 
 import { STATE_EVENTS, type StateEvent } from "./analytics";
-import { REGION_COUNTED_STATUSES, type RegionCount } from "./regionCounts";
+import { BREAKDOWN_STATUSES, type Count } from "./breakdowns";
 
 // Admin-only read behind the analytics page: status changes, never a row of
 // child data. Authorization is the page's (isAdmin); this executes.
@@ -39,24 +48,49 @@ export async function listCampaignStateEvents(
   }));
 }
 
-// How many of the campaign's applications came from each home region. Grouped
-// in SQL, so no application row leaves the database.
-export async function countCampaignApplicationsByRegion(
-  campaignId: string,
-): Promise<RegionCount[]> {
-  const rows = await getDb()
-    .select({ region: applications.homeRegion, count: count() })
-    .from(applications)
-    .where(
-      and(
-        eq(applications.campaignId, campaignId),
-        inArray(applications.status, REGION_COUNTED_STATUSES),
-        isNotNull(applications.homeRegion),
-      ),
-    )
-    .groupBy(applications.homeRegion);
+// The campaign's applications split by one field, for the bar charts. Grouped
+// in SQL, so no application row leaves the database. A row with the field
+// empty is not counted.
+function countedBy(campaignId: string, column: Column) {
+  return and(
+    eq(applications.campaignId, campaignId),
+    inArray(applications.status, BREAKDOWN_STATUSES),
+    isNotNull(column),
+  );
+}
 
-  return rows.flatMap(({ region, count }) =>
-    region ? [{ region, count }] : [],
+function present<K>(rows: { value: K | null; count: number }[]): Count<K>[] {
+  return rows.flatMap(({ value, count }) =>
+    value === null ? [] : [{ value, count }],
+  );
+}
+
+export async function countCampaignApplicationsByRegion(campaignId: string) {
+  return present(
+    await getDb()
+      .select({ value: applications.homeRegion, count: count() })
+      .from(applications)
+      .where(countedBy(campaignId, applications.homeRegion))
+      .groupBy(applications.homeRegion),
+  );
+}
+
+export async function countCampaignApplicationsByAge(campaignId: string) {
+  return present(
+    await getDb()
+      .select({ value: applications.childAge, count: count() })
+      .from(applications)
+      .where(countedBy(campaignId, applications.childAge))
+      .groupBy(applications.childAge),
+  );
+}
+
+export async function countCampaignApplicationsByGender(campaignId: string) {
+  return present(
+    await getDb()
+      .select({ value: applications.childGender, count: count() })
+      .from(applications)
+      .where(countedBy(campaignId, applications.childGender))
+      .groupBy(applications.childGender),
   );
 }
