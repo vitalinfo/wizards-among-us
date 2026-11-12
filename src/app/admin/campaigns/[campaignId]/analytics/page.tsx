@@ -5,9 +5,14 @@ import { notFound, redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AnalyticsChart } from "@/components/admin/AnalyticsChart";
 import { AnalyticsTable } from "@/components/admin/AnalyticsTable";
+import { RegionChart } from "@/components/admin/RegionChart";
 import { buildAnalyticsDays } from "@/features/campaigns/analytics";
-import { listCampaignStateEvents } from "@/features/campaigns/analyticsQueries";
+import {
+  countCampaignApplicationsByRegion,
+  listCampaignStateEvents,
+} from "@/features/campaigns/analyticsQueries";
 import { getAdminCampaign } from "@/features/campaigns/adminQueries";
+import { buildRegionCounts } from "@/features/campaigns/regionCounts";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
 import { isUuid } from "@/lib/uuid";
@@ -35,11 +40,13 @@ export default async function CampaignAnalyticsPage({
     notFound();
   }
 
-  const [t, tc, format, events] = await Promise.all([
+  const [t, tc, tr, format, events, regionCounts] = await Promise.all([
     getTranslations("admin.campaigns.analytics"),
     getTranslations("admin.campaigns"),
+    getTranslations("regions"),
     getFormatter(),
     listCampaignStateEvents(campaignId),
+    countCampaignApplicationsByRegion(campaignId),
   ]);
 
   // A running campaign runs to today, so the days since the last change show
@@ -94,6 +101,13 @@ export default async function CampaignAnalyticsPage({
             <AnalyticsTable
               rows={rows}
               labels={{ caption: t("tableCaption"), day: t("day"), ...series }}
+            />
+            <RegionChart
+              bars={buildRegionCounts(regionCounts, (region) => tr(region))}
+              labels={{
+                title: t("regionsTitle"),
+                description: t("regionsDescription"),
+              }}
             />
           </>
         )}
