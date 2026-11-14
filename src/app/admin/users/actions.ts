@@ -5,7 +5,12 @@ import { redirect } from "next/navigation";
 
 import { recordAuditLog } from "@/features/audit/log";
 import type { UserRole } from "@/db/enums";
-import { setUserNote, setUserRoles } from "@/features/users/adminQueries";
+import {
+  setUserBanned,
+  setUserNote,
+  setUserRoles,
+} from "@/features/users/adminQueries";
+import type { UserBanState } from "@/features/users/banState";
 import {
   MAX_USER_NOTE_LENGTH,
   type UserNoteState,
@@ -111,4 +116,36 @@ export async function saveUserRolesAction(
   revalidatePath(`/admin/users/${userId}`);
 
   redirect(returnTo);
+}
+
+// Ban or unban. Whether this is a ban is bound by the page from the state it
+// rendered, not read from the form, so the button means what it said.
+//
+// Takes effect on the person's next request: the session lookup reads
+// banned_at every time (lib/auth/session.ts). Their claims and applications
+// are left exactly as they are — releasing a child or pulling an application
+// stays a separate decision with its own trail.
+export async function setUserBanAction(
+  userId: string,
+  ban: boolean,
+): Promise<UserBanState> {
+  const admin = await requireAdmin();
+
+  const result = await setUserBanned(userId, ban);
+  if (result === "not_found") {
+    return { status: "not_found" };
+  }
+
+  if (result === "changed") {
+    await recordAuditLog({
+      actor: admin,
+      action: ban ? "user.banned" : "user.unbanned",
+      targetType: "user",
+      targetId: userId,
+    });
+  }
+
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
+  return { status: "idle" };
 }

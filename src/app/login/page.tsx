@@ -39,6 +39,11 @@ export default async function LoginPage({
   if (isUser(actor)) {
     redirect(returnTo);
   }
+  // A BANNED user sees the page too, deliberately. Sending them on to
+  // /account/banned made it a dead end: every «Увійти» on the site leads here,
+  // so the only way to sign in as anyone else was to find «Вийти» first.
+  // Signing in replaces the session; the same banned account just lands back
+  // on /account/banned. No loop — nothing sends a banned user TO /login.
   const signedInAsAdmin = isAdmin(actor);
   const t = await getTranslations("login");
 

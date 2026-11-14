@@ -58,6 +58,20 @@ describe("/account layout", () => {
     await expect(renderLayout()).rejects.toThrow("redirect:/admin");
   });
 
+  // The pages send a banned user to /account/banned themselves. Redirecting
+  // here by request path looped: Next reuses a layout's output across the
+  // pages beneath it, so the redirect was replayed on /account/banned itself.
+  it.each([
+    ["/account/volunteer/children"],
+    ["/account/banned"],
+    ["/dev/login"],
+  ])("lets a banned user through, whatever the path (%s)", async (path) => {
+    session.actor = { kind: "banned", id: "u1" };
+    request.path = path;
+    const ui = await renderLayout();
+    expect(ui).toBeTruthy();
+  });
+
   it("lets a signed-in user through", async () => {
     session.actor = { kind: "user", id: "u1", roles: ["parent"] };
     request.path = "/account/parent";

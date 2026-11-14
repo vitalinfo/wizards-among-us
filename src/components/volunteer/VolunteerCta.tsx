@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { becomeVolunteerAction } from "@/app/volunteer/actions";
 import { ctaBase, ctaShell, ctaVariants } from "@/components/ui/ctaStyles";
-import { type Actor, hasRole, isUser } from "@/lib/actor";
+import { hasRole, isUser, type MaybeActor } from "@/lib/actor";
 import { loginPathFor } from "@/lib/auth/returnPath";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 // async) and renderable inside the page's tree.
 export type VolunteerCtaState = "anonymous" | "candidate" | "volunteer";
 
-export function volunteerCtaState(actor: Actor | null): VolunteerCtaState {
+export function volunteerCtaState(actor: MaybeActor): VolunteerCtaState {
   if (!isUser(actor)) {
     return "anonymous";
   }

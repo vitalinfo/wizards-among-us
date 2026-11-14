@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { isUser } from "@/lib/actor";
+import { isBanned, isUser } from "@/lib/actor";
 import {
   accountReturnPath,
   REQUEST_PATH_HEADER,
@@ -30,6 +30,20 @@ export default async function AccountLayout({
   children: ReactNode;
 }) {
   const actor = await getSessionActor();
+  if (isBanned(actor)) {
+    // Let through, and do NOT redirect from here: each page and the (shell)
+    // layout send a banned actor to /account/banned themselves (it is not a
+    // user — signedOutRedirect), and /account/banned is the one page that
+    // keeps them.
+    //
+    // Deciding it here by the request path looped forever. Next reuses a
+    // layout's output while navigating between the pages beneath it, so a
+    // layout whose output depends on WHICH page was asked for is wrong for
+    // every page after the first. Dev login's server action rendered this
+    // layout with the action's path (/dev/login), cached "redirect to
+    // /account/banned", and every navigation to /account/banned replayed it.
+    return <>{children}</>;
+  }
   if (!isUser(actor)) {
     // This redirect runs before the page's own guard, so it must carry the
     // page's path: a hardcoded "/account" sent every deep link back to the

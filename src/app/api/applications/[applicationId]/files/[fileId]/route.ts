@@ -11,6 +11,7 @@ import {
 } from "@/features/applications/fileQueries";
 import { getApplicationForFileAccess } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
+import { isBanned } from "@/lib/actor";
 import { getSessionActor } from "@/lib/auth/session";
 import { isUuid } from "@/lib/uuid";
 import { getStorage, storageBucket } from "@/lib/storage/client";
@@ -27,7 +28,8 @@ export async function GET(
 ) {
   const { applicationId, fileId } = await params;
   const actor = await getSessionActor();
-  if (!actor) {
+  // A banned user holds a session but may do nothing with it.
+  if (!actor || isBanned(actor)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -103,7 +105,8 @@ export async function DELETE(
 ) {
   const { applicationId, fileId } = await params;
   const actor = await getSessionActor();
-  if (!actor) {
+  // A banned user holds a session but may do nothing with it.
+  if (!actor || isBanned(actor)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

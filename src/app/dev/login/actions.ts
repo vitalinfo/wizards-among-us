@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 
 import { getDb } from "@/db";
@@ -8,6 +8,7 @@ import type { UserRole } from "@/db/enums";
 import { users } from "@/db/schema";
 import {
   assertDevLoginEnabled,
+  DEV_LOGIN_BANNED,
   DEV_LOGIN_ROLES,
   type DevLoginRoleKey,
 } from "@/lib/auth/devLogin";
@@ -46,18 +47,28 @@ export async function devLogin(
   // them too, or the one path we can exercise locally is the only one where
   // the prefill is silently absent.
   const profile = { firstName: "Дев", lastName: `Тестовий (${roleKey})` };
+  // The banned preset is banned on every login (keeping the first date, so it
+  // reads like a real one); the others are left as they are.
+  const ban = DEV_LOGIN_BANNED.has(roleKey)
+    ? { bannedAt: sql`coalesce(${users.bannedAt}, now())` }
+    : {};
 
   let userId: string;
   if (existing) {
     await db
       .update(users)
-      .set({ role, ...profile })
+      .set({ role, ...profile, ...ban })
       .where(eq(users.id, existing.id));
     userId = existing.id;
   } else {
     const [created] = await db
       .insert(users)
-      .values({ username, role, ...profile })
+      .values({
+        username,
+        role,
+        ...profile,
+        ...(DEV_LOGIN_BANNED.has(roleKey) ? { bannedAt: new Date() } : {}),
+      })
       .returning({ id: users.id });
     userId = created.id;
   }
