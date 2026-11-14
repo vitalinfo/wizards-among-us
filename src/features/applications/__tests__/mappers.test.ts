@@ -46,6 +46,9 @@ describe("toBrowseCard redaction (guardrail)", () => {
       homeRegion: "donetsk",
       homeTown: "Bakhmut",
       giftDescription: "Backpack",
+      // Back on the pre-claim card (Vital, 2026-11-14): about the gift, not
+      // the family.
+      giftPrice: "1200.00",
       // Both moved onto the pre-claim card with the 118:420 redesign (Vital),
       // and §4.3 moved with them.
       giftUrls: ["https://rozetka.com.ua/ua/502764564/p502764564/"],

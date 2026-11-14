@@ -41,6 +41,11 @@ export function toParentStatus(
 // The child-with-letter photo did NOT move: a letter is handwriting and a wish,
 // a photograph of the child is their face.
 //
+// `gift_price` came back IN (Vital, 2026-11-14), on the row after the gift. A
+// price is about the gift, not the family — it locates nobody — and it is what
+// a volunteer budgets against when choosing. §4.3 and the parent consent list
+// name it, as they name everything else on the card.
+//
 // This is a DTO mapper, not authorization — it lives beside the resource rather
 // than in authz.ts (CLAUDE.md).
 export type BrowseCard = {
@@ -66,6 +71,7 @@ export type BrowseCard = {
   homeRegion: Application["homeRegion"];
   homeTown: Application["homeTown"];
   giftDescription: Application["giftDescription"];
+  giftPrice: Application["giftPrice"];
   // The shop links the parent chose, from type_fields. Tier 1 as of the 118:420
   // card, which lists them under «Посилання на подарунок» — so a volunteer can
   // see what the child actually asked for before committing. Note this also
@@ -98,6 +104,7 @@ export function toBrowseCard(
     homeRegion: application.homeRegion,
     homeTown: application.homeTown,
     giftDescription: application.giftDescription,
+    giftPrice: application.giftPrice,
     giftUrls: giftUrls(application.typeFields),
     letterPhotoId,
     familyStory: application.familyStory,
