@@ -5,16 +5,22 @@ import type { ReactNode } from "react";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CountLink } from "@/components/admin/CountLink";
-import { UserBanForm } from "@/components/admin/UserBanForm";
+import { UserBanSection } from "@/components/admin/UserBanSection";
 import { UserNoteForm } from "@/components/admin/UserNoteForm";
 import { UserRolesForm } from "@/components/admin/UserRolesForm";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { userApplicationsHref } from "@/features/applications/moderationFilter";
 import { getUserForAdmin } from "@/features/users/adminQueries";
 import { resolveUserContact } from "@/features/users/contact";
-import { parseUsersQuery, usersHref } from "@/features/users/listQuery";
+import {
+  parseUsersQuery,
+  userHref,
+  usersHref,
+} from "@/features/users/listQuery";
 import { getSessionActor } from "@/lib/auth/session";
 import { isUuid } from "@/lib/uuid";
 import { isAdmin } from "@/lib/authz";
+import { setUserBanAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +34,8 @@ export default async function AdminUserPage({
   searchParams,
 }: {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ q?: string; page?: string }>;
+  // confirmBan=1 raises the ban/unban prompt (ConfirmModal) over the page.
+  searchParams: Promise<{ q?: string; page?: string; confirmBan?: string }>;
 }) {
   const [{ userId }, rawQuery] = await Promise.all([params, searchParams]);
   const actor = await getSessionActor();
@@ -55,6 +62,14 @@ export default async function AdminUserPage({
   // actually looking at rather than resetting it.
   const query = parseUsersQuery(rawQuery);
   const backHref = usersHref(query);
+
+  // This page's own url, list view intact: where the ban prompt is raised from
+  // and where both of its outcomes come back to, at the ban section.
+  const selfHref = userHref(user.id, query);
+  const banned = user.bannedAt !== null;
+  const confirmBan = rawQuery.confirmBan === "1";
+  const banAnchor = `${selfHref}#ban`;
+  const banConfirmHref = `${selfHref}${selfHref.includes("?") ? "&" : "?"}confirmBan=1#ban`;
 
   const contact = resolveUserContact(user);
   const name =
@@ -99,7 +114,12 @@ export default async function AdminUserPage({
   return (
     <>
       <AdminNav />
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+      {/* Behind an open prompt the page is inert: Tab must not walk into the
+          controls under the overlay (see ConfirmModal). */}
+      <main
+        inert={confirmBan}
+        className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6"
+      >
         <Link
           href={backHref}
           className="text-primary text-sm font-semibold underline underline-offset-4"
@@ -134,13 +154,13 @@ export default async function AdminUserPage({
           returnTo={backHref}
         />
 
-        <UserBanForm
-          userId={user.id}
+        <UserBanSection
           bannedSince={
             user.bannedAt ? format.dateTime(user.bannedAt, "short") : null
           }
           applicationCount={user.applicationCount}
           claimCount={user.claimCount}
+          confirmHref={banConfirmHref}
         />
 
         <UserNoteForm
@@ -150,6 +170,22 @@ export default async function AdminUserPage({
           cancelLabel={t("note.cancel")}
         />
       </main>
+
+      {confirmBan ? (
+        <ConfirmModal
+          // !banned is bound from what this page showed, so confirming does
+          // what the prompt said even if another admin got there first.
+          action={setUserBanAction.bind(null, user.id, !banned, banAnchor)}
+          title={banned ? t("ban.confirmUnbanTitle") : t("ban.confirmBanTitle")}
+          message={
+            banned
+              ? t("ban.confirmUnbanMessage", { name })
+              : t("ban.confirmBanMessage", { name })
+          }
+          confirmLabel={banned ? t("ban.unban") : t("ban.ban")}
+          cancelHref={banAnchor}
+        />
+      ) : null}
     </>
   );
 }
