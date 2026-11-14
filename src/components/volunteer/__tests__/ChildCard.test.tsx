@@ -53,6 +53,7 @@ function row({
       currentRegion: "lviv",
       currentTown: "Стрий",
       giftDescription: "Лялька",
+      giftPrice: "1200.00",
       typeFields: { giftUrls: ["https://rozetka.com.ua/ua/123/p123/?a=1"] },
       familyStory: "Виїхали у 2022 році.",
       status: "approved",
@@ -206,6 +207,23 @@ describe("ChildCard letter photo and shop links", () => {
     await renderCard();
 
     expect(screen.getByRole("link", { name: t.claimCta })).toBeInTheDocument();
+  });
+
+  it("shows the gift's price on the row after the gift", async () => {
+    await renderCard();
+
+    const price = screen.getByText("1200 грн");
+    const gift = screen.getByText("Лялька");
+    expect(screen.getByText(card.giftPrice)).toBeInTheDocument();
+    expect(
+      gift.compareDocumentPosition(price) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("leaves the price row out when the application has no price", async () => {
+    await renderCard({ giftPrice: null });
+
+    expect(screen.queryByText(card.giftPrice)).not.toBeInTheDocument();
   });
 
   it("shows the oblast with the town the family left", async () => {

@@ -71,6 +71,8 @@ const DESCRIBED: Record<string, string | null> = {
   // Both moved INTO the pre-claim list with the 118:420 card (Vital): §4.3 used
   // to name them as things a charivnyk does not see, and the §4.3 he supplied
   // with the design names them as things they do.
+  // Back on the card on 2026-11-14 (Vital), and into §4.3 with it.
+  giftPrice: "вартість бажаного подарунка",
   giftUrls: "посилання на бажаний подарунок",
   letterPhotoId: "фотографія листа дитини Чарівному Миколаю",
   familyStory: "історія родини",

@@ -84,6 +84,14 @@ export async function ChildCard({
           <Field label={tCard("homeTown")} value={homePlace} />
           <Field label={tCard("story")} value={row.familyStory} prose />
           <Field label={tCard("gift")} value={row.giftDescription} prose />
+          <Field
+            label={tCard("giftPrice")}
+            value={
+              row.giftPrice === null
+                ? null
+                : tCard("price", { price: Number(row.giftPrice) })
+            }
+          />
 
           {row.giftUrls.length > 0 ? (
             <Field label={tCard("giftUrls")}>
