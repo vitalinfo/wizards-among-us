@@ -10,7 +10,6 @@ import {
   setUserNote,
   setUserRoles,
 } from "@/features/users/adminQueries";
-import type { UserBanState } from "@/features/users/banState";
 import {
   MAX_USER_NOTE_LENGTH,
   type UserNoteState,
@@ -118,8 +117,10 @@ export async function saveUserRolesAction(
   redirect(returnTo);
 }
 
-// Ban or unban. Whether this is a ban is bound by the page from the state it
-// rendered, not read from the form, so the button means what it said.
+// Ban or unban — posted from the page's confirmation (ConfirmModal), never
+// straight from the page. Whether this is a ban is bound by the page from the
+// state it rendered, not read from the form, so confirming does what the
+// prompt said.
 //
 // Takes effect on the person's next request: the session lookup reads
 // banned_at every time (lib/auth/session.ts). Their claims and applications
@@ -128,13 +129,15 @@ export async function saveUserRolesAction(
 export async function setUserBanAction(
   userId: string,
   ban: boolean,
-): Promise<UserBanState> {
+  // The person's page, list view intact, without the prompt in its url. Bound
+  // by the page, never read from the form (open redirect).
+  returnTo: string,
+): Promise<void> {
   const admin = await requireAdmin();
 
+  // A person deleted in the meantime needs no message of its own: returnTo is
+  // their page, which then answers 404.
   const result = await setUserBanned(userId, ban);
-  if (result === "not_found") {
-    return { status: "not_found" };
-  }
 
   if (result === "changed") {
     await recordAuditLog({
@@ -147,5 +150,5 @@ export async function setUserBanAction(
 
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
-  return { status: "idle" };
+  redirect(returnTo);
 }
