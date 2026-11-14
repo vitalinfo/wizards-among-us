@@ -7,6 +7,7 @@ import type { ActorType } from "@/db/enums";
 import { admins, sessions, users } from "@/db/schema";
 import { type Actor, type AdminActor, isAdmin } from "@/lib/authz";
 
+import { toAdminActor } from "./adminAllowlist";
 import { randomToken, sha256Base64Url } from "./encoding";
 
 export const SESSION_COOKIE_NAME = "wau_session";
@@ -95,7 +96,7 @@ async function loadSessionActor(): Promise<Actor | null> {
       .from(admins)
       .where(eq(admins.id, session.actorId))
       .limit(1);
-    return admin ? { kind: "admin", id: admin.id, email: admin.email } : null;
+    return toAdminActor(admin);
   }
 
   // lastName is deliberately NOT selected — the actor travels widely, so it
