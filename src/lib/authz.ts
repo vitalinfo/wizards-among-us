@@ -16,10 +16,13 @@
 export {
   type Actor,
   type AdminActor,
+  type BannedActor,
   type MaybeActor,
+  type SessionActor,
   type UserActor,
   hasRole,
   isAdmin,
+  isBanned,
   isUser,
 } from "@/lib/actor";
 

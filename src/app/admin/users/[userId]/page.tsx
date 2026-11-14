@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CountLink } from "@/components/admin/CountLink";
+import { UserBanForm } from "@/components/admin/UserBanForm";
 import { UserNoteForm } from "@/components/admin/UserNoteForm";
 import { UserRolesForm } from "@/components/admin/UserRolesForm";
 import { userApplicationsHref } from "@/features/applications/moderationFilter";
@@ -131,6 +132,15 @@ export default async function AdminUserPage({
           applicationCount={user.applicationCount}
           claimCount={user.claimCount}
           returnTo={backHref}
+        />
+
+        <UserBanForm
+          userId={user.id}
+          bannedSince={
+            user.bannedAt ? format.dateTime(user.bannedAt, "short") : null
+          }
+          applicationCount={user.applicationCount}
+          claimCount={user.claimCount}
         />
 
         <UserNoteForm

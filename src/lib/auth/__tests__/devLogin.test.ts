@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { isDevLoginEnabled } from "../devLogin";
+import {
+  DEV_LOGIN_BANNED,
+  DEV_LOGIN_ROLES,
+  isDevLoginEnabled,
+} from "../devLogin";
 
 // This is a login backdoor: the gate is a security boundary, so it gets direct
 // allow/deny coverage. Both conditions must hold for it to be enabled.
@@ -31,5 +35,14 @@ describe("isDevLoginEnabled", () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("DEV_LOGIN", "1");
     expect(isDevLoginEnabled()).toBe(true);
+  });
+});
+
+describe("dev login presets", () => {
+  // The banned account holds every role, so a page that forgot the ban would
+  // let it in rather than fail for want of a role.
+  it("bans only the banned preset, which holds every role", () => {
+    expect([...DEV_LOGIN_BANNED]).toEqual(["banned"]);
+    expect(DEV_LOGIN_ROLES.banned).toEqual(["parent", "volunteer"]);
   });
 });

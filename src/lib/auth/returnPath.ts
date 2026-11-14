@@ -83,6 +83,9 @@ export function accountReturnPath(value: string | null | undefined): string {
   return ACCOUNT_ROOT;
 }
 
+// The one page a banned user can open.
+export const BANNED_PATH = "/account/banned";
+
 // Where to send an actor that reached a parent/volunteer page without being a
 // signed-in USER.
 //
@@ -95,9 +98,19 @@ export function accountReturnPath(value: string | null | undefined): string {
 //
 // Admins have their own surface, so send them there instead of to a sign-in
 // page they are already past.
+//
+// A BANNED user is in the same position — a session, but not a user — and
+// sending them to /login would bounce them straight back. They go to the one
+// page that tells them why.
 export function signedOutRedirect(
-  actor: { kind: "user" | "admin" } | null | undefined,
+  actor: { kind: "user" | "admin" | "banned" } | null | undefined,
   returnTo: string,
 ): string {
-  return actor?.kind === "admin" ? "/admin" : loginPathFor(returnTo);
+  if (actor?.kind === "admin") {
+    return "/admin";
+  }
+  if (actor?.kind === "banned") {
+    return BANNED_PATH;
+  }
+  return loginPathFor(returnTo);
 }

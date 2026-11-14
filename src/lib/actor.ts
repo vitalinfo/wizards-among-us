@@ -16,13 +16,24 @@ export type UserActor = {
 export type AdminActor = { kind: "admin"; id: string; email: string };
 export type Actor = UserActor | AdminActor;
 
-export type MaybeActor = Actor | null | undefined;
+// A signed-in user an admin has banned. Deliberately NOT a UserActor: every
+// predicate in the app is built on `isUser`, so a separate kind is refused by
+// all of them — pages, server actions, the file routes — without any of them
+// having to remember a ban exists. Not part of `Actor` either, so it can never
+// be passed to recordAuditLog as someone who did something.
+export type BannedActor = { kind: "banned"; id: string };
+export type SessionActor = Actor | BannedActor;
+
+export type MaybeActor = SessionActor | null | undefined;
 
 export function isAdmin(actor: MaybeActor): actor is AdminActor {
   return actor?.kind === "admin";
 }
 export function isUser(actor: MaybeActor): actor is UserActor {
   return actor?.kind === "user";
+}
+export function isBanned(actor: MaybeActor): actor is BannedActor {
+  return actor?.kind === "banned";
 }
 export function hasRole(actor: MaybeActor, role: UserRole): boolean {
   return isUser(actor) && actor.roles.includes(role);

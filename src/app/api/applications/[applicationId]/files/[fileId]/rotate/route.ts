@@ -11,6 +11,7 @@ import { extensionFor } from "@/features/applications/files";
 import { normalizePhoto } from "@/features/applications/photos";
 import { getApplicationForFileAccess } from "@/features/applications/queries";
 import { recordAuditLog } from "@/features/audit/log";
+import { isBanned } from "@/lib/actor";
 import { getSessionActor } from "@/lib/auth/session";
 import { isUuid } from "@/lib/uuid";
 import {
@@ -42,7 +43,8 @@ export async function POST(
 ) {
   const { applicationId, fileId } = await params;
   const actor = await getSessionActor();
-  if (!actor) {
+  // A banned user holds a session but may do nothing with it.
+  if (!actor || isBanned(actor)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

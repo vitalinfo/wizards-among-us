@@ -34,6 +34,15 @@ export const DEV_LOGIN_ROLES = {
   both: ["parent", "volunteer"],
   // A fresh Telegram account: lands on /account's chooser, not a cabinet.
   none: [],
+  // Holds both roles, so a page that forgot the ban would let it straight in —
+  // it should only ever see /account/banned (DEV_LOGIN_BANNED).
+  banned: ["parent", "volunteer"],
 } as const satisfies Record<string, readonly UserRole[]>;
 
 export type DevLoginRoleKey = keyof typeof DEV_LOGIN_ROLES;
+
+// The presets that sign in as a banned user. Only these touch banned_at: a
+// dev account an admin banned by hand stays banned across dev logins.
+export const DEV_LOGIN_BANNED: ReadonlySet<DevLoginRoleKey> = new Set([
+  "banned",
+]);

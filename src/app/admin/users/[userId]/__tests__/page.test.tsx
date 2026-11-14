@@ -30,6 +30,9 @@ vi.mock("@/components/admin/UserNoteForm", () => ({
 vi.mock("@/components/admin/UserRolesForm", () => ({
   UserRolesForm: () => null,
 }));
+vi.mock("@/components/admin/UserBanForm", () => ({
+  UserBanForm: () => null,
+}));
 
 import messages from "../../../../../../messages/uk.json";
 
@@ -47,6 +50,7 @@ function user(overrides: Partial<AdminUserRow>): AdminUserRow {
     phone: null,
     role: ["parent", "volunteer"],
     note: null,
+    bannedAt: null,
     applicationCount: 0,
     claimCount: 0,
     createdAt: new Date("2026-11-03T08:33:41Z"),

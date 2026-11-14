@@ -14,6 +14,7 @@ const OPTIONS = [
   { key: "volunteer", label: "Sign in as volunteer" },
   { key: "both", label: "Sign in as parent + volunteer" },
   { key: "none", label: "Sign in with no role" },
+  { key: "banned", label: "Sign in as a banned user" },
 ] as const;
 
 export default async function DevLoginPage({

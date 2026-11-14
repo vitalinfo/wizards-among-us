@@ -53,6 +53,14 @@ describe("accountDestination", () => {
     });
   });
 
+  // Still signed in, so «Увійти» would be wrong — and it would only lead back.
+  it("sends a banned user to the banned page", () => {
+    expect(accountDestination({ kind: "banned", id: "u1" })).toEqual({
+      href: "/account/banned",
+      labelKey: "account",
+    });
+  });
+
   // Every destination has to be a same-origin path the header can link to —
   // an absolute URL here would be an open redirect in a very visible place.
   it("only ever returns a relative path", () => {

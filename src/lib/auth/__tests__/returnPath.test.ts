@@ -107,6 +107,14 @@ describe("signedOutRedirect", () => {
     expect(target).not.toContain("/login");
   });
 
+  // Same loop, other actor: a banned user holds a session but is not a user,
+  // and /login sends anyone with a session onward.
+  it("sends a banned user to the banned page, never back to /login", () => {
+    expect(
+      signedOutRedirect({ kind: "banned" }, "/account/parent/applications"),
+    ).toBe("/account/banned");
+  });
+
   // A user reaching this helper is a caller bug, but it must not loop either.
   it("still refuses a hostile destination", () => {
     expect(signedOutRedirect(null, "https://evil.com")).toBe("/login");

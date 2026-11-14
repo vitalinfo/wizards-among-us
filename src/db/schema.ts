@@ -419,6 +419,11 @@ export const users = pgTable(
     // One per user, overwritten on edit; if a history of who wrote what is ever
     // needed, that is a `user_notes` table, not a longer string.
     note: text("note"),
+    // Set by an admin to ban this person; null = not banned. A timestamp
+    // rather than a boolean so "since when" is answerable from the row — the
+    // audit log says who. A banned user still signs in, but resolves to a
+    // `banned` actor that every authz predicate refuses (lib/auth/session.ts).
+    bannedAt: timestamp("banned_at", { withTimezone: true }),
     ...timestamps(),
   },
   (t) => [

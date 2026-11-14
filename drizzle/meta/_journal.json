@@ -113,6 +113,13 @@
       "when": 1793739863339,
       "tag": "0015_purple_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794694611437,
+      "tag": "0016_mysterious_thundra",
+      "breakpoints": true
     }
   ]
 }

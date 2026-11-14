@@ -5,7 +5,7 @@ import { cache } from "react";
 import { getDb } from "@/db";
 import type { ActorType } from "@/db/enums";
 import { admins, sessions, users } from "@/db/schema";
-import { type Actor, type AdminActor, isAdmin } from "@/lib/authz";
+import { type AdminActor, isAdmin, type SessionActor } from "@/lib/authz";
 
 import { toAdminActor } from "./adminAllowlist";
 import { randomToken, sha256Base64Url } from "./encoding";
@@ -68,7 +68,7 @@ export async function createSession(target: SessionTarget): Promise<void> {
 // would get the old one.
 export const getSessionActor = cache(loadSessionActor);
 
-async function loadSessionActor(): Promise<Actor | null> {
+async function loadSessionActor(): Promise<SessionActor | null> {
   const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
   if (!token) {
     return null;
@@ -107,19 +107,27 @@ async function loadSessionActor(): Promise<Actor | null> {
       username: users.username,
       firstName: users.firstName,
       role: users.role,
+      bannedAt: users.bannedAt,
     })
     .from(users)
     .where(eq(users.id, session.actorId))
     .limit(1);
-  return user
-    ? {
-        kind: "user",
-        id: user.id,
-        username: user.username,
-        firstName: user.firstName,
-        roles: user.role,
-      }
-    : null;
+  if (!user) {
+    return null;
+  }
+  // Read on every request, like the admin allowlist: a ban takes effect on the
+  // person's next click, not when their 30-day session runs out. They keep the
+  // session — it is what lets /account/banned tell them why nothing works.
+  if (user.bannedAt) {
+    return { kind: "banned", id: user.id };
+  }
+  return {
+    kind: "user",
+    id: user.id,
+    username: user.username,
+    firstName: user.firstName,
+    roles: user.role,
+  };
 }
 
 // Log out: delete the session row (instant revocation) and clear the cookie.

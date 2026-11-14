@@ -1,4 +1,4 @@
-import { type Actor, isUser } from "@/lib/actor";
+import { isUser, type MaybeActor } from "@/lib/actor";
 import { loginPathFor } from "@/lib/auth/returnPath";
 
 // Where the two manifesto calls to action land a signed-in person. The hero
@@ -27,7 +27,7 @@ export type ManifestoHrefs = { families: string; volunteers: string };
 // teleporting someone into the admin panel from a button reading «Подати
 // заявку» explains nothing. /login does explain it — it carries the notice
 // that signing in through Telegram would end their admin session.
-export function manifestoHrefs(actor: Actor | null): ManifestoHrefs {
+export function manifestoHrefs(actor: MaybeActor): ManifestoHrefs {
   const signedIn = isUser(actor);
   return {
     families: signedIn ? PARENT_CABINET : loginPathFor(PARENT_CABINET),

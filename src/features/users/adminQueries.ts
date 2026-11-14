@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { USER_ROLES, type UserRole } from "@/db/enums";
@@ -15,6 +15,7 @@ export type AdminUserRow = {
   phone: string | null;
   role: readonly UserRole[];
   note: string | null;
+  bannedAt: Date | null;
   applicationCount: number;
   claimCount: number;
   createdAt: Date;
@@ -106,6 +107,7 @@ export async function listUsers(
       phone: users.phone,
       role: users.role,
       note: users.note,
+      bannedAt: users.bannedAt,
       createdAt: users.createdAt,
       ...userCounts(),
     })
@@ -135,6 +137,7 @@ async function listUsersById(userId: string): Promise<AdminUserRow[]> {
       phone: users.phone,
       role: users.role,
       note: users.note,
+      bannedAt: users.bannedAt,
       createdAt: users.createdAt,
       ...userCounts(),
     })
@@ -155,6 +158,35 @@ export async function setUserNote(
     .where(eq(users.id, userId))
     .returning({ id: users.id });
   return updated.length > 0;
+}
+
+// Ban or unban. "changed" only when the row actually moved, so the action logs
+// a ban once — a second click, or two admins on the same page, is a no-op and
+// keeps the original date rather than restarting it.
+export async function setUserBanned(
+  userId: string,
+  banned: boolean,
+): Promise<"changed" | "unchanged" | "not_found"> {
+  const db = getDb();
+  const updated = await db
+    .update(users)
+    .set({ bannedAt: banned ? new Date() : null })
+    .where(
+      and(
+        eq(users.id, userId),
+        banned ? isNull(users.bannedAt) : isNotNull(users.bannedAt),
+      ),
+    )
+    .returning({ id: users.id });
+  if (updated.length > 0) {
+    return "changed";
+  }
+  const [exists] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return exists ? "unchanged" : "not_found";
 }
 
 export type SetUserRolesResult =
