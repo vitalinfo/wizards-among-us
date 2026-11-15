@@ -27,15 +27,15 @@ describe("buildAnalyticsDays", () => {
     ]);
 
     expect(days).toEqual([
-      { day: "2026-11-01", waiting: 0, claimed: 0 },
-      { day: "2026-11-02", waiting: 1, claimed: 1 },
-      { day: "2026-11-03", waiting: 1, claimed: 1 },
-      { day: "2026-11-04", waiting: 0, claimed: 2 },
-      { day: "2026-11-05", waiting: 0, claimed: 2 },
+      { day: "2026-11-01", waiting: 0, claimed: 0, rejected: 0 },
+      { day: "2026-11-02", waiting: 1, claimed: 1, rejected: 0 },
+      { day: "2026-11-03", waiting: 1, claimed: 1, rejected: 0 },
+      { day: "2026-11-04", waiting: 0, claimed: 2, rejected: 0 },
+      { day: "2026-11-05", waiting: 0, claimed: 2, rejected: 0 },
     ]);
   });
 
-  it("moves a released claim back to waiting, and a rejection out of both", () => {
+  it("moves a released claim back to waiting, and a reopened decision out of all three", () => {
     const days = buildAnalyticsDays([
       event("a", "2026-11-01", "waiting"),
       event("b", "2026-11-01", "waiting"),
@@ -44,10 +44,40 @@ describe("buildAnalyticsDays", () => {
       event("b", "2026-11-03", "other"), // reopened to the queue
     ]);
 
-    expect(days.map(({ waiting, claimed }) => [waiting, claimed])).toEqual([
-      [2, 0],
-      [1, 1],
-      [1, 0],
+    expect(
+      days.map(({ waiting, claimed, rejected }) => [
+        waiting,
+        claimed,
+        rejected,
+      ]),
+    ).toEqual([
+      [2, 0, 0],
+      [1, 1, 0],
+      [1, 0, 0],
+    ]);
+  });
+
+  it("counts a rejection until an admin reopens it", () => {
+    const days = buildAnalyticsDays([
+      event("a", "2026-11-01", "other"), // submitted
+      event("b", "2026-11-01", "other"),
+      event("a", "2026-11-02", "rejected"),
+      event("b", "2026-11-02", "rejected"),
+      event("b", "2026-11-03", "other"), // reopened to the queue
+      event("b", "2026-11-04", "waiting"), // approved this time
+    ]);
+
+    expect(
+      days.map(({ waiting, claimed, rejected }) => [
+        waiting,
+        claimed,
+        rejected,
+      ]),
+    ).toEqual([
+      [0, 0, 0],
+      [0, 0, 2],
+      [0, 0, 1],
+      [1, 0, 1],
     ]);
   });
 
@@ -55,9 +85,9 @@ describe("buildAnalyticsDays", () => {
     const events = [event("a", "2026-11-09", "waiting")];
 
     expect(buildAnalyticsDays(events, "2026-11-11")).toEqual([
-      { day: "2026-11-09", waiting: 1, claimed: 0 },
-      { day: "2026-11-10", waiting: 1, claimed: 0 },
-      { day: "2026-11-11", waiting: 1, claimed: 0 },
+      { day: "2026-11-09", waiting: 1, claimed: 0, rejected: 0 },
+      { day: "2026-11-10", waiting: 1, claimed: 0, rejected: 0 },
+      { day: "2026-11-11", waiting: 1, claimed: 0, rejected: 0 },
     ]);
     expect(buildAnalyticsDays(events, "2026-11-01")).toHaveLength(1);
   });
@@ -69,6 +99,11 @@ describe("buildAnalyticsDays", () => {
     ]);
 
     expect(days).toHaveLength(9);
-    expect(days.at(-1)).toEqual({ day: "2026-11-01", waiting: 0, claimed: 1 });
+    expect(days.at(-1)).toEqual({
+      day: "2026-11-01",
+      waiting: 0,
+      claimed: 1,
+      rejected: 0,
+    });
   });
 });

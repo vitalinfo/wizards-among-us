@@ -3,6 +3,7 @@ import type { AnalyticsRow } from "./AnalyticsTable";
 const SERIES = [
   { key: "waiting", stroke: "stroke-chart-waiting" },
   { key: "claimed", stroke: "stroke-chart-claimed" },
+  { key: "rejected", stroke: "stroke-chart-rejected" },
 ] as const;
 
 type SeriesKey = (typeof SERIES)[number]["key"];
@@ -17,7 +18,7 @@ const PLOT_H = HEIGHT - PAD.top - PAD.bottom;
 const MAX_MARKED_DAYS = 31;
 const MAX_X_LABELS = 8;
 
-// The two running counts as lines. Server-rendered SVG, no client JavaScript:
+// The three running counts as lines. Server-rendered SVG, no client JavaScript:
 // hovering a day shows its numbers through the native <title> tooltip, and the
 // same numbers are in the table on the page for anyone who can't see the chart.
 export function AnalyticsChart({

@@ -125,10 +125,13 @@
 
   --ring: #4696f0;
 
-  /* The admin campaign analytics chart, one per line: waiting red, claimed
-     blue. Checked for colour-blind separation, so both lines can be solid. */
-  --chart-waiting: #d93025;
-  --chart-claimed: #1e5299;
+  /* The admin campaign analytics chart, one per line: waiting blue, claimed
+     green, rejected red (Vital). Red and green are the pair a red-green
+     colour-blind reader can confuse; the legend, the tooltips and the table
+     carry the same numbers in text. */
+  --chart-waiting: #1e5299;
+  --chart-claimed: #2e7d32;
+  --chart-rejected: #d93025;
 }
 
 @theme inline {
@@ -181,6 +184,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-ring: var(--ring);
   --color-chart-claimed: var(--chart-claimed);
+  --color-chart-rejected: var(--chart-rejected);
   --color-chart-waiting: var(--chart-waiting);
   --font-sans: var(--font-raleway);
   --font-display: var(--font-caveat);

@@ -76,11 +76,17 @@ describe("the campaign analytics page", () => {
       { applicationId: "b", day: "2026-11-01", state: "waiting" },
       { applicationId: "c", day: "2026-11-01", state: "other" },
       { applicationId: "a", day: "2026-11-03", state: "claimed" },
+      { applicationId: "c", day: "2026-11-03", state: "rejected" },
     ];
     const { container } = await renderPage();
 
     const table = screen.getByRole("table", { name: t.tableCaption });
-    for (const header of [t.day, t.series.waiting, t.series.claimed]) {
+    for (const header of [
+      t.day,
+      t.series.waiting,
+      t.series.claimed,
+      t.series.rejected,
+    ]) {
       expect(
         within(table).getByRole("columnheader", { name: header }),
       ).toBeInTheDocument();
@@ -91,19 +97,19 @@ describe("the campaign analytics page", () => {
       within(first)
         .getAllByRole("cell")
         .map((cell) => cell.textContent),
-    ).toEqual(["2", "0"]);
+    ).toEqual(["2", "0", "0"]);
     const quiet = within(table).getByRole("row", { name: /02\.11\.2026/ });
     expect(
       within(quiet)
         .getAllByRole("cell")
         .map((cell) => cell.textContent),
-    ).toEqual(["2", "0"]);
+    ).toEqual(["2", "0", "0"]);
     const last = within(table).getByRole("row", { name: /03\.11\.2026/ });
     expect(
       within(last)
         .getAllByRole("cell")
         .map((cell) => cell.textContent),
-    ).toEqual(["1", "1"]);
+    ).toEqual(["1", "1", "1"]);
 
     expect(
       screen.getByRole("img", { name: t.chartDescription }),
@@ -116,7 +122,7 @@ describe("the campaign analytics page", () => {
       within(figure)
         .getAllByRole("listitem")
         .map((item) => item.textContent),
-    ).toEqual([t.series.waiting, t.series.claimed]);
+    ).toEqual([t.series.waiting, t.series.claimed, t.series.rejected]);
 
     expect(await axe(container)).toHaveNoViolations();
   });
