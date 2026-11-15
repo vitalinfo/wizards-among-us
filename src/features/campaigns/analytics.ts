@@ -1,19 +1,20 @@
 // Day-by-day state of one campaign on /admin/campaigns/[id]/analytics: at the
-// end of each Kyiv day, how many children were waiting for a wizard and how
-// many already had one.
+// end of each Kyiv day, how many children were waiting for a wizard, how many
+// already had one, and how many applications stood rejected.
 //
 // No table holds status history, so it is replayed from audit_logs — every
 // status change in the app writes a row there in the same request. A change
 // made by hand in SQL without an audit row is invisible to this.
 
-export type AnalyticsState = "waiting" | "claimed" | "other";
+export type AnalyticsState = "waiting" | "claimed" | "rejected" | "other";
 
 // Each audited action that moves an application, and where it leaves it.
 // «Взяті» includes fulfilled (Vital): a child whose gift arrived still had a
 // wizard, so the line only falls when a claim is released.
 export const STATE_EVENTS = {
   "application.submitted": "other",
-  "application.rejected": "other",
+  "application.rejected": "rejected",
+  // An admin returning a decision to the queue takes it out of «Відхилені».
   "application.reopened": "other",
   "application.approved": "waiting",
   "claim.released_by_admin": "waiting",
@@ -37,6 +38,7 @@ export type AnalyticsDay = {
   day: string;
   waiting: number;
   claimed: number;
+  rejected: number;
 };
 
 // One row per day from the first event to the last — or to `through` (today,
@@ -63,6 +65,7 @@ export function buildAnalyticsDays(
     }
     let waiting = 0;
     let claimed = 0;
+    let rejected = 0;
     for (const state of current.values()) {
       if (state === "waiting") {
         waiting += 1;
@@ -70,8 +73,11 @@ export function buildAnalyticsDays(
       if (state === "claimed") {
         claimed += 1;
       }
+      if (state === "rejected") {
+        rejected += 1;
+      }
     }
-    rows.push({ day, waiting, claimed });
+    rows.push({ day, waiting, claimed, rejected });
   }
   return rows;
 }

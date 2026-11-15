@@ -96,6 +96,7 @@ describe("colour contrast (WCAG AA)", () => {
     ["muted-foreground", "cream", AA_NORMAL],
     // The admin analytics chart's lines: graphics, not text, on the card.
     ["chart-claimed", "surface", AA_LARGE],
+    ["chart-rejected", "surface", AA_LARGE],
     ["chart-waiting", "surface", AA_LARGE],
   ])("%s on %s meets %s:1", (fg, bg, threshold) => {
     const value = ratio(fg, bg);
