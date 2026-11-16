@@ -12,21 +12,27 @@ export type AuditQuery = {
   // target_id.
   action: string | null;
   targetId: string | null;
+  // Narrow to one actor — "everything this admin did". Served by
+  // audit_logs_actor_idx (actor_id first).
+  actorId: string | null;
   page: number;
 };
 
 export function parseAuditQuery(params: {
   action?: string;
   target?: string;
+  actor?: string;
   page?: string;
 }): AuditQuery {
   const page = Number(params.page);
   const action = (params.action ?? "").trim();
   const targetId = (params.target ?? "").trim();
+  const actorId = (params.actor ?? "").trim();
   return {
     action: action === "" ? null : action,
     // Anything but a uuid is dropped: Postgres errors on a malformed one.
     targetId: isUuid(targetId) ? targetId : null,
+    actorId: isUuid(actorId) ? actorId : null,
     // Anything unparseable is page 1 rather than an error — a bad page number
     // must never be able to blank the log.
     page: Number.isInteger(page) && page >= 1 ? page : 1,
@@ -40,12 +46,28 @@ export function auditPageCount(total: number): number {
 
 // Whether anything is narrowed — drives whether a "reset" is worth showing.
 export function isDefaultAuditQuery(query: AuditQuery): boolean {
-  return query.action === null && query.targetId === null;
+  return (
+    query.action === null && query.targetId === null && query.actorId === null
+  );
 }
 
 // Omits what is unset, so the plain url stays clean and older links keep
 // working.
 export function auditHref(query: AuditQuery, page?: number): string {
+  const search = auditSearch(query, page ?? query.page);
+  return search === "" ? "/admin/audit" : `/admin/audit?${search}`;
+}
+
+// The CSV of a filtered view; the export route parses the same params. The
+// page is not a filter, so it is dropped.
+export function auditExportHref(query: AuditQuery): string {
+  const search = auditSearch(query, 1);
+  return search === ""
+    ? "/admin/audit/export"
+    : `/admin/audit/export?${search}`;
+}
+
+function auditSearch(query: AuditQuery, page: number): string {
   const params = new URLSearchParams();
   if (query.action) {
     params.set("action", query.action);
@@ -53,12 +75,13 @@ export function auditHref(query: AuditQuery, page?: number): string {
   if (query.targetId) {
     params.set("target", query.targetId);
   }
-  const target = page ?? query.page;
-  if (target > 1) {
-    params.set("page", String(target));
+  if (query.actorId) {
+    params.set("actor", query.actorId);
   }
-  const search = params.toString();
-  return search === "" ? "/admin/audit" : `/admin/audit?${search}`;
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+  return params.toString();
 }
 
 // An action code carries an optional ":detail" suffix — the file kind that was
@@ -79,12 +102,13 @@ export function splitAuditAction(action: string): [string, string | null] {
 // Where a row's TARGET can be opened, or null when there is nowhere to go.
 //
 // The trail records what happened to a thing; without this it records the
-// thing's uuid and leaves you to paste it somewhere. Four of the five target
+// thing's uuid and leaves you to paste it somewhere. Five of the six target
 // types have a page:
 //
 //   application → the moderation detail page
 //   user        → that person's page
 //   campaign    → the campaign edit page (the only per-campaign screen)
+//   admin       → that admin's own log (an export's target)
 //   review      → the reviews LIST — there is no per-review page, and landing
 //                 on the right surface beats landing nowhere
 //   settings    → nothing to open, and its rows carry no target id anyway
@@ -109,6 +133,8 @@ export function auditTargetHref(
       return `/admin/users/${targetId}`;
     case "campaign":
       return `/admin/campaigns/${targetId}/edit`;
+    case "admin":
+      return auditActorLogHref(targetId);
     default:
       // An unknown target type is not an error — the trail is append-only and
       // older rows may name things this build has never heard of.
@@ -116,11 +142,15 @@ export function auditTargetHref(
   }
 }
 
-// Where the ACTOR can be opened. Admins have no page of their own (there is no
-// admin management UI), so only a user resolves.
-export function auditActorHref(
-  actorType: string,
-  actorId: string,
-): string | null {
-  return actorType === "user" ? `/admin/users/${actorId}` : null;
+// The log narrowed to one actor.
+export function auditActorLogHref(actorId: string): string {
+  return auditHref({ action: null, targetId: null, actorId, page: 1 });
+}
+
+// Where the ACTOR can be opened. A user has a page of their own; an admin has
+// none (the admins list is read-only), so an admin opens their own log.
+export function auditActorHref(actorType: string, actorId: string): string {
+  return actorType === "user"
+    ? `/admin/users/${actorId}`
+    : auditActorLogHref(actorId);
 }

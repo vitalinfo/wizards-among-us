@@ -31,6 +31,16 @@ vi.mock("@/features/audit/adminQueries", () => ({
   },
   listAuditActions: async () => [],
 }));
+const admin = vi.hoisted(() => ({
+  id: "6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11",
+  email: "olena@example.com",
+  displayName: "Олена",
+  createdAt: new Date("2026-09-01T10:00:00Z"),
+  hasAccess: true,
+}));
+vi.mock("@/features/admins/adminQueries", () => ({
+  getAdminById: async (id: string) => (id === admin.id ? admin : null),
+}));
 // Async server components nested in the page, which RTL cannot render; they
 // are not what this spec is about (Pager has its own).
 vi.mock("@/components/admin/AdminNav", () => ({ AdminNav: () => null }));
@@ -59,7 +69,7 @@ function row(overrides: Partial<AuditLogRow>): AuditLogRow {
 }
 
 async function renderPage(
-  searchParams: { action?: string; target?: string } = {},
+  searchParams: { action?: string; target?: string; actor?: string } = {},
 ) {
   data.filters = [];
   const ui = await AdminAuditPage({
@@ -134,6 +144,55 @@ describe("the admin audit log", () => {
     await renderPage();
 
     expect(screen.getByText(messages.admin.audit.empty)).toBeInTheDocument();
+  });
+
+  it("links an admin actor to their own log", async () => {
+    data.rows = [row({ actorId: admin.id, actorLabel: admin.email })];
+    await renderPage();
+
+    expect(screen.getByRole("link", { name: admin.email })).toHaveAttribute(
+      "href",
+      `/admin/audit?actor=${admin.id}`,
+    );
+  });
+
+  it("narrows to one admin and offers that view as CSV", async () => {
+    data.rows = [row({ actorId: admin.id })];
+    await renderPage({ actor: admin.id, action: "application.approved" });
+
+    expect(data.filters).toEqual([
+      expect.objectContaining({ actorId: admin.id }),
+      expect.objectContaining({ actorId: admin.id }),
+    ]);
+    expect(screen.getByText(admin.email)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", {
+        name: messages.admin.audit.actorFilter.export,
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/admin/audit/export?action=application.approved&actor=${admin.id}`,
+    );
+  });
+
+  // The whole trail is volunteers' addresses beside the children they opened;
+  // only one admin's activity is exportable.
+  it("offers no export unless narrowed to an admin", async () => {
+    data.rows = [row({})];
+    await renderPage();
+    expect(
+      screen.queryByRole("link", {
+        name: messages.admin.audit.actorFilter.export,
+      }),
+    ).not.toBeInTheDocument();
+
+    // A user's id still filters, but has no export.
+    await renderPage({ actor: "11111111-2222-4333-8444-555555555555" });
+    expect(
+      screen.queryByRole("link", {
+        name: messages.admin.audit.actorFilter.export,
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("has no accessibility violations", async () => {
