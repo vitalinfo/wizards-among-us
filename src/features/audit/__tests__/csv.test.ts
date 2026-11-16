@@ -27,15 +27,15 @@ const t = await getTranslations("admin.audit");
 const labels = messages.admin.audit;
 
 describe("auditLogsToCsv", () => {
-  it("writes the row as stored, detail suffix included", () => {
+  it("writes the row in words, the action's detail kept", () => {
     const [header, line] = auditLogsToCsv(t, [row]).split("\r\n");
     expect(header).toBe(
       "created_at,actor_type,actor_id,actor_label,ip,action,target_type,target_id",
     );
-    // The field list is quoted (it holds a comma) rather than split across
-    // columns — it is the record of what the admin changed.
+    // The field list follows the label — it is the record of what the admin
+    // changed — and the cell is quoted because it holds a comma.
     expect(line).toBe(
-      `2026-11-03T08:33:41.000Z,${labels.actorType.admin},6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11,admin@example.com,109.108.250.136,"application.updated_by_admin:childName,giftPrice",${labels.targetType.application},d75c6aa0-d3c3-468b-bffa-6ca82a25a1da`,
+      `2026-11-03T08:33:41.000Z,${labels.actorType.admin},6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11,admin@example.com,109.108.250.136,"${labels.actions.application.updated_by_admin}: childName,giftPrice",${labels.targetType.application},d75c6aa0-d3c3-468b-bffa-6ca82a25a1da`,
     );
   });
 
@@ -55,7 +55,7 @@ describe("auditLogsToCsv", () => {
       row.actorId,
       "admin@example.com",
       "",
-      "settings.intake_enabled",
+      labels.actions.settings.intake_enabled,
       labels.targetType.settings,
       "",
     ]);
@@ -63,11 +63,16 @@ describe("auditLogsToCsv", () => {
 
   // The trail is append-only: an older build's type has no copy here, and the
   // file must still say what it is rather than blank it.
-  it("writes a type without a label as its code", () => {
+  it("writes a type or an action without a label as its code", () => {
     const [, line] = auditLogsToCsv(t, [
-      { ...row, targetType: "something_new" },
+      {
+        ...row,
+        targetType: "something_new",
+        action: "application.teleported:idp_certificate",
+      },
     ]).split("\r\n");
     expect(line.split(",")).toContain("something_new");
+    expect(line.split(",")).toContain("application.teleported:idp_certificate");
   });
 
   it("is a header alone when there is nothing to export", () => {

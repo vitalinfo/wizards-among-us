@@ -4,6 +4,11 @@ type AuditTranslator = {
   raw(key: string): unknown;
 };
 
+// What a single label lookup needs — no `raw`, so a caller that only names
+// things (the CSV export) is not asked for more.
+export type AuditLabelTranslator = Pick<AuditTranslator, "has"> &
+  ((key: string) => string);
+
 // The readable name of an action code, from `admin.audit.actions` — or the
 // code itself when there is none. The trail is append-only and codes are added
 // in code, so a missing label must degrade to the raw code, never to an error
@@ -15,7 +20,10 @@ type AuditTranslator = {
 const ACTION_CODE = /^[a-z_]+\.[a-z_]+$/;
 const ENTITY = /^[a-z_]+$/;
 
-export function auditActionLabel(t: AuditTranslator, action: string): string {
+export function auditActionLabel(
+  t: AuditLabelTranslator,
+  action: string,
+): string {
   const key = `actions.${action}`;
   return ACTION_CODE.test(action) && t.has(key) ? t(key) : action;
 }
@@ -26,7 +34,7 @@ export function auditActionLabel(t: AuditTranslator, action: string): string {
 const TYPE_CODE = /^[a-z_]+$/;
 
 export function auditTypeLabel(
-  t: Pick<AuditTranslator, "has"> & ((key: string) => string),
+  t: AuditLabelTranslator,
   group: "actorType" | "targetType",
   code: string,
 ): string {
