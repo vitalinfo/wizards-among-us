@@ -8,6 +8,10 @@ import {
   queueExportCsv,
 } from "@/features/applications/export";
 import {
+  isFileLinkKind,
+  signFileLink,
+} from "@/features/applications/fileLinks";
+import {
   moderationCampaignScope,
   parseModerationQuery,
 } from "@/features/applications/moderationFilter";
@@ -50,11 +54,30 @@ export async function GET(request: NextRequest) {
   // Not request.url: behind Heroku's router that is the dyno's own address,
   // and these links are opened from a spreadsheet.
   const origin = requestOrigin(request.headers);
+  // Signed up front — signing is async, building the CSV is not.
+  const tokens = new Map<string, string>();
+  await Promise.all(
+    rows.flatMap((row) =>
+      row.photos.map(async (photo) => {
+        if (isFileLinkKind(photo.kind)) {
+          tokens.set(
+            photo.id,
+            await signFileLink({
+              applicationId: row.application.id,
+              fileId: photo.id,
+              kind: photo.kind,
+              adminId: actor.id,
+            }),
+          );
+        }
+      }),
+    ),
+  );
   const csv = queueExportCsv(rows, {
     heading: (column) => tColumns(column),
     regionLabel: (region) => tRegions(region),
-    photoUrl: (applicationId, fileId) =>
-      `${origin}/api/applications/${applicationId}/files/${fileId}`,
+    photoUrl: (_applicationId, fileId) =>
+      `${origin}/photos/${tokens.get(fileId)}`,
   });
 
   await recordAuditLog({

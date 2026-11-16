@@ -172,9 +172,9 @@ function giftUrlsOf(typeFields: unknown): string[] {
 //
 // Same rules as the campaign export: one campaign at a time (the route refuses
 // «Усі кампанії»), audit-logged, and no files inside it. The photos go in as
-// LINKS to the authorized file route, so opening one still needs an admin's
-// session and still writes `application.file_viewed` — a forwarded file shows
-// a stranger nothing.
+// signed LINKS (fileLinks.ts) that open without a session for 30 days: the
+// coordinators who work from this file have no account (Vital, Nov 2026).
+// Every open is logged as `application.file_viewed_via_link`.
 
 export const QUEUE_EXPORT_COLUMNS = [
   "childName",
