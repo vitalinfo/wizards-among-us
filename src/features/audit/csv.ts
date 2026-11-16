@@ -7,8 +7,10 @@ import {
 import type { AuditLogRow } from "@/features/audit/adminQueries";
 import { splitAuditAction } from "@/features/audit/listQuery";
 
-// The audit export's columns: the row as stored, with the action and the two
-// type columns in words (`admin.audit.actions` / `.actorType` / `.targetType`).
+// The audit export's columns, named in the file from `admin.audit.exportColumns`
+// (these codes are only the keys): the row as stored, with the action and the
+// two type columns in words (`admin.audit.actions` / `.actorType` /
+// `.targetType`).
 // A code without a label — an older build's, or one added without copy — is
 // written as itself, never blanked: the trail is append-only, so the file has
 // to read whatever is in it.
@@ -42,7 +44,7 @@ export function auditLogsToCsv(
   rows: readonly AuditLogRow[],
 ): string {
   return toCsv(
-    HEADERS,
+    HEADERS.map((column) => t(`exportColumns.${column}`)),
     rows.map((row) => [
       row.createdAt,
       auditTypeLabel(t, "actorType", row.actorType),

@@ -1832,6 +1832,16 @@
       "actorFilter": {
         "admin": "Лише дії адміністратора",
         "export": "Експортувати CSV"
+      },
+      "exportColumns": {
+        "created_at": "Коли",
+        "actor_type": "Тип виконавця",
+        "actor_id": "ID виконавця",
+        "actor_label": "Виконавець",
+        "ip": "IP-адреса",
+        "action": "Дія",
+        "target_type": "Тип обʼєкта",
+        "target_id": "ID обʼєкта"
       }
     }
   },

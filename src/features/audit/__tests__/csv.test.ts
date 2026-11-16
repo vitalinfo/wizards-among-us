@@ -29,8 +29,18 @@ const labels = messages.admin.audit;
 describe("auditLogsToCsv", () => {
   it("writes the row in words, the action's detail kept", () => {
     const [header, line] = auditLogsToCsv(t, [row]).split("\r\n");
+    const c = labels.exportColumns;
     expect(header).toBe(
-      "created_at,actor_type,actor_id,actor_label,ip,action,target_type,target_id",
+      [
+        c.created_at,
+        c.actor_type,
+        c.actor_id,
+        c.actor_label,
+        c.ip,
+        c.action,
+        c.target_type,
+        c.target_id,
+      ].join(","),
     );
     // The field list follows the label — it is the record of what the admin
     // changed — and the cell is quoted because it holds a comma.
