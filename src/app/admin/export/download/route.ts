@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { UTF8_BOM } from "@/features/applications/csv";
@@ -24,7 +25,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const csv = await exportApplicationsCsv(campaign.id);
+  const t = await getTranslations("admin.campaigns.export.columns");
+  const csv = await exportApplicationsCsv(campaign.id, (column) => t(column));
 
   await recordAuditLog({
     actor,

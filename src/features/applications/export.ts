@@ -25,7 +25,11 @@ import { latestByKind } from "./files";
 // It still exports NO files. The ВПО certificate stays behind the authorized
 // route that logs each read: a state document about a child does not belong in
 // a spreadsheet that gets emailed around.
-const HEADERS = [
+//
+// These codes are the column KEYS; the file's headings are Ukrainian, from
+// admin.campaigns.export.columns — worded as the queue export and the admin
+// application page word the same field.
+export const CAMPAIGN_EXPORT_COLUMNS = [
   "id",
   "child_name",
   "child_age",
@@ -48,12 +52,28 @@ const HEADERS = [
   "social_media_consent",
 ] as const;
 
+export type CampaignExportColumn = (typeof CAMPAIGN_EXPORT_COLUMNS)[number];
+
+export type CampaignExportRow = {
+  application: typeof applications.$inferSelect;
+  username: string | null;
+  phone: string | null;
+  claimId: string | null;
+};
+
 // One campaign at a time. An export that silently spanned every campaign would
 // resurrect years of archived families into a single file.
 export async function exportApplicationsCsv(
   campaignId: string,
+  heading: (column: CampaignExportColumn) => string,
 ): Promise<string> {
-  const rows = await getDb()
+  return campaignExportCsv(await listForCampaignExport(campaignId), heading);
+}
+
+async function listForCampaignExport(
+  campaignId: string,
+): Promise<CampaignExportRow[]> {
+  return getDb()
     .select({
       application: applications,
       username: users.username,
@@ -70,7 +90,12 @@ export async function exportApplicationsCsv(
     )
     .where(eq(applications.campaignId, campaignId))
     .orderBy(asc(applications.submittedAt));
+}
 
+export function campaignExportCsv(
+  rows: readonly CampaignExportRow[],
+  heading: (column: CampaignExportColumn) => string,
+): string {
   const body = rows.map((row) => {
     const a = row.application;
     const contact = resolveUserContact(row);
@@ -98,7 +123,7 @@ export async function exportApplicationsCsv(
     ];
   });
 
-  return toCsv(HEADERS, body);
+  return toCsv(CAMPAIGN_EXPORT_COLUMNS.map(heading), body);
 }
 
 function contactCell(contact: ResolvedContact | null): string {

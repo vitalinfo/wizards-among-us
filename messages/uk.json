@@ -1347,6 +1347,30 @@
         }
       },
       "exportCta": "Експорт",
+      "export": {
+        "columns": {
+          "id": "ID анкети",
+          "child_name": "Прізвище імʼя дитини",
+          "child_age": "Вік",
+          "child_gender": "Стать",
+          "current_region": "Область зараз",
+          "gift_description": "Опис подарунка",
+          "gift_price_uah": "Вартість подарунка, грн",
+          "status": "Статус",
+          "submitted_at": "Подано",
+          "claimed": "Взято волонтером",
+          "parent_name": "Батько / мати",
+          "current_town": "Місто зараз",
+          "home_town": "Рідне місто",
+          "home_region": "Рідна область",
+          "displaced_year": "Рік переїзду",
+          "family_story": "Історія родини",
+          "delivery_information": "Куди доставити",
+          "contact": "Контакт родини",
+          "gift_urls": "Посилання на товар",
+          "social_media_consent": "Дозвіл на публікацію фото"
+        }
+      },
       "analyticsCta": "Аналітика",
       "analytics": {
         "title": "Аналітика",
