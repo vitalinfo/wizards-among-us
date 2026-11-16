@@ -1720,6 +1720,15 @@
         "admin": "адміністратор",
         "user": "користувач"
       },
+      "targetType": {
+        "admin": "адміністратор",
+        "application": "анкета",
+        "campaign": "кампанія",
+        "faq": "питання FAQ",
+        "review": "відгук",
+        "settings": "налаштування",
+        "user": "користувач"
+      },
       "actionGroups": {
         "admin": "Адміністратори",
         "application": "Анкети",

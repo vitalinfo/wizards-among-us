@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getAdminById } from "@/features/admins/adminQueries";
@@ -35,13 +36,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const csv = auditLogsToCsv(
-    await listAllAuditLogs({
+  const [t, rows] = await Promise.all([
+    getTranslations("admin.audit"),
+    listAllAuditLogs({
       action: query.action,
       targetId: query.targetId,
       actorId: subject.id,
     }),
-  );
+  ]);
+  const csv = auditLogsToCsv(t, rows);
 
   await recordAuditLog({
     actor,

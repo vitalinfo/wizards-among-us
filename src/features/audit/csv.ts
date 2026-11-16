@@ -1,9 +1,19 @@
 import { toCsv } from "@/features/applications/csv";
 import type { AuditLogRow } from "@/features/audit/adminQueries";
 
-// The audit export's columns: the row as stored, nothing derived. The action
-// stays the raw code with its ":detail" suffix — that suffix is the record of
-// which file was viewed or which fields changed, and a label would drop it.
+type AuditTranslator = {
+  (key: string): string;
+  has(key: string): boolean;
+};
+
+// The audit export's columns: the row as stored, with the two type columns in
+// words (`admin.audit.actorType` / `.targetType`). A type without a label —
+// an older build's, or one added without copy — is written as its code, never
+// blanked: the trail is append-only, so the file has to read whatever is in it.
+//
+// The action stays the raw code with its ":detail" suffix — that suffix is
+// the record of which file was viewed or which fields changed, and a label
+// would drop it.
 const HEADERS = [
   "created_at",
   "actor_type",
@@ -15,17 +25,32 @@ const HEADERS = [
   "target_id",
 ] as const;
 
-export function auditLogsToCsv(rows: readonly AuditLogRow[]): string {
+const TYPE_CODE = /^[a-z_]+$/;
+
+function typeLabel(
+  t: AuditTranslator,
+  group: "actorType" | "targetType",
+  code: string,
+): string {
+  const key = `${group}.${code}`;
+  return TYPE_CODE.test(code) && t.has(key) ? t(key) : code;
+}
+
+// `t` is scoped to `admin.audit`.
+export function auditLogsToCsv(
+  t: AuditTranslator,
+  rows: readonly AuditLogRow[],
+): string {
   return toCsv(
     HEADERS,
     rows.map((row) => [
       row.createdAt,
-      row.actorType,
+      typeLabel(t, "actorType", row.actorType),
       row.actorId,
       row.actorLabel,
       row.ip,
       row.action,
-      row.targetType,
+      typeLabel(t, "targetType", row.targetType),
       row.targetId,
     ]),
   );

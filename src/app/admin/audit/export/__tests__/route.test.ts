@@ -11,6 +11,9 @@ const state = vi.hoisted(() => ({
   logged: [] as unknown[],
 }));
 const ADMIN_ID = "6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11";
+vi.mock("next-intl/server", async () =>
+  (await import("@/test/serverIntl")).serverIntl(),
+);
 vi.mock("@/lib/auth/session", () => ({
   getSessionActor: async () => state.actor,
 }));
@@ -41,6 +44,8 @@ vi.mock("@/features/audit/log", () => ({
     state.logged.push(entry);
   },
 }));
+
+import messages from "../../../../../../messages/uk.json";
 
 import { GET } from "../route";
 
@@ -98,6 +103,11 @@ describe("the audit export", () => {
     const body = await response.text();
     expect(body.split("\r\n")).toHaveLength(2);
     expect(body).toContain("olena@example.com");
+    // The type columns in words, from the real messages.
+    expect(body).toContain(
+      `,${messages.admin.audit.actorType.admin},${ADMIN_ID},`,
+    );
+    expect(body).toContain(`,${messages.admin.audit.targetType.application},`);
 
     expect(state.logged).toEqual([
       {
