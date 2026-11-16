@@ -1,5 +1,7 @@
+// @vitest-environment node
+import { decodeJwt } from "jose";
 import { NextRequest } from "next/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Actor } from "@/lib/actor";
 
@@ -56,6 +58,7 @@ function download(search: string) {
 }
 
 beforeEach(() => {
+  vi.stubEnv("FILE_LINK_SECRET", "test-file-link-secret-0123456789abcdef");
   session.actor = admin;
   listForQueueExport.mockReset().mockResolvedValue([
     {
@@ -78,6 +81,9 @@ beforeEach(() => {
     },
   ]);
   recordAuditLog.mockReset();
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("GET /admin/applications/export", () => {
@@ -130,9 +136,17 @@ describe("GET /admin/applications/export", () => {
     expect(body).toContain(
       messages.admin.applications.export.columns.childName,
     );
-    // The public origin, not the dyno's address the request arrived on.
-    expect(body).toContain(
-      "https://wizards-among-us.pp.ua/api/applications/app-1/files/file-1",
-    );
+    // A signed link on the public origin, not the dyno's address the request
+    // arrived on — for that one photo, issued by this admin.
+    const token = body.match(
+      /https:\/\/wizards-among-us\.pp\.ua\/photos\/([\w-]+\.[\w-]+\.[\w-]+)/,
+    )?.[1];
+    expect(token).toBeDefined();
+    expect(decodeJwt(token!)).toMatchObject({
+      sub: "file-1",
+      app: "app-1",
+      kind: "letter_photo",
+      adm: "admin-1",
+    });
   });
 });

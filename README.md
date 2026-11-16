@@ -90,6 +90,7 @@ DIRECT_DATABASE_URL=    # optional: Neon's direct string, used only by migration
 
 # Auth
 AUTH_SECRET=            # session/JWT signing
+FILE_LINK_SECRET=       # signs the export's photo links; rotate to revoke them all
 TELEGRAM_BOT_TOKEN=     # secret; the bot that messages people
 TELEGRAM_CLIENT_ID=     # Telegram login (OpenID Connect): the bot's numeric id
 TELEGRAM_CLIENT_SECRET= # secret; BotFather → bot → Login Widget (OpenID Connect)
@@ -529,9 +530,14 @@ downloads the queue **under its current filter** — status, dates, name search,
 as the coordinators' working list, with Ukrainian headings
 (`/admin/applications/export?…`, the queue's own query string). Logged as
 `campaign.applications_exported`; the audit row names the campaign, not the filter (the table
-has nowhere to put it). The letter photo and the child-with-letter photo go in as **links** to
-the authorized file route, so opening one still needs an admin session and is logged as a
-file view. «Усі кампанії» is refused, for the reason below.
+has nowhere to put it). The letter photo and the child-with-letter photo go in as **signed
+links** (`/photos/<token>`) that open **without a session** — the coordinators who work from
+this file have no account. Each token is for one photo, expires after **30 days**, and is
+re-checked on every read: the file must still exist and the campaign still be active, and the
+admin who exported it must still be in `ADMIN_ALLOWLIST`. Each open is logged as
+`application.file_viewed_via_link` against that admin. Never the ВПО certificate. To revoke
+every outstanding link at once, rotate `FILE_LINK_SECRET`. «Усі кампанії» is refused, for the
+reason below.
 
 It carries the fields the child-data invariant calls sensitive — parent name, current town,
 delivery information, family story and the family's contact — so **the file itself is the most
@@ -723,6 +729,7 @@ against production's own config vars.
 | `CANONICAL_HOST` | *Recommended.* The one host this app should be served on, no scheme (e.g. `staging.wizards-among-us.pp.ua`). Requests on any other host are redirected to it. Unset = accept whatever host was requested |
 | `MAINTENANCE_MODE` | Optional. `true` (or `1`) serves every page and API route as the maintenance screen (`/maintenance`, the 404/500 layout with its own copy) with a `503`. Static assets still load. Flip it with `heroku config:set MAINTENANCE_MODE=true -a <app>` and `heroku config:unset MAINTENANCE_MODE -a <app>` — a config change restarts the dyno, no rebuild |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
+| `FILE_LINK_SECRET` | `openssl rand -base64 32`. Signs the photo links in the queue export (30 days each). Rotating it revokes every outstanding link without signing anyone out. Without it the export fails |
 | `TELEGRAM_BOT_TOKEN` | BotFather token for **this** environment's bot |
 | `TELEGRAM_CLIENT_ID` | That bot's numeric id — the OpenID Connect client id for Telegram login |
 | `TELEGRAM_CLIENT_SECRET` | That bot's client secret: BotFather → bot → **Login Widget** → *Switch to OpenID Connect Login*. Register `https://<host>/auth/telegram/callback` as a redirect URL there. Without both vars the login button is hidden |
