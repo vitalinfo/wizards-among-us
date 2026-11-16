@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import type { UkraineRegion } from "@/db/enums";
+import type { ApplicationStatus, ChildGender, UkraineRegion } from "@/db/enums";
 import { applicationFiles, applications, claims, users } from "@/db/schema";
 import {
   resolveUserContact,
@@ -13,7 +13,7 @@ import {
   moderationOrder,
   type ModerationFilterInput,
 } from "./adminQueries";
-import { toCsv } from "./csv";
+import { csvTime, toCsv } from "./csv";
 import { latestByKind } from "./files";
 
 // One export per campaign: the full working list a coordinator runs a campaign
@@ -25,7 +25,11 @@ import { latestByKind } from "./files";
 // It still exports NO files. The ВПО certificate stays behind the authorized
 // route that logs each read: a state document about a child does not belong in
 // a spreadsheet that gets emailed around.
-const HEADERS = [
+//
+// These codes are the column KEYS; the file's headings are Ukrainian, from
+// admin.campaigns.export.columns — worded as the queue export and the admin
+// application page word the same field.
+export const CAMPAIGN_EXPORT_COLUMNS = [
   "id",
   "child_name",
   "child_age",
@@ -48,12 +52,28 @@ const HEADERS = [
   "social_media_consent",
 ] as const;
 
+export type CampaignExportColumn = (typeof CAMPAIGN_EXPORT_COLUMNS)[number];
+
+export type CampaignExportRow = {
+  application: typeof applications.$inferSelect;
+  username: string | null;
+  phone: string | null;
+  claimId: string | null;
+};
+
 // One campaign at a time. An export that silently spanned every campaign would
 // resurrect years of archived families into a single file.
 export async function exportApplicationsCsv(
   campaignId: string,
+  deps: CampaignExportDeps,
 ): Promise<string> {
-  const rows = await getDb()
+  return campaignExportCsv(await listForCampaignExport(campaignId), deps);
+}
+
+async function listForCampaignExport(
+  campaignId: string,
+): Promise<CampaignExportRow[]> {
+  return getDb()
     .select({
       application: applications,
       username: users.username,
@@ -70,35 +90,52 @@ export async function exportApplicationsCsv(
     )
     .where(eq(applications.campaignId, campaignId))
     .orderBy(asc(applications.submittedAt));
+}
 
+export type CampaignExportDeps = {
+  heading: (column: CampaignExportColumn) => string;
+  // In the words the admin screens use for the same values.
+  statusLabel: (status: ApplicationStatus) => string;
+  genderLabel: (gender: ChildGender) => string;
+  regionLabel: (region: UkraineRegion) => string;
+  yesNo: (value: boolean) => string;
+};
+
+// Values in words, as the queue export writes them: a region, a gender and a
+// status by their labels, a submission in the app's time zone, the contact as
+// a link that opens the chat. A value the parent hasn't given (a draft's
+// gender, an unanswered consent) stays empty rather than reading «ні».
+export function campaignExportCsv(
+  rows: readonly CampaignExportRow[],
+  deps: CampaignExportDeps,
+): string {
   const body = rows.map((row) => {
     const a = row.application;
-    const contact = resolveUserContact(row);
     return [
       a.id,
       a.childName,
       a.childAge,
-      a.childGender,
-      a.currentRegion,
+      a.childGender ? deps.genderLabel(a.childGender) : null,
+      a.currentRegion ? deps.regionLabel(a.currentRegion) : null,
       a.giftDescription,
       a.giftPrice,
-      a.status,
-      a.submittedAt,
-      row.claimId ? "yes" : "no",
+      deps.statusLabel(a.status),
+      a.submittedAt ? csvTime(a.submittedAt) : null,
+      deps.yesNo(row.claimId !== null),
       a.parentName,
       a.currentTown,
       a.homeTown,
-      a.homeRegion,
+      a.homeRegion ? deps.regionLabel(a.homeRegion) : null,
       a.displacedYear,
       a.familyStory,
       a.deliveryInformation,
-      contactCell(contact),
+      queueContactCell(resolveUserContact(row)),
       giftUrlsOf(a.typeFields).join(" "),
-      a.socialMediaConsent === null ? "" : a.socialMediaConsent ? "yes" : "no",
+      a.socialMediaConsent === null ? null : deps.yesNo(a.socialMediaConsent),
     ];
   });
 
-  return toCsv(HEADERS, body);
+  return toCsv(CAMPAIGN_EXPORT_COLUMNS.map(deps.heading), body);
 }
 
 function contactCell(contact: ResolvedContact | null): string {
@@ -108,7 +145,8 @@ function contactCell(contact: ResolvedContact | null): string {
   return contact.method === "telegram" ? `@${contact.value}` : contact.value;
 }
 
-// A link rather than «@handle»: it opens the chat from the spreadsheet, and a
+// Both exports write the contact this way. A link rather than «@handle»: it
+// opens the chat from the spreadsheet, and a
 // cell starting with @ would be read as a formula and written with the guard's
 // apostrophe in front. A phone keeps that apostrophe — without it a
 // spreadsheet reads «+380…» as a number and drops the plus.
