@@ -97,6 +97,13 @@ export async function AuditFilterForm({
         />
       </div>
 
+      {/* Set from the admins list (or an actor link), not typed here: kept so
+          narrowing by action stays inside that one person's log. «Скинути»
+          drops it with the rest. */}
+      {query.actorId ? (
+        <input type="hidden" name="actor" value={query.actorId} />
+      ) : null}
+
       <div className="flex items-center gap-3">
         <button
           type="submit"

@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AuditFilterForm } from "@/components/admin/AuditFilterForm";
 import { Pager } from "@/components/ui/Pager";
-import { auditActionLabel } from "@/features/audit/actionLabel";
+import { buttonVariants } from "@/components/ui/buttonStyles";
+import { getAdminById } from "@/features/admins/adminQueries";
+import { auditActionLabel, auditTypeLabel } from "@/features/audit/actionLabel";
 import {
   countAuditLogs,
   listAuditActions,
@@ -13,6 +15,7 @@ import {
 } from "@/features/audit/adminQueries";
 import {
   auditActorHref,
+  auditExportHref,
   auditHref,
   auditPageCount,
   auditTargetHref,
@@ -35,11 +38,20 @@ export const dynamic = "force-dynamic";
 // read it, which makes a control nobody can consult.
 //
 // Append-only, and this page never offers a way to change that: no edit, no
-// delete, no export. A trail an admin can tidy is not a trail.
+// delete. A trail an admin can tidy is not a trail.
+//
+// Narrowed to one ADMIN (?actor=, from the admins list) it can be exported —
+// read-only, so it tidies nothing, and logged. Only then: the rest of the trail
+// is volunteers' addresses beside the children they opened (see the route).
 export default async function AdminAuditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ action?: string; target?: string; page?: string }>;
+  searchParams: Promise<{
+    action?: string;
+    target?: string;
+    actor?: string;
+    page?: string;
+  }>;
 }) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
@@ -55,11 +67,14 @@ export default async function AdminAuditPage({
   const page = Math.min(query.page, pageCount);
   const offset = (page - 1) * AUDIT_PAGE_SIZE;
 
-  const [t, format, rows, actions] = await Promise.all([
+  const [t, format, rows, actions, actorAdmin] = await Promise.all([
     getTranslations("admin.audit"),
     getFormatter(),
     listAuditLogs({ filter: query, limit: AUDIT_PAGE_SIZE, offset }),
     listAuditActions(),
+    // Who an ?actor= names, when it is an admin — the only case with an
+    // export. A user's id still filters; their page is one click from a row.
+    query.actorId ? getAdminById(query.actorId) : null,
   ]);
 
   const cell = "border-border border-b px-3 py-2 align-top";
@@ -76,6 +91,23 @@ export default async function AdminAuditPage({
         </div>
 
         <AuditFilterForm query={query} actions={actions} />
+
+        {actorAdmin ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm">
+              {t("actorFilter.admin")}{" "}
+              <strong className="break-all">{actorAdmin.email}</strong>
+            </p>
+            {/* A plain anchor: the route answers with a file, which a
+                client-side navigation would try to render. */}
+            <a
+              href={auditExportHref(query)}
+              className={`${buttonVariants.outline} focus-visible:outline-ring rounded-md px-4 py-[calc(0.5rem-1.5px)] text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2`}
+            >
+              {t("actorFilter.export")}
+            </a>
+          </div>
+        ) : null}
 
         {rows.length === 0 ? (
           <p className="text-muted-foreground">
@@ -131,13 +163,9 @@ export default async function AdminAuditPage({
                         {/* The label is a SNAPSHOT taken when the row was
                             written, so it stays readable after the actor is
                             deleted — which is when a trail matters most. */}
-                        {actorHref ? (
-                          <Link href={actorHref} className={linkClass}>
-                            {row.actorLabel}
-                          </Link>
-                        ) : (
-                          <span className="break-all">{row.actorLabel}</span>
-                        )}
+                        <Link href={actorHref} className={linkClass}>
+                          {row.actorLabel}
+                        </Link>
                         <p className="text-muted-foreground text-xs">
                           {t(`actorType.${row.actorType}`)}
                         </p>
@@ -192,7 +220,7 @@ export default async function AdminAuditPage({
                             above it, and putting it first pushed the value you
                             came to read into the middle of the cell. */}
                         <p className="text-muted-foreground text-xs">
-                          {row.targetType}
+                          {auditTypeLabel(t, "targetType", row.targetType)}
                         </p>
                       </td>
                     </tr>

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   auditActorHref,
+  auditActorLogHref,
+  auditExportHref,
   auditHref,
   auditPageCount,
   isDefaultAuditQuery,
@@ -16,6 +18,7 @@ describe("parseAuditQuery", () => {
     expect(parseAuditQuery({})).toEqual({
       action: null,
       targetId: null,
+      actorId: null,
       page: 1,
     });
   });
@@ -29,8 +32,18 @@ describe("parseAuditQuery", () => {
     ).toEqual({
       action: "application.approved",
       targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
+      actorId: null,
       page: 1,
     });
+  });
+
+  it("reads an actor id, and drops a malformed one", () => {
+    const actor = "6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11";
+    expect(parseAuditQuery({ actor: ` ${actor} ` }).actorId).toBe(actor);
+    const bad = parseAuditQuery({ actor: "admin@example.com" });
+    expect(bad.actorId).toBeNull();
+    expect(isDefaultAuditQuery(bad)).toBe(true);
+    expect(isDefaultAuditQuery(parseAuditQuery({ actor }))).toBe(false);
   });
 
   // Postgres errors on a malformed uuid, so one in the url must not reach it.
@@ -73,6 +86,7 @@ describe("auditHref", () => {
     const query = {
       action: "application.approved",
       targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
+      actorId: "6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11",
       page: 1,
     };
     const href = auditHref(query, 3);
@@ -128,6 +142,11 @@ describe("auditTargetHref", () => {
     expect(auditTargetHref("review", null)).toBe("/admin/reviews");
   });
 
+  // An export's target is the admin whose activity was taken.
+  it("sends an admin to their own log", () => {
+    expect(auditTargetHref("admin", "a1")).toBe("/admin/audit?actor=a1");
+  });
+
   it("has nowhere to send a settings row", () => {
     expect(auditTargetHref("settings", null)).toBeNull();
   });
@@ -146,8 +165,24 @@ describe("auditActorHref", () => {
     expect(auditActorHref("user", "u1")).toBe("/admin/users/u1");
   });
 
-  // There is no admin management screen, so an admin's id points at nothing.
-  it("leaves an admin as plain text", () => {
-    expect(auditActorHref("admin", "a1")).toBeNull();
+  // An admin has no page of their own; their log is what there is to open.
+  it("opens an admin's own log", () => {
+    expect(auditActorHref("admin", "a1")).toBe("/admin/audit?actor=a1");
+    expect(auditActorLogHref("a1")).toBe("/admin/audit?actor=a1");
+  });
+});
+
+describe("auditExportHref", () => {
+  // The CSV is the view on screen, all of it — a page number would make it
+  // look like a filter while exporting everything anyway.
+  it("carries the filters and drops the page", () => {
+    expect(
+      auditExportHref({
+        action: "application.approved",
+        targetId: null,
+        actorId: "a1",
+        page: 4,
+      }),
+    ).toBe("/admin/audit/export?action=application.approved&actor=a1");
   });
 });

@@ -9,7 +9,7 @@ import type { AuditQuery } from "@/features/audit/listQuery";
 
 export type AuditLogRow = typeof auditLogs.$inferSelect;
 
-export type AuditFilter = Pick<AuditQuery, "action" | "targetId">;
+export type AuditFilter = Pick<AuditQuery, "action" | "targetId" | "actorId">;
 
 // An action code without its ":detail" suffix — what the filter matches on, so
 // `application.file_viewed` finds every file kind. split_part rather than LIKE:
@@ -17,11 +17,13 @@ export type AuditFilter = Pick<AuditQuery, "action" | "targetId">;
 const baseAction = sql<string>`split_part(${auditLogs.action}, ':', 1)`;
 
 // One WHERE for the count and the page, so the pager can't disagree with the
-// rows it pages. A target id is served by audit_logs_target_idx.
+// rows it pages. A target id is served by audit_logs_target_idx, an actor id
+// by audit_logs_actor_idx.
 function auditWhere(filter: AuditFilter): SQL | undefined {
   return and(
     filter.action ? eq(baseAction, filter.action) : undefined,
     filter.targetId ? eq(auditLogs.targetId, filter.targetId) : undefined,
+    filter.actorId ? eq(auditLogs.actorId, filter.actorId) : undefined,
   );
 }
 
@@ -55,6 +57,19 @@ export async function listAuditLogs(params: {
     .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
     .limit(params.limit)
     .offset(params.offset);
+}
+
+// Every row the filter matches, unpaged, in the log's own order — the export.
+// The route only calls this narrowed to one admin, which bounds it to what one
+// person did by hand.
+export async function listAllAuditLogs(
+  filter: AuditFilter,
+): Promise<AuditLogRow[]> {
+  return getDb()
+    .select()
+    .from(auditLogs)
+    .where(auditWhere(filter))
+    .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id));
 }
 
 // The action filter's options: every action ever logged, read from the trail

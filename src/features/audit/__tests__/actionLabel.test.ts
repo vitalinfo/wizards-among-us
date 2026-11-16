@@ -7,7 +7,11 @@ vi.mock("next-intl/server", async () =>
 
 import messages from "../../../../messages/uk.json";
 
-import { auditActionLabel, groupAuditActions } from "../actionLabel";
+import {
+  auditActionLabel,
+  auditTypeLabel,
+  groupAuditActions,
+} from "../actionLabel";
 
 // The same translator the page and the form hand it.
 const t = await getTranslations("admin.audit");
@@ -71,5 +75,25 @@ describe("groupAuditActions", () => {
     expect(groups[1].options).toEqual([
       { action: "teleport.used", label: "teleport.used" },
     ]);
+  });
+});
+
+describe("auditTypeLabel", () => {
+  it("names a known actor and target type", () => {
+    expect(auditTypeLabel(t, "actorType", "admin")).toBe(
+      messages.admin.audit.actorType.admin,
+    );
+    expect(auditTypeLabel(t, "targetType", "campaign")).toBe(
+      messages.admin.audit.targetType.campaign,
+    );
+  });
+
+  // Same fallback as an action: an older build's type still reads, and a
+  // malformed one never reaches a lookup that would name a whole namespace.
+  it("falls back to the code", () => {
+    expect(auditTypeLabel(t, "targetType", "something_new")).toBe(
+      "something_new",
+    );
+    expect(auditTypeLabel(t, "targetType", "a.b")).toBe("a.b");
   });
 });
