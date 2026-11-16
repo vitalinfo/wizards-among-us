@@ -45,7 +45,7 @@ describe("auditLogsToCsv", () => {
     // The field list follows the label — it is the record of what the admin
     // changed — and the cell is quoted because it holds a comma.
     expect(line).toBe(
-      `2026-11-03T08:33:41.000Z,${labels.actorType.admin},6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11,admin@example.com,109.108.250.136,"${labels.actions.application.updated_by_admin}: childName,giftPrice",${labels.targetType.application},d75c6aa0-d3c3-468b-bffa-6ca82a25a1da`,
+      `2026-11-03 10:33:41,${labels.actorType.admin},6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11,admin@example.com,109.108.250.136,"${labels.actions.application.updated_by_admin}: childName,giftPrice",${labels.targetType.application},d75c6aa0-d3c3-468b-bffa-6ca82a25a1da`,
     );
   });
 
@@ -60,7 +60,7 @@ describe("auditLogsToCsv", () => {
       },
     ]).split("\r\n");
     expect(line.split(",")).toEqual([
-      "2026-11-03T08:33:41.000Z",
+      "2026-11-03 10:33:41",
       labels.actorType.admin,
       row.actorId,
       "admin@example.com",
@@ -83,6 +83,15 @@ describe("auditLogsToCsv", () => {
     ]).split("\r\n");
     expect(line.split(",")).toContain("something_new");
     expect(line.split(",")).toContain("application.teleported:idp_certificate");
+  });
+
+  // The zone the page shows, through both offsets: UTC+2 above, UTC+3 here —
+  // where 21:30 UTC is already the next day, and midnight is 00, not 24.
+  it("writes the time in Kyiv, summer time included", () => {
+    const [, line] = auditLogsToCsv(t, [
+      { ...row, createdAt: new Date("2026-07-01T21:00:00Z") },
+    ]).split("\r\n");
+    expect(line.split(",")[0]).toBe("2026-07-02 00:00:00");
   });
 
   it("is a header alone when there is nothing to export", () => {
