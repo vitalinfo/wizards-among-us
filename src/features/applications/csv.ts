@@ -3,6 +3,8 @@
 // Pure and dependency-free so it can be unit-tested: the export route only
 // fetches rows and hands them here.
 
+import { timeZone } from "@/i18n/config";
+
 // A leading =, +, -, @ (or the tab/CR that some parsers strip before looking)
 // makes Excel and Google Sheets treat the cell as a FORMULA. A parent's family
 // story or a gift description is free text, so a cell can start with any of
@@ -56,6 +58,28 @@ export function toCsv(
   }
   // CRLF per RFC 4180 — Excel is the target reader.
   return lines.join("\r\n");
+}
+
+// A moment as the app's pages show it — in its one time zone (Europe/Kyiv) —
+// written `2026-11-03 10:33:41`: with the seconds a page leaves out, and still
+// sorting as text. h23, or midnight comes out as «24». The server runs in UTC,
+// so a Date written as-is would read two or three hours off what an admin saw.
+const appTime = new Intl.DateTimeFormat("en-GB", {
+  timeZone,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
+export function csvTime(date: Date): string {
+  const part = Object.fromEntries(
+    appTime.formatToParts(date).map(({ type, value }) => [type, value]),
+  );
+  return `${part.year}-${part.month}-${part.day} ${part.hour}:${part.minute}:${part.second}`;
 }
 
 // Excel on Windows assumes the system codepage unless a UTF-8 byte-order mark

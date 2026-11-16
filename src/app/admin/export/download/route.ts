@@ -25,8 +25,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const t = await getTranslations("admin.campaigns.export.columns");
-  const csv = await exportApplicationsCsv(campaign.id, (column) => t(column));
+  const [tColumns, tStatus, tGenders, tRegions, tApplications] =
+    await Promise.all([
+      getTranslations("admin.campaigns.export.columns"),
+      getTranslations("parent.applications.status"),
+      getTranslations("genders"),
+      getTranslations("regions"),
+      getTranslations("admin.applications"),
+    ]);
+  const csv = await exportApplicationsCsv(campaign.id, {
+    heading: (column) => tColumns(column),
+    statusLabel: (status) => tStatus(status),
+    genderLabel: (gender) => tGenders(gender),
+    regionLabel: (region) => tRegions(region),
+    yesNo: (value) => tApplications(value ? "yes" : "no"),
+  });
 
   await recordAuditLog({
     actor,
