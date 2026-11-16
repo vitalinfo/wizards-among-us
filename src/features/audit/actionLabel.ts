@@ -20,6 +20,20 @@ export function auditActionLabel(t: AuditTranslator, action: string): string {
   return ACTION_CODE.test(action) && t.has(key) ? t(key) : action;
 }
 
+// The readable name of an actor or target type (`admin.audit.actorType` /
+// `.targetType`), or the code itself when there is none — the same fallback as
+// an action, for the same reason. Shared by the log page and the CSV export.
+const TYPE_CODE = /^[a-z_]+$/;
+
+export function auditTypeLabel(
+  t: Pick<AuditTranslator, "has"> & ((key: string) => string),
+  group: "actorType" | "targetType",
+  code: string,
+): string {
+  const key = `${group}.${code}`;
+  return TYPE_CODE.test(code) && t.has(key) ? t(key) : code;
+}
+
 export type AuditActionGroup = {
   entity: string;
   label: string;

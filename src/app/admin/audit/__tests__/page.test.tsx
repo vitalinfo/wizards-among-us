@@ -123,6 +123,23 @@ describe("the admin audit log", () => {
     ).toBeInTheDocument();
   });
 
+  it("names each target's type, and a type without copy by its code", async () => {
+    data.rows = [
+      row({ targetType: "application" }),
+      row({
+        id: "00000000-0000-4000-8000-000000000002",
+        targetType: "something_new",
+      }),
+    ];
+    await renderPage();
+
+    const [, named, unnamed] = screen.getAllByRole("row");
+    expect(
+      within(named).getByText(messages.admin.audit.targetType.application),
+    ).toBeInTheDocument();
+    expect(within(unnamed).getByText("something_new")).toBeInTheDocument();
+  });
+
   it("narrows the count and the page by the url's filters", async () => {
     data.rows = [];
     const target = "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da";

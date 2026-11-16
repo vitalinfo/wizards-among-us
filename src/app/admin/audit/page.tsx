@@ -7,7 +7,7 @@ import { AuditFilterForm } from "@/components/admin/AuditFilterForm";
 import { Pager } from "@/components/ui/Pager";
 import { buttonVariants } from "@/components/ui/buttonStyles";
 import { getAdminById } from "@/features/admins/adminQueries";
-import { auditActionLabel } from "@/features/audit/actionLabel";
+import { auditActionLabel, auditTypeLabel } from "@/features/audit/actionLabel";
 import {
   countAuditLogs,
   listAuditActions,
@@ -220,7 +220,7 @@ export default async function AdminAuditPage({
                             above it, and putting it first pushed the value you
                             came to read into the middle of the cell. */}
                         <p className="text-muted-foreground text-xs">
-                          {row.targetType}
+                          {auditTypeLabel(t, "targetType", row.targetType)}
                         </p>
                       </td>
                     </tr>

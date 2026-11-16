@@ -1,4 +1,5 @@
 import { toCsv } from "@/features/applications/csv";
+import { auditTypeLabel } from "@/features/audit/actionLabel";
 import type { AuditLogRow } from "@/features/audit/adminQueries";
 
 type AuditTranslator = {
@@ -25,17 +26,6 @@ const HEADERS = [
   "target_id",
 ] as const;
 
-const TYPE_CODE = /^[a-z_]+$/;
-
-function typeLabel(
-  t: AuditTranslator,
-  group: "actorType" | "targetType",
-  code: string,
-): string {
-  const key = `${group}.${code}`;
-  return TYPE_CODE.test(code) && t.has(key) ? t(key) : code;
-}
-
 // `t` is scoped to `admin.audit`.
 export function auditLogsToCsv(
   t: AuditTranslator,
@@ -45,12 +35,12 @@ export function auditLogsToCsv(
     HEADERS,
     rows.map((row) => [
       row.createdAt,
-      typeLabel(t, "actorType", row.actorType),
+      auditTypeLabel(t, "actorType", row.actorType),
       row.actorId,
       row.actorLabel,
       row.ip,
       row.action,
-      typeLabel(t, "targetType", row.targetType),
+      auditTypeLabel(t, "targetType", row.targetType),
       row.targetId,
     ]),
   );
