@@ -55,6 +55,17 @@ Check these again on the day. If one is no longer true, stop and adjust before c
 - **The migration history comes over in the dump.** It lives in
   `drizzle.__drizzle_migrations`, outside `public`. Dump the whole database, never `-n public`,
   or the release phase will try to replay all 17 migrations on top of existing tables.
+- **Neon adds a column option that vanilla Postgres rejects.** Both Neon projects carry
+  `pg_attver=<n>` on `users.banned_at` (a column added later with `ALTER TABLE`). `pg_dump`
+  emits it as `ALTER TABLE ONLY public.users ALTER COLUMN banned_at SET (pg_attver=…);`, and
+  Heroku fails the whole restore with `unrecognized parameter "pg_attver"`. That statement is
+  part of the `users` table's TOC entry, so `pg_restore -L` can't drop it on its own. The
+  restore therefore goes through plain SQL with that one statement filtered out (B4, C4).
+  It is internal to Neon and means nothing to Heroku, so dropping it loses nothing. The
+  staging rehearsal on 2026-11-19 restored identically this way (14 tables, 17 migrations).
+- **A fresh Heroku database isn't completely empty.** It ships with the `pg_stat_statements`
+  views in `public`. They're Heroku's, they don't conflict with the dump, and `counts.sql`
+  skips them (it counts base tables only).
 - **Local tools:** `pg_dump` / `pg_restore` 18.4 (Homebrew).
 - **Essential-0 limits:** 1 GB of storage and 20 connections. The app uses at most 10 (the
   `pg` pool default × 1 dyno), plus one during the release phase. There is **no
@@ -135,6 +146,15 @@ Dump from the **direct** endpoint (`NEON_DIRECT`), not the pooler. The major ver
 be 18 (§0). The size must be well under 1 GB. If this fails with "exceeded the quota", that
 Neon project is suspended (§0) and you can't go further for this app yet.
 
+List every column option on our tables:
+
+```bash
+psql "$NEON_DIRECT" -XAt -c "select attrelid::regclass||'.'||attname||' '||array_to_string(attoptions,',') from pg_attribute where attoptions is not null and attnum > 0 and not attisdropped and attrelid::regclass::text !~ '^pg_' order by 1"
+```
+
+Expect exactly one line: `users.banned_at pg_attver=<n>`. Any other option is something
+the B4 filter doesn't handle, so stop and look at it before going on.
+
 ### B3. Create the add-on next to Neon
 
 ```bash
@@ -178,14 +198,27 @@ export HEROKU_URL="$(heroku config:get NEW_DATABASE_URL -a "$APP")"
 cd ~/wau-db-move/"$APP" && time pg_dump "$NEON_DIRECT" -Fc --no-owner --no-acl -f rehearsal.dump
 ```
 
+Turn the dump into plain SQL without Neon's `pg_attver` statement (§0):
+
 ```bash
-cd ~/wau-db-move/"$APP" && time pg_restore --no-owner --no-acl --single-transaction -d "$HEROKU_URL" rehearsal.dump
+cd ~/wau-db-move/"$APP" && set -o pipefail && (umask 077; pg_restore --no-owner --no-acl -f - rehearsal.dump | sed -E '/^ALTER TABLE ONLY [^ ]+ ALTER COLUMN [^ ]+ SET \(pg_attver=[0-9]+\);$/d' > rehearsal.sql)
 ```
 
-`--single-transaction` makes the restore all or nothing. If it fails, read the error. If
-it's a Neon-only object that's harmless (for example a comment on an extension), leave it
-out with `pg_restore -l rehearsal.dump > list`, delete the line, then
-`pg_restore -L list …`. **Use exactly the same flags at the cutover.**
+```bash
+cd ~/wau-db-move/"$APP" && grep -c 'pg_attver' rehearsal.sql; grep -c 'PostgreSQL database dump complete' rehearsal.sql
+```
+
+Expect `0`, then `1`. The second check is what makes the next step safe: `psql -1` commits
+whatever it was given, so a SQL file cut off part-way would restore part-way.
+
+```bash
+cd ~/wau-db-move/"$APP" && time psql "$HEROKU_URL" -X -q -1 -v ON_ERROR_STOP=1 -f rehearsal.sql > /dev/null
+```
+
+`-1` with `ON_ERROR_STOP` makes the restore all or nothing. If it fails, read the error: a
+failed run leaves the target empty, and C3's reset clears it anyway. `rehearsal.sql` holds
+the same children's data as the dump, in plain text. **Use exactly the same steps at the
+cutover.**
 
 ```bash
 cd ~/wau-db-move/"$APP" && psql "$NEON_DIRECT" -XAt -f ../counts.sql > neon.txt && psql "$HEROKU_URL" -XAt -f ../counts.sql > heroku.txt && diff neon.txt heroku.txt
@@ -212,7 +245,7 @@ psql "$HEROKU_URL" -XAt -c "select count(*) from drizzle.__drizzle_migrations"
 The count must be the same as it was right after the restore.
 
 ```bash
-rm ~/wau-db-move/"$APP"/rehearsal.dump
+rm ~/wau-db-move/"$APP"/rehearsal.dump ~/wau-db-move/"$APP"/rehearsal.sql
 ```
 
 ---
@@ -261,7 +294,17 @@ cd ~/wau-db-move/"$APP" && pg_dump "$NEON_DIRECT" -Fc --no-owner --no-acl -f fin
 ```
 
 ```bash
-cd ~/wau-db-move/"$APP" && pg_restore --no-owner --no-acl --single-transaction -d "$HEROKU_URL" final.dump
+cd ~/wau-db-move/"$APP" && set -o pipefail && (umask 077; pg_restore --no-owner --no-acl -f - final.dump | sed -E '/^ALTER TABLE ONLY [^ ]+ ALTER COLUMN [^ ]+ SET \(pg_attver=[0-9]+\);$/d' > final.sql)
+```
+
+```bash
+cd ~/wau-db-move/"$APP" && grep -c 'pg_attver' final.sql; grep -c 'PostgreSQL database dump complete' final.sql
+```
+
+Expect `0`, then `1`. If you get anything else, stop and go to Rollback.
+
+```bash
+cd ~/wau-db-move/"$APP" && psql "$HEROKU_URL" -X -q -1 -v ON_ERROR_STOP=1 -f final.sql > /dev/null
 ```
 
 ```bash
@@ -374,7 +417,7 @@ improvise one at night. Unless the app is actually broken, fix forward.
 
 - **Detach the extra name** on each app once C7 is stable:
   `heroku addons:detach NEW_DATABASE -a <app>`. One database with two names is confusing.
-- **Delete the dumps:** `rm ~/wau-db-move/*/final.dump ~/wau-db-move/*/*.txt`.
+- **Delete the dumps:** `rm ~/wau-db-move/*/final.dump ~/wau-db-move/*/final.sql ~/wau-db-move/*/*.txt`.
 - **After about a week of stable running:** delete both Neon projects. Each is a full copy of
   that app's data. Then delete `~/wau-db-move` (it holds both `neon-url.txt` files).
 - **If you upgraded the Neon org to Launch** to get staging's dump, downgrade it to Free
