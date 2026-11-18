@@ -149,8 +149,11 @@ Neon project is suspended (§0) and you can't go further for this app yet.
 List every column option on our tables:
 
 ```bash
-psql "$NEON_DIRECT" -XAt -c "select attrelid::regclass||'.'||attname||' '||array_to_string(attoptions,',') from pg_attribute where attoptions is not null and attnum > 0 and not attisdropped and attrelid::regclass::text !~ '^pg_' order by 1"
+psql "$NEON_DIRECT" -XAt -c "select attrelid::regclass||'.'||attname||' '||array_to_string(attoptions,',') from pg_attribute where attoptions is not null and attnum > 0 and not attisdropped and not (attrelid::regclass::text ~ '^pg_') order by 1"
 ```
+
+Written as `not (… ~ …)` rather than `!~` on purpose: in interactive zsh, a `!` inside double
+quotes is history expansion and fails with `event not found`.
 
 Expect exactly one line: `users.banned_at pg_attver=<n>`. Any other option is something
 the B4 filter doesn't handle, so stop and look at it before going on.
