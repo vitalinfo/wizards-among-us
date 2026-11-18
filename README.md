@@ -84,9 +84,9 @@ Never commit secrets. Never introduce a hosting-provider-specific dependency (ke
 Copy `.env.example` → `.env.local` and fill in. Never commit real values.
 
 ```
-# Database (plain Postgres — Neon, Supabase-as-Postgres, Heroku PG, RDS all work)
-DATABASE_URL=           # Neon: the pooled (-pooler) string
-DIRECT_DATABASE_URL=    # optional: Neon's direct string, used only by migrations
+# Database (plain Postgres — Heroku Postgres in staging/production; any Postgres works)
+DATABASE_URL=           # local: postgresql://wau:wau@localhost:5433/wau
+DIRECT_DATABASE_URL=    # optional: a separate migration-only string (not used on Heroku)
 
 # Auth
 AUTH_SECRET=            # session/JWT signing
@@ -110,7 +110,7 @@ S3_SECRET_ACCESS_KEY=
 S3_BUCKET=             # a SEPARATE bucket per environment
 ```
 
-External accounts (human task, Phase 0 — see plan §3): domain + DNS (`wizards-among-us.pp.ua` at NIC.UA), Cloudflare (Turnstile + R2), Heroku (app hosting, pipeline `wau`), Neon (Postgres), and a Telegram bot per environment (for the Login Widget).
+External accounts (human task, Phase 0 — see plan §3): domain + DNS (`wizards-among-us.pp.ua` at NIC.UA), Cloudflare (Turnstile + R2), Heroku (app hosting, pipeline `wau`, plus a Heroku Postgres add-on per app), and a Telegram bot per environment (for the Login Widget).
 
 ---
 
@@ -719,13 +719,20 @@ against production's own config vars.
 
 **Pipeline:** `wau` — staging app `wau-staging`, production app `wau`.
 
+**Database:** a Heroku Postgres **Essential-0** add-on per app (Postgres 18, EU region), attached
+as `DATABASE`. Essential-0 allows 1 GB and 20 connections, and has no point-in-time restore.
+Production is backed up daily at 03:00 Kyiv time (`heroku pg:backups:schedules -a wau`). Staging
+deliberately has no backups. Both apps moved from Neon on 2026-11-19; how, and what broke along
+the way, is in [`docs/runbook-neon-to-heroku-postgres.md`](docs/runbook-neon-to-heroku-postgres.md).
+
 **Runtime config vars** (Heroku *Config Vars*, set per app — never commit them). All are read at
 **request time**, so they differ per app and survive a pipeline promotion correctly:
 
 | Var | Value |
 |---|---|
-| `DATABASE_URL` | Postgres connection string. On Neon use the **pooled** (`-pooler`) string |
-| `DIRECT_DATABASE_URL` | *Recommended.* Neon's **direct** (non-`-pooler`) string. Used only by the release-phase migration — Neon recommends direct connections for schema changes, and transaction-mode poolers can break migration locks. Falls back to `DATABASE_URL` if unset |
+| `DATABASE_URL` | Postgres connection string. **Set by the Heroku Postgres add-on** — don't set it by hand |
+| `PGSSLMODE` | **Required with Heroku Postgres:** `no-verify`. The app passes no `ssl` option to `pg`, and Heroku's URL carries no `sslmode`, so without it `pg` connects unencrypted and Heroku refuses the connection. `no-verify`, not `require`: in node-postgres `require` verifies the certificate, and Heroku's don't chain to a public CA. `pg` ignores it whenever the URL has its own `sslmode` |
+| `DIRECT_DATABASE_URL` | Optional, **not set on Heroku**. A separate connection string used only by migrations, for a provider whose default string goes through a transaction-mode pooler (those can break migration locks). Falls back to `DATABASE_URL`. If you set it, it must point at the **same database** — `scripts/migrate.mjs` prefers it, so a stale value migrates the wrong one |
 | `CANONICAL_HOST` | *Recommended.* The one host this app should be served on, no scheme (e.g. `staging.wizards-among-us.pp.ua`). Requests on any other host are redirected to it. Unset = accept whatever host was requested |
 | `MAINTENANCE_MODE` | Optional. `true` (or `1`) serves every page and API route as the maintenance screen (`/maintenance`, the 404/500 layout with its own copy) with a `503`. Static assets still load. Flip it with `heroku config:set MAINTENANCE_MODE=true -a <app>` and `heroku config:unset MAINTENANCE_MODE -a <app>` — a config change restarts the dyno, no rebuild |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
@@ -822,8 +829,9 @@ config vars, and you can't authorize the domain until you know the URL.
 
 1. **Create a separate staging bot** in BotFather. The widget allows one `/setdomain` per bot, so
    don't reuse the production bot. Keep its token secret; you only need the @username now.
-2. **Set the config vars** from the table above (the **pooled** string for `DATABASE_URL`, the
-   **direct** one for `DIRECT_DATABASE_URL`). Each `heroku config:set` restarts the app:
+2. **Add the database and set the config vars** from the table above. `DATABASE_URL` comes from
+   the add-on (`heroku addons:create heroku-postgresql:essential-0 --version 18 --app wau-staging`);
+   don't forget `PGSSLMODE=no-verify`. Each `heroku config:set` restarts the app:
    ```bash
    heroku config:set --app wau-staging AUTH_SECRET="$(openssl rand -base64 32)"
    ```
