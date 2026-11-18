@@ -343,11 +343,12 @@ heroku run -a "$APP" -- node scripts/migrate.mjs
 ```
 
 ```bash
-heroku pg:psql -a "$APP" -c "select count(*) from drizzle.__drizzle_migrations" -c "select count(*) from applications"
+heroku pg:psql -a "$APP" -c "select (select count(*) from drizzle.__drizzle_migrations) as migrations, (select count(*) from applications) as applications"
 ```
 
-`migrate.mjs` exiting 0 proves the app's real `DATABASE_URL` and SSL work. The migration
-count must match C4.
+Unlike plain `psql`, `heroku pg:psql` accepts only one `-c`, so both counts go in one query.
+`migrate.mjs` exiting 0 proves the app's real `DATABASE_URL` and SSL work. Both counts must
+match C4's `heroku.txt`.
 
 ### C7. Go / no-go, then reopen
 
