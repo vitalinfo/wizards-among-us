@@ -376,8 +376,12 @@ improvise one at night. Unless the app is actually broken, fix forward.
   `heroku addons:detach NEW_DATABASE -a <app>`. One database with two names is confusing.
 - **Delete the dumps:** `rm ~/wau-db-move/*/final.dump ~/wau-db-move/*/*.txt`.
 - **After about a week of stable running:** delete both Neon projects. Each is a full copy of
-  that app's data. If you upgraded the Neon org to get staging's dump, downgrade it as well.
-  Then delete `~/wau-db-move` (it holds both `neon-url.txt` files).
+  that app's data. Then delete `~/wau-db-move` (it holds both `neon-url.txt` files).
+- **If you upgraded the Neon org to Launch** to get staging's dump, downgrade it to Free
+  (Billing page, admin only). **Deleting the projects does not stop Launch billing:** only
+  an explicit downgrade does. The org has to fit Free limits when you downgrade (at most
+  1 GB of storage and 10 branches per project); if it doesn't, Neon shows an error instead.
+  Downgrading also resets the Free plan's monthly compute allowance.
 - **Docs that still say Neon:** README (`.env` comments around line 87, the accounts list
   around line 113, the `DATABASE_URL` / `DIRECT_DATABASE_URL` rows in the config-var table)
   and the build plan (§3 step 4 "Neon, Frankfurt", §14 item 1 on backups). Add `PGSSLMODE`
