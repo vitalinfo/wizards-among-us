@@ -188,6 +188,20 @@ describe("adminApplicationEditSchema", () => {
     }
   });
 
+  // The admin form re-submits the stored links, so a non-http one stored before
+  // the rule existed surfaces on that field and is corrected in the same form.
+  it("rejects a non-http shop link on the link field", () => {
+    const result = forSubmitted.safeParse({
+      ...complete,
+      giftPrice: "500",
+      giftUrls: "mailto:a@b.c",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((i) => i.path[0])).toEqual(["giftUrls"]);
+    }
+  });
+
   // The shop link is what a volunteer actually buys from.
   it("requires a shop link for a submitted St Nicholas application", () => {
     const result = forSubmitted.safeParse({

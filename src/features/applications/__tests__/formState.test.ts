@@ -56,6 +56,19 @@ describe("issueCode", () => {
     expect(codes.giftUrls).toBe("invalid_url");
   });
 
+  // A link that parses but isn't http(s) gets the same message as a malformed
+  // one — to the parent, both are "not a link I can use".
+  it.each(["javascript:alert(1)", "mailto:a@b.c", "ftp://x.y/gift"])(
+    "reports a %s link as an invalid link",
+    (giftUrls) => {
+      const codes = codesFor(
+        applicationDraftFormSchema.safeParse({ giftUrls }),
+      );
+
+      expect(codes.giftUrls).toBe("invalid_url");
+    },
+  );
+
   it("passes a custom refinement's own code through", () => {
     const codes = codesFor(
       applicationSubmitSchemaForCampaign({ giftPriceCap: "500" }).safeParse({

@@ -236,6 +236,35 @@ describe("gift links (campaign type field) and social-media consent", () => {
     );
   });
 
+  // `new URL()` parses all of these, so `z.string().url()` let them through.
+  // They end up as an `<a href>` a volunteer clicks.
+  const nonHttp = ["javascript:alert(1)", "mailto:a@b.c", "ftp://x.y/gift"];
+
+  it.each(nonHttp)("rejects a %s link on submit and in a draft", (bad) => {
+    expect(
+      stNicholasTypeFieldsSchema.safeParse({ giftUrls: bad }).success,
+    ).toBe(false);
+    expect(
+      stNicholasTypeFieldsSchema.safeParse({ giftUrls: `${link}\n${bad}` })
+        .success,
+    ).toBe(false);
+    expect(
+      applicationDraftFormSchema.safeParse({ giftUrls: bad }).success,
+    ).toBe(false);
+  });
+
+  it("accepts http and https links in both schemas", () => {
+    const plain = "http://shop.example.ua/item";
+    expect(
+      stNicholasTypeFieldsSchema.parse({ giftUrls: `${link}\n${plain}` })
+        .giftUrls,
+    ).toEqual([link, plain]);
+    expect(
+      applicationDraftFormSchema.parse({ giftUrls: `${link}\n${plain}` })
+        .giftUrls,
+    ).toEqual([link, plain]);
+  });
+
   it("ignores blank lines and stray separators from pasting", () => {
     expect(splitGiftUrls(`\n${link}\n\n , ${other} ;\n`)).toEqual([
       link,
