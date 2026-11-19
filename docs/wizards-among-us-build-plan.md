@@ -23,7 +23,7 @@
 |---|---|---|
 | Framework | **Next.js (App Router) + TypeScript** | SSR + client interactivity; responsive; huge contributor pool; AI-tooling-friendly. |
 | Styling | **Tailwind CSS** | Fast, consistent, responsive utilities. Add a small component layer (shadcn/ui optional). |
-| Database | **Postgres behind `DATABASE_URL`** (Neon or Supabase-as-Postgres for the free tier) | Treated as plain, portable Postgres — no BaaS-specific features. Movable to Heroku Postgres / RDS via `pg_dump`. Free tiers idle/suspend when quiet (keep-warm ping or paid plan). |
+| Database | **Postgres behind `DATABASE_URL`**: **Heroku Postgres Essential-0**, one add-on per app (*as built* since 2026-11-19; Neon free tier before) | Treated as plain, portable Postgres — no BaaS-specific features. Moved from Neon to Heroku via `pg_dump` exactly as planned, when the Neon free quota ran out — see `docs/runbook-neon-to-heroku-postgres.md`. |
 | ORM / migrations | **Drizzle** (TS-first) or Prisma | Schema + migrations defined in code; run on any host. Reinforces portability. |
 | Auth | **App-layer, host-agnostic**: Auth.js (NextAuth v5) or better-auth, storing users/sessions in *your* Postgres. Telegram Login Widget (parents+volunteers) via a custom verify step; email/password credentials for admin. | No provider-managed identity tables. Telegram = the project's identity anchor. |
 | Authorization | **Server layer** (Next.js server actions / route handlers) via the ORM, keyed off session user id + role | Portable. Optional later: Postgres RLS via a per-transaction `SET LOCAL app.current_user_id` (works on any Postgres). |
@@ -50,7 +50,7 @@
 1. **Domain:** ~~register a `.xyz`~~ → registered **`wizards-among-us.pp.ua`** at NIC.UA (*as built*). Freenom-style free TLDs (.tk/.ml/.ga) are dead (Freenom exited in 2024) — don't use them.
 2. ~~Switch nameservers to Cloudflare~~ → **DNS stays at NIC.UA** (`ns10/11/12.uadns.com`) (*as built*). Cloudflare is used only for Turnstile + R2, neither of which requires it to serve DNS. Custom subdomains are `CNAME`s to the Heroku DNS target — enter the target **with a trailing dot** or NIC.UA appends the zone to it.
 3. Create a **Turnstile** widget in Cloudflare (site key + secret). (Bot Fight Mode / Cloudflare SSL don't apply — they need Cloudflare-served DNS.)
-4. Provision a **Postgres** database → **Neon, `aws-eu-central-1` (Frankfurt)** (*as built*), chosen for EU data residency and proximity to Ukraine. A project's region can't be changed later. Use the **direct** connection string for migrations and the **pooled** (`-pooler`) one for the running app.
+4. Provision a **Postgres** database → **Heroku Postgres Essential-0** add-on per app, Postgres 18, in the apps' EU region (Dublin) (*as built* since 2026-11-19). The data stays in the EU. The add-on sets `DATABASE_URL`; the app also needs `PGSSLMODE=no-verify` (README §Deploying). Until 2026-11-19 this was **Neon, `aws-eu-central-1` (Frankfurt)**; the move is in `docs/runbook-neon-to-heroku-postgres.md`.
 5. Create a **Cloudflare R2** bucket for uploads; create an API token (S3-compatible creds).
 6. Create the Next.js repo (GitHub). Configure environment variables (never commit secrets):
    - `DATABASE_URL`
@@ -61,7 +61,7 @@
    - `ADMIN_ALLOWLIST` (optional: emails permitted to self-provision as admin on first login)
    - No `NEXT_PUBLIC_*` var may hold anything environment-specific — Heroku pipeline promotion reuses the compiled slug, so build-time values would leak from staging into production.
 7. ~~Set up Cloudflare Pages deployment~~ → **Heroku pipeline `wau`** (`wau-staging` → `wau`), EU region, Basic dyno (*as built*). Deploy layer is `Procfile`.
-8. Add a **keep-warm ping** (Cloudflare Worker cron or GitHub Action) hitting a health endpoint every few days so a free/idle database doesn't suspend.
+8. Add a **keep-warm ping** (Cloudflare Worker cron or GitHub Action) hitting a health endpoint every few days so a free/idle database doesn't suspend. (*As built:* not needed since the move to Heroku Postgres, which doesn't suspend. `/api/health` stays as a liveness endpoint.)
 
 ---
 
@@ -344,7 +344,7 @@ robots.txt (allow /), sitemap.xml (landing page only)                           
 - **Validation:** shared zod schemas, server-authoritative.
 - **File limits:** cap size/type; if allowing video, transcode/compress or cap length. Store media on R2 (10 GB free, zero egress) via the S3 API.
 - **Rate limiting** on submit/login/claim.
-- **Backups:** enable provider backups/snapshots or a scheduled `pg_dump` once live; keep an export routine.
+- **Backups:** enable provider backups/snapshots or a scheduled `pg_dump` once live; keep an export routine. (*As built:* production has a daily Heroku backup at 03:00 Kyiv time, `heroku pg:backups:schedules -a wau`. Staging deliberately has none.)
 - **Monitoring:** health endpoint + error tracking (e.g. Sentry free tier).
 - **Accessibility:** semantic HTML, labels, keyboard nav, contrast.
 
@@ -364,7 +364,7 @@ Keep each phase in its own branch/PR so volunteers can review changes.
 
 ## 14. Open decisions (confirm before Phase 1)
 
-1. ~~**Deployment budget**~~ — **resolved:** Heroku Basic dyno (~$7/mo, no idle sleep) + Neon free tier ≈ **$7/mo per environment**. Still open: whether to pay for a Neon plan with automated backups before going live with real family data — recommended.
+1. ~~**Deployment budget**~~ — **resolved:** Heroku Basic dyno (~$7/mo, no idle sleep) + Heroku Postgres Essential-0 (~$5/mo) ≈ **$12/mo per environment** (since 2026-11-19; Neon free tier before, ≈ $7/mo). The backups question is resolved too: production has daily Heroku backups (§12).
 2. **Confirmations:** photos only, or video too? (Drives storage choice and limits.)
 2a. ~~**Contacting users without a Telegram `@username`**~~ — **resolved (Phase 4):** a Telegram username is optional, so some users have no clickable handle; only their numeric id is stored, which is usable by our bot, not by a human volunteer. Decision: **never block sign-in on it**; require a usable contact at **application submit / claim** instead (use the `@username` when present, otherwise the person sets one or supplies an alternative). The contact field is **sensitive** — claiming-volunteer only, never on the browse card. A later alternative is bot-mediated introductions by Telegram id (Phase 7), which would remove the need to exchange handles at all.
 3. ~~**Required verification document**~~ — **resolved from the real 2025 form** (`docs/reference/st-nicholas-2025-google-form.pdf`): one photo of the child's **довідка ВПО**, required at submit. **Admins only — never shown to a volunteer** (file kind `idp_certificate`). Retention still open (see item 8).
