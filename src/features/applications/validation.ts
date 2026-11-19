@@ -125,8 +125,24 @@ export function splitGiftUrls(value: unknown): string[] {
     .filter(Boolean);
 }
 
+// `z.string().url()` only checks that `new URL()` parses, and any scheme does:
+// `javascript:alert(1)`, `mailto:a@b.c`, `ftp://x.y`. These links are rendered
+// as an `<a href>` a volunteer clicks, so only http(s) passes. The message is
+// the issue code the parent form maps to copy (see `issueCode`).
+const HTTP_PROTOCOLS = new Set(["http:", "https:"]);
+export const httpUrlSchema = z.string().refine(
+  (value) => {
+    try {
+      return HTTP_PROTOCOLS.has(new URL(value).protocol);
+    } catch {
+      return false;
+    }
+  },
+  { message: "invalid_url" },
+);
+
 export const giftUrlsSchema = z
-  .preprocess(splitGiftUrls, z.array(z.string().url()).min(1))
+  .preprocess(splitGiftUrls, z.array(httpUrlSchema).min(1))
   .describe("one or more shop links");
 
 // Campaign-type-specific fields, stored in applications.type_fields (jsonb).
@@ -190,7 +206,7 @@ export const applicationDraftFormSchema = z.object({
   giftUrls: z.preprocess((value) => {
     const urls = splitGiftUrls(value);
     return urls.length === 0 ? undefined : urls;
-  }, z.array(z.string().url()).optional()),
+  }, z.array(httpUrlSchema).optional()),
   giftPrice: numeric(z.number().positive().max(99_999_999.99)),
   deliveryInformation: text(z.string().trim().min(1)),
   // Not an application column: the delivery step collects it when the parent
