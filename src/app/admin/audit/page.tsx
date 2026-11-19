@@ -52,6 +52,7 @@ export default async function AdminAuditPage({
 }: {
   searchParams: Promise<{
     action?: string;
+    reason?: string;
     target?: string;
     actor?: string;
     page?: string;

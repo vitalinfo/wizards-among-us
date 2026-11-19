@@ -89,7 +89,7 @@ describe("the audit export", () => {
 
   it("exports that admin's filtered rows, and records the download", async () => {
     const response = await get(
-      `?actor=${ADMIN_ID}&action=application.approved&page=3`,
+      `?actor=${ADMIN_ID}&action=notification.approved_failed&reason=blocked&page=3`,
     );
 
     expect(response.status).toBe(200);
@@ -98,7 +98,12 @@ describe("the audit export", () => {
     );
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(state.filters).toEqual([
-      { action: "application.approved", targetId: null, actorId: ADMIN_ID },
+      {
+        action: "notification.approved_failed",
+        reason: "blocked",
+        targetId: null,
+        actorId: ADMIN_ID,
+      },
     ]);
     const body = await response.text();
     expect(body.split("\r\n")).toHaveLength(2);

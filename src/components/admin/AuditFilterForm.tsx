@@ -4,7 +4,10 @@ import Link from "next/link";
 import { ChevronRightIcon } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/buttonStyles";
 
-import { groupAuditActions } from "@/features/audit/actionLabel";
+import {
+  auditDetailLabel,
+  groupAuditActions,
+} from "@/features/audit/actionLabel";
 import {
   auditHref,
   isDefaultAuditQuery,
@@ -31,6 +34,21 @@ export async function AuditFilterForm({
       ? [query.action, ...actions]
       : actions,
   );
+
+  // The reasons a notification can fail, named by their copy — the same
+  // vocabulary the log rows read in. A reason from the url without copy still
+  // shows as selected, by its code, for the same reason as an action.
+  const reasons = Object.keys(
+    t.raw("actionDetails.notification") as Record<string, string>,
+  );
+  const reasonOptions = (
+    query.reason && !reasons.includes(query.reason)
+      ? [query.reason, ...reasons]
+      : reasons
+  ).map((reason) => ({
+    reason,
+    label: auditDetailLabel(t, "notification.failed", reason),
+  }));
 
   const field =
     "border-border bg-surface focus-visible:outline-ring rounded-md border py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -68,6 +86,31 @@ export async function AuditFilterForm({
                   </option>
                 ))}
               </optgroup>
+            ))}
+          </select>
+          <ChevronRightIcon
+            aria-hidden="true"
+            className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 rotate-90"
+          />
+        </div>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-1">
+        <label htmlFor="reason" className="text-xs font-medium">
+          {t("filter.reason")}
+        </label>
+        <div className="relative">
+          <select
+            id="reason"
+            name="reason"
+            defaultValue={query.reason ?? ""}
+            className={`${field} w-full appearance-none truncate pr-9 pl-3 sm:w-auto sm:max-w-80`}
+          >
+            <option value="">{t("filter.anyReason")}</option>
+            {reasonOptions.map(({ reason, label }) => (
+              <option key={reason} value={reason}>
+                {label}
+              </option>
             ))}
           </select>
           <ChevronRightIcon
