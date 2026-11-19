@@ -9,9 +9,11 @@ import messages from "../../../../messages/uk.json";
 
 import {
   auditActionLabel,
+  auditDetailLabel,
   auditTypeLabel,
   groupAuditActions,
 } from "../actionLabel";
+import type { TelegramSendResult } from "@/lib/telegramBot";
 import {
   noticeSentAction,
   type Notice,
@@ -71,6 +73,50 @@ describe("auditActionLabel", () => {
     for (const value of ["application", "actions.application", "x y"]) {
       expect(auditActionLabel(t, value)).toBe(value);
     }
+  });
+});
+
+describe("auditDetailLabel", () => {
+  // Every reason deliverNotice can log. `not_configured` is never logged —
+  // nothing was attempted. The record makes a new reason a type error here
+  // until it has copy.
+  it("names every reason a notification can fail", () => {
+    type LoggedReason = Exclude<
+      Extract<TelegramSendResult, { ok: false }>["reason"],
+      "not_configured"
+    >;
+    const reasons = Object.keys({
+      blocked: true,
+      error: true,
+    } satisfies Record<LoggedReason, true>) as LoggedReason[];
+
+    for (const reason of reasons) {
+      expect(auditDetailLabel(t, "notification.approved_failed", reason)).toBe(
+        messages.admin.audit.actionDetails.notification[reason],
+      );
+    }
+  });
+
+  // Most details are data with no copy — a file kind, edited field names.
+  it("falls back to the detail as stored", () => {
+    expect(
+      auditDetailLabel(
+        t,
+        "application.updated_by_admin",
+        "childName,giftPrice",
+      ),
+    ).toBe("childName,giftPrice");
+    expect(
+      auditDetailLabel(t, "application.file_viewed", "idp_certificate"),
+    ).toBe("idp_certificate");
+  });
+
+  // A detail must not resolve to a namespace or reach the translator as junk.
+  it("does not look up anything but a plain code", () => {
+    expect(auditDetailLabel(t, "notification", "blocked")).toBe("blocked");
+    expect(
+      auditDetailLabel(t, "notification.approved_failed", "blocked.x"),
+    ).toBe("blocked.x");
   });
 });
 

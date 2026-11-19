@@ -28,6 +28,25 @@ export function auditActionLabel(
   return ACTION_CODE.test(action) && t.has(key) ? t(key) : action;
 }
 
+// The readable name of an action's ":detail" suffix, from
+// `admin.audit.actionDetails.<entity>` — or the detail as stored when there is
+// none. Most details are data with no copy (a file kind, a list of edited
+// field names); a few are a fixed vocabulary worth reading in words, like why a
+// notification failed (`notification.approved_failed:blocked`).
+const DETAIL_CODE = /^[a-z_]+$/;
+
+export function auditDetailLabel(
+  t: AuditLabelTranslator,
+  action: string,
+  detail: string,
+): string {
+  const entity = action.split(".")[0];
+  const key = `actionDetails.${entity}.${detail}`;
+  return ACTION_CODE.test(action) && DETAIL_CODE.test(detail) && t.has(key)
+    ? t(key)
+    : detail;
+}
+
 // The readable name of an actor or target type (`admin.audit.actorType` /
 // `.targetType`), or the code itself when there is none — the same fallback as
 // an action, for the same reason. Shared by the log page and the CSV export.

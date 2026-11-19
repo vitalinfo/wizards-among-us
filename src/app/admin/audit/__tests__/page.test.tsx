@@ -123,6 +123,23 @@ describe("the admin audit log", () => {
     ).toBeInTheDocument();
   });
 
+  // A detail with copy — why a notification failed — joins the label in words.
+  it("says in words why a notification failed", async () => {
+    const a = messages.admin.audit;
+    data.rows = [row({ action: "notification.approved_failed:blocked" })];
+    await renderPage();
+
+    const [, failed] = screen.getAllByRole("row");
+    expect(
+      within(failed).getByText(
+        `${a.actions.notification.approved_failed}: ${a.actionDetails.notification.blocked}`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(failed).getByText("notification.approved_failed:blocked"),
+    ).toBeInTheDocument();
+  });
+
   it("names each target's type, and a type without copy by its code", async () => {
     data.rows = [
       row({ targetType: "application" }),

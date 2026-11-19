@@ -1,6 +1,7 @@
 import { csvTime, toCsv } from "@/features/applications/csv";
 import {
   auditActionLabel,
+  auditDetailLabel,
   auditTypeLabel,
   type AuditLabelTranslator,
 } from "@/features/audit/actionLabel";
@@ -26,8 +27,9 @@ const HEADERS = [
 ] as const;
 
 // The action's label, with its ":detail" suffix after it — the suffix is the
-// record of which file was viewed or which fields changed, and has no copy:
-// «Анкету змінено адміністратором: childName,giftPrice». A code without a
+// record of which file was viewed or which fields changed, usually with no
+// copy: «Анкету змінено адміністратором: childName,giftPrice». A detail that
+// has copy (why a notification failed) is written in words. A code without a
 // label is written exactly as stored.
 function actionCell(t: AuditLabelTranslator, stored: string): string {
   const [action, detail] = splitAuditAction(stored);
@@ -35,7 +37,7 @@ function actionCell(t: AuditLabelTranslator, stored: string): string {
   if (label === action) {
     return stored;
   }
-  return detail ? `${label}: ${detail}` : label;
+  return detail ? `${label}: ${auditDetailLabel(t, action, detail)}` : label;
 }
 
 // `t` is scoped to `admin.audit`.
