@@ -64,7 +64,7 @@ export async function AuditFilterForm({
       aria-label={t("filter.legend")}
       className="border-border bg-surface-muted flex flex-wrap items-end gap-3 rounded-lg border p-4"
     >
-      <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1 sm:min-w-40 sm:flex-1">
         <label htmlFor="action" className="text-xs font-medium">
           {t("filter.action")}
         </label>
@@ -75,7 +75,7 @@ export async function AuditFilterForm({
             id="action"
             name="action"
             defaultValue={query.action ?? ""}
-            className={`${field} w-full appearance-none truncate pr-9 pl-3 sm:w-auto sm:max-w-80`}
+            className={`${field} w-full appearance-none truncate pr-9 pl-3`}
           >
             <option value="">{t("filter.allActions")}</option>
             {groups.map((group) => (
@@ -95,7 +95,7 @@ export async function AuditFilterForm({
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1 sm:min-w-40 sm:flex-1">
         <label htmlFor="reason" className="text-xs font-medium">
           {t("filter.reason")}
         </label>
@@ -104,7 +104,7 @@ export async function AuditFilterForm({
             id="reason"
             name="reason"
             defaultValue={query.reason ?? ""}
-            className={`${field} w-full appearance-none truncate pr-9 pl-3 sm:w-auto sm:max-w-80`}
+            className={`${field} w-full appearance-none truncate pr-9 pl-3`}
           >
             <option value="">{t("filter.anyReason")}</option>
             {reasonOptions.map(({ reason, label }) => (
@@ -120,9 +120,12 @@ export async function AuditFilterForm({
         </div>
       </div>
 
-      {/* A row of its own on a phone: beside the buttons a uuid shows four
-          characters. */}
-      <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:flex-1">
+      {/* One row from sm up: the two selects share what is left and shrink
+          (their labels truncate), the id field is exactly one uuid wide — 36ch
+          is exact in a monospace font, plus padding and border — and the
+          buttons keep their size. On a phone it is a row of its own: beside
+          the buttons a uuid shows four characters. */}
+      <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:flex-none">
         <label htmlFor="target" className="text-xs font-medium">
           {t("filter.targetId")}
         </label>
@@ -136,7 +139,7 @@ export async function AuditFilterForm({
           pattern="\s*[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\s*"
           autoComplete="off"
           spellCheck={false}
-          className={`${field} w-full min-w-0 px-3 font-mono sm:min-w-80`}
+          className={`${field} w-full min-w-0 px-3 font-mono sm:w-[calc(36ch+1.5rem+2px)]`}
         />
       </div>
 
