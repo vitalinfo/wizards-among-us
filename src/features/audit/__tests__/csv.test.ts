@@ -49,6 +49,16 @@ describe("auditLogsToCsv", () => {
     );
   });
 
+  // A detail with copy — why a notification failed — is written in words.
+  it("writes a notification's failure reason in words", () => {
+    const [, line] = auditLogsToCsv(t, [
+      { ...row, action: "notification.approved_failed:blocked" },
+    ]).split("\r\n");
+    expect(line.split(",")).toContain(
+      `${labels.actions.notification.approved_failed}: ${labels.actionDetails.notification.blocked}`,
+    );
+  });
+
   it("leaves an unrecorded address and target empty", () => {
     const [, line] = auditLogsToCsv(t, [
       {

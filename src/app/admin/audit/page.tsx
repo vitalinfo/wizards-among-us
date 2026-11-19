@@ -7,7 +7,11 @@ import { AuditFilterForm } from "@/components/admin/AuditFilterForm";
 import { Pager } from "@/components/ui/Pager";
 import { buttonVariants } from "@/components/ui/buttonStyles";
 import { getAdminById } from "@/features/admins/adminQueries";
-import { auditActionLabel, auditTypeLabel } from "@/features/audit/actionLabel";
+import {
+  auditActionLabel,
+  auditDetailLabel,
+  auditTypeLabel,
+} from "@/features/audit/actionLabel";
 import {
   countAuditLogs,
   listAuditActions,
@@ -141,8 +145,13 @@ export default async function AdminAuditPage({
                   // Actions carry an optional ":detail" suffix — the file kind
                   // that was viewed, or the field names an admin edited. The
                   // label belongs to the action without it.
-                  const [action] = splitAuditAction(row.action);
+                  const [action, detail] = splitAuditAction(row.action);
                   const label = auditActionLabel(t, action);
+                  // Only a detail with copy joins the label; the raw one is
+                  // already in the stored code under it.
+                  const detailLabel = detail
+                    ? auditDetailLabel(t, action, detail)
+                    : null;
                   const actorHref = auditActorHref(row.actorType, row.actorId);
                   const targetHref = auditTargetHref(
                     row.targetType,
@@ -192,7 +201,11 @@ export default async function AdminAuditPage({
                           </code>
                         ) : (
                           <>
-                            <span>{label}</span>
+                            <span>
+                              {detailLabel && detailLabel !== detail
+                                ? `${label}: ${detailLabel}`
+                                : label}
+                            </span>
                             <p className="text-muted-foreground font-mono text-xs break-all">
                               {row.action}
                             </p>
