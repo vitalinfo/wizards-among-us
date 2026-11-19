@@ -69,8 +69,10 @@ export async function listReviewsForModeration() {
       body: reviews.body,
       isPublished: reviews.isPublished,
       createdAt: reviews.createdAt,
+      authorId: reviews.userId,
       authorFirstName: users.firstName,
       authorUsername: users.username,
+      applicationId: applications.id,
       childName: applications.childName,
     })
     .from(reviews)
