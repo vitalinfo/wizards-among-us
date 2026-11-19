@@ -12,6 +12,10 @@ import {
   auditTypeLabel,
   groupAuditActions,
 } from "../actionLabel";
+import {
+  noticeSentAction,
+  type Notice,
+} from "@/features/notifications/telegram";
 
 // The same translator the page and the form hand it.
 const t = await getTranslations("admin.audit");
@@ -33,6 +37,24 @@ describe("auditActionLabel", () => {
     expect(auditActionLabel(t, "review.deleted")).toBe(
       messages.admin.audit.actions.review.deleted,
     );
+  });
+
+  // Every bot notice, delivered or failed (`deliverNotice`). The record makes a
+  // new Notice a type error here until it has copy.
+  it("names every notification, sent and failed", () => {
+    const notices = Object.keys({
+      approved: true,
+      rejected: true,
+      claimed: true,
+      fulfilled: true,
+    } satisfies Record<Notice, true>) as Notice[];
+
+    for (const notice of notices) {
+      const sent = noticeSentAction(notice);
+      for (const action of [sent, `${sent}_failed`]) {
+        expect(auditActionLabel(t, action)).not.toBe(action);
+      }
+    }
   });
 
   // The trail outlives the code that wrote it: a code with no copy must still
