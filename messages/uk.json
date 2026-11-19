@@ -1859,7 +1859,13 @@
       "actionDetails": {
         "notification": {
           "blocked": "людина заблокувала бота або не дозволила йому писати",
-          "error": "збій під час надсилання"
+          "bad_request": "Telegram відхилив запит до цього чату (400)",
+          "rejected": "Telegram відхилив запит (інша помилка 4xx)",
+          "rate_limited": "Telegram обмежив частоту повідомлень (429)",
+          "server_error": "збій на боці Telegram (5xx)",
+          "timeout": "Telegram не відповів вчасно — повідомлення могло дійти",
+          "network": "не вдалося зʼєднатися з Telegram",
+          "error": "збій під час надсилання (без подробиць)"
         }
       },
       "filter": {

@@ -84,11 +84,7 @@ describe("AuditFilterForm", () => {
       within(select)
         .getAllByRole("option")
         .map((option) => [option.getAttribute("value"), option.textContent]),
-    ).toEqual([
-      ["", t.anyReason],
-      ["blocked", reasons.blocked],
-      ["error", reasons.error],
-    ]);
+    ).toEqual([["", t.anyReason], ...Object.entries(reasons)]);
   });
 
   it("shows the applied reason, one without copy by its code", async () => {
@@ -97,10 +93,10 @@ describe("AuditFilterForm", () => {
     expect(screen.getByRole("link", { name: t.reset })).toBeInTheDocument();
     view.unmount();
 
-    await renderForm({ reason: "rate_limited" });
-    expect(screen.getByLabelText(t.reason)).toHaveValue("rate_limited");
+    await renderForm({ reason: "teleported" });
+    expect(screen.getByLabelText(t.reason)).toHaveValue("teleported");
     expect(
-      screen.getByRole("option", { name: "rate_limited" }),
+      screen.getByRole("option", { name: "teleported" }),
     ).toBeInTheDocument();
   });
 

@@ -87,6 +87,12 @@ describe("auditDetailLabel", () => {
     >;
     const reasons = Object.keys({
       blocked: true,
+      bad_request: true,
+      rejected: true,
+      rate_limited: true,
+      server_error: true,
+      timeout: true,
+      network: true,
       error: true,
     } satisfies Record<LoggedReason, true>) as LoggedReason[];
 

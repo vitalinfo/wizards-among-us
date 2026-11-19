@@ -44,13 +44,24 @@ describe("sendTelegramMessage", () => {
     expect(result).toEqual({ ok: false, reason: "blocked", status: 403 });
   });
 
-  it("reports any other Telegram refusal as an error", async () => {
-    const result = await sendTelegramMessage("12345", "Привіт", {
-      botToken: "TOKEN",
-      fetchImpl: respond(400),
-    });
-
-    expect(result).toEqual({ ok: false, reason: "error", status: 400 });
+  // Split by what a retry could change, so the trail can say which failures
+  // were worth another attempt.
+  it("names every other refusal by its status", async () => {
+    for (const [status, reason] of [
+      [400, "bad_request"],
+      [401, "rejected"],
+      [404, "rejected"],
+      [429, "rate_limited"],
+      [500, "server_error"],
+      [502, "server_error"],
+      [302, "error"],
+    ] as const) {
+      const result = await sendTelegramMessage("12345", "Привіт", {
+        botToken: "TOKEN",
+        fetchImpl: respond(status),
+      });
+      expect(result).toEqual({ ok: false, reason, status });
+    }
   });
 
   it("swallows a network failure instead of throwing", async () => {
@@ -63,6 +74,28 @@ describe("sendTelegramMessage", () => {
       fetchImpl,
     });
 
-    expect(result).toEqual({ ok: false, reason: "error" });
+    expect(result).toEqual({ ok: false, reason: "network" });
+  });
+
+  // The real abort, not a hand-made error: what AbortSignal.timeout() throws
+  // is what has to be recognised. A timeout is its own reason because the
+  // message may have arrived anyway.
+  it("tells a timeout from a network failure", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(init.signal?.reason),
+          );
+        }),
+    );
+
+    const result = await sendTelegramMessage("12345", "Привіт", {
+      botToken: "TOKEN",
+      fetchImpl,
+      timeoutMs: 1,
+    });
+
+    expect(result).toEqual({ ok: false, reason: "timeout" });
   });
 });
