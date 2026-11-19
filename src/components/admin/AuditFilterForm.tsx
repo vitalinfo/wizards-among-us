@@ -121,8 +121,11 @@ export async function AuditFilterForm({
       </div>
 
       {/* A row of its own on a phone: beside the buttons a uuid shows four
-          characters. */}
-      <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:flex-1">
+          characters. The minimum width sits on this flex item, not on the
+          input inside it: the item is what flex-wrap measures, so with it here
+          the field drops to its own line instead of spilling under the
+          buttons. */}
+      <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:min-w-80 sm:flex-1">
         <label htmlFor="target" className="text-xs font-medium">
           {t("filter.targetId")}
         </label>
@@ -136,7 +139,7 @@ export async function AuditFilterForm({
           pattern="\s*[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\s*"
           autoComplete="off"
           spellCheck={false}
-          className={`${field} w-full min-w-0 px-3 font-mono sm:min-w-80`}
+          className={`${field} w-full min-w-0 px-3 font-mono`}
         />
       </div>
 
