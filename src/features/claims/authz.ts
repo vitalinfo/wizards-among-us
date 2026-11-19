@@ -1,3 +1,4 @@
+import { isHeldStatus } from "@/db/enums";
 import type { applications, claims } from "@/db/schema";
 import { hasRole, isAdmin, isUser, type MaybeActor } from "@/lib/actor";
 
@@ -68,9 +69,14 @@ export function canBrowseChildren(actor: MaybeActor): boolean {
 
 // Releasing is ADMIN ONLY (Phase 6 decision). A volunteer who cannot follow
 // through contacts the coordinator instead of quietly returning the child to
-// the pool, so a human sees every drop-out.
-export function canReleaseClaim(actor: MaybeActor): boolean {
-  return isAdmin(actor);
+// the pool, so a human sees every drop-out. Only while the child is still being
+// helped: a fulfilled child's claim is the record of who helped, and releasing
+// it would cut that volunteer off from a family they already delivered to.
+export function canReleaseClaim(
+  actor: MaybeActor,
+  application: Pick<Application, "status">,
+): boolean {
+  return isAdmin(actor) && isHeldStatus(application.status);
 }
 
 // Assigning a volunteer by hand is an admin act; it goes through the same

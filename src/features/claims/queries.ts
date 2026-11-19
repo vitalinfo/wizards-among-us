@@ -12,7 +12,7 @@ import {
 } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { HELD_STATUSES, type UkraineRegion } from "@/db/enums";
+import { HELD_STATUSES, isHeldStatus, type UkraineRegion } from "@/db/enums";
 import {
   applicationFiles,
   applications,
@@ -251,6 +251,19 @@ export async function assignVolunteer(
 // deleted, so the audit trail of who held a child survives.
 export async function releaseClaim(applicationId: string): Promise<boolean> {
   return getDb().transaction(async (tx) => {
+    // Only a child still being helped can be released. A fulfilled one's claim
+    // is the record of who helped — releasing it would cut that volunteer off
+    // from a family they already delivered to. Locked, so a family confirming
+    // receipt at the same moment cannot land between this check and the write.
+    const [application] = await tx
+      .select({ status: applications.status })
+      .from(applications)
+      .where(eq(applications.id, applicationId))
+      .for("update");
+    if (!application || !isHeldStatus(application.status)) {
+      return false;
+    }
+
     const released = await tx
       .update(claims)
       .set({ releasedAt: new Date() })
