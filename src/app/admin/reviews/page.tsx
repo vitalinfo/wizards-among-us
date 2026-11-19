@@ -1,4 +1,5 @@
 import { getFormatter, getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -59,7 +60,7 @@ export default async function AdminReviewsPage() {
                 <p className="text-muted-foreground text-xs">
                   {/* The full identity is visible HERE, to an admin deciding —
                       only the first name is ever published. */}
-                  {t("byline", {
+                  {t.rich("byline", {
                     author:
                       review.authorFirstName ??
                       (review.authorUsername
@@ -67,6 +68,25 @@ export default async function AdminReviewsPage() {
                         : t("anonymous")),
                     child: review.childName ?? "—",
                     date: format.dateTime(review.createdAt, "short"),
+                    authorLink: (chunks) => (
+                      <Link
+                        href={`/admin/users/${review.authorId}`}
+                        className="text-primary font-semibold underline underline-offset-4"
+                      >
+                        {chunks}
+                      </Link>
+                    ),
+                    childLink: (chunks) =>
+                      review.applicationId ? (
+                        <Link
+                          href={`/admin/applications/${review.applicationId}`}
+                          className="text-primary font-semibold underline underline-offset-4"
+                        >
+                          {chunks}
+                        </Link>
+                      ) : (
+                        chunks
+                      ),
                   })}
                 </p>
                 <form
