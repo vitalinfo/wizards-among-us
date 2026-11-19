@@ -105,6 +105,7 @@ export default async function CampaignAnalyticsPage({
   const series = {
     waiting: t("series.waiting"),
     claimed: t("series.claimed"),
+    fulfilled: t("series.fulfilled"),
     rejected: t("series.rejected"),
   };
 
