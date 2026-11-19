@@ -17,6 +17,7 @@ describe("parseAuditQuery", () => {
   it("starts at the newest page, unfiltered", () => {
     expect(parseAuditQuery({})).toEqual({
       action: null,
+      reason: null,
       targetId: null,
       actorId: null,
       page: 1,
@@ -31,10 +32,25 @@ describe("parseAuditQuery", () => {
       }),
     ).toEqual({
       action: "application.approved",
+      reason: null,
       targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
       actorId: null,
       page: 1,
     });
+  });
+
+  // A reason is a bare code: anything else could never match one, and must
+  // not count as a filter.
+  it("reads a failure reason, and drops anything but a code", () => {
+    expect(parseAuditQuery({ reason: " blocked " }).reason).toBe("blocked");
+    expect(isDefaultAuditQuery(parseAuditQuery({ reason: "blocked" }))).toBe(
+      false,
+    );
+    for (const reason of ["", "blocked:x", "a.b", "Blocked"]) {
+      const query = parseAuditQuery({ reason });
+      expect(query.reason).toBeNull();
+      expect(isDefaultAuditQuery(query)).toBe(true);
+    }
   });
 
   it("reads an actor id, and drops a malformed one", () => {
@@ -85,6 +101,7 @@ describe("auditHref", () => {
   it("round-trips a later page with its filters", () => {
     const query = {
       action: "application.approved",
+      reason: "blocked",
       targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
       actorId: "6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11",
       page: 1,
@@ -179,10 +196,13 @@ describe("auditExportHref", () => {
     expect(
       auditExportHref({
         action: "application.approved",
+        reason: "blocked",
         targetId: null,
         actorId: "a1",
         page: 4,
       }),
-    ).toBe("/admin/audit/export?action=application.approved&actor=a1");
+    ).toBe(
+      "/admin/audit/export?action=application.approved&reason=blocked&actor=a1",
+    );
   });
 });

@@ -73,6 +73,37 @@ describe("AuditFilterForm", () => {
     expect(screen.getByLabelText(t.action)).toHaveValue("application.reopened");
   });
 
+  // Named by the same copy the log rows read in; «Будь-яка» first.
+  it("offers every reason a notification can fail, by name", async () => {
+    await renderForm({});
+    const select = screen.getByLabelText(t.reason);
+    const reasons = messages.admin.audit.actionDetails.notification;
+
+    expect(select).toHaveAttribute("name", "reason");
+    expect(
+      within(select)
+        .getAllByRole("option")
+        .map((option) => [option.getAttribute("value"), option.textContent]),
+    ).toEqual([
+      ["", t.anyReason],
+      ["blocked", reasons.blocked],
+      ["error", reasons.error],
+    ]);
+  });
+
+  it("shows the applied reason, one without copy by its code", async () => {
+    const view = await renderForm({ reason: "blocked" });
+    expect(screen.getByLabelText(t.reason)).toHaveValue("blocked");
+    expect(screen.getByRole("link", { name: t.reset })).toBeInTheDocument();
+    view.unmount();
+
+    await renderForm({ reason: "rate_limited" });
+    expect(screen.getByLabelText(t.reason)).toHaveValue("rate_limited");
+    expect(
+      screen.getByRole("option", { name: "rate_limited" }),
+    ).toBeInTheDocument();
+  });
+
   it("asks the browser to refuse anything but a uuid", async () => {
     await renderForm({});
     const input = screen.getByLabelText(t.targetId);
@@ -111,6 +142,7 @@ describe("AuditFilterForm", () => {
   it("shows the new filter when re-rendered in place", async () => {
     const view = await renderForm({
       action: "application.approved",
+      reason: "blocked",
       target: TARGET,
     });
     view.rerender(
@@ -123,12 +155,14 @@ describe("AuditFilterForm", () => {
     );
 
     expect(screen.getByLabelText(t.action)).toHaveValue("");
+    expect(screen.getByLabelText(t.reason)).toHaveValue("");
     expect(screen.getByLabelText(t.targetId)).toHaveValue("");
   });
 
   it("has no accessibility violations", async () => {
     const { container } = await renderForm({
       action: "application.approved",
+      reason: "blocked",
       target: TARGET,
     });
     expect(await axe(container)).toHaveNoViolations();

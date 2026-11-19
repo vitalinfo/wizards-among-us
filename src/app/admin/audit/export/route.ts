@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     getTranslations("admin.audit"),
     listAllAuditLogs({
       action: query.action,
+      reason: query.reason,
       targetId: query.targetId,
       actorId: subject.id,
     }),

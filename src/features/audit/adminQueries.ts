@@ -9,12 +9,22 @@ import type { AuditQuery } from "@/features/audit/listQuery";
 
 export type AuditLogRow = typeof auditLogs.$inferSelect;
 
-export type AuditFilter = Pick<AuditQuery, "action" | "targetId" | "actorId">;
+export type AuditFilter = Pick<
+  AuditQuery,
+  "action" | "reason" | "targetId" | "actorId"
+>;
 
 // An action code without its ":detail" suffix — what the filter matches on, so
 // `application.file_viewed` finds every file kind. split_part rather than LIKE:
 // the codes are full of `_`, which LIKE reads as a wildcard.
 const baseAction = sql<string>`split_part(${auditLogs.action}, ':', 1)`;
+
+// The two halves a failure-reason filter matches: the entity (the base code's
+// first part) and the detail after the colon. Only `notification` failures
+// carry a reason, so the entity keeps another entity's detail that happens to
+// share the word from matching.
+const actionEntity = sql<string>`split_part(${auditLogs.action}, '.', 1)`;
+const actionDetail = sql<string>`split_part(${auditLogs.action}, ':', 2)`;
 
 // One WHERE for the count and the page, so the pager can't disagree with the
 // rows it pages. A target id is served by audit_logs_target_idx, an actor id
@@ -22,6 +32,9 @@ const baseAction = sql<string>`split_part(${auditLogs.action}, ':', 1)`;
 function auditWhere(filter: AuditFilter): SQL | undefined {
   return and(
     filter.action ? eq(baseAction, filter.action) : undefined,
+    filter.reason
+      ? and(eq(actionEntity, "notification"), eq(actionDetail, filter.reason))
+      : undefined,
     filter.targetId ? eq(auditLogs.targetId, filter.targetId) : undefined,
     filter.actorId ? eq(auditLogs.actorId, filter.actorId) : undefined,
   );

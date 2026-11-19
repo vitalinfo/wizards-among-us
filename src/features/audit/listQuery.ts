@@ -11,6 +11,10 @@ export type AuditQuery = {
   // target by id — "who decided this application?" is a question about one
   // target_id.
   action: string | null;
+  // Narrow to notifications that failed for one reason (the ":detail" of
+  // `notification.<notice>_failed:<reason>`) — "who can't the bot reach" is
+  // `blocked` across every notice. Combines with `action` for one notice.
+  reason: string | null;
   targetId: string | null;
   // Narrow to one actor — "everything this admin did". Served by
   // audit_logs_actor_idx (actor_id first).
@@ -18,18 +22,24 @@ export type AuditQuery = {
   page: number;
 };
 
+const REASON_CODE = /^[a-z_]+$/;
+
 export function parseAuditQuery(params: {
   action?: string;
+  reason?: string;
   target?: string;
   actor?: string;
   page?: string;
 }): AuditQuery {
   const page = Number(params.page);
   const action = (params.action ?? "").trim();
+  const reason = (params.reason ?? "").trim();
   const targetId = (params.target ?? "").trim();
   const actorId = (params.actor ?? "").trim();
   return {
     action: action === "" ? null : action,
+    // A reason is a bare code; anything else could never match one.
+    reason: REASON_CODE.test(reason) ? reason : null,
     // Anything but a uuid is dropped: Postgres errors on a malformed one.
     targetId: isUuid(targetId) ? targetId : null,
     actorId: isUuid(actorId) ? actorId : null,
@@ -47,7 +57,10 @@ export function auditPageCount(total: number): number {
 // Whether anything is narrowed — drives whether a "reset" is worth showing.
 export function isDefaultAuditQuery(query: AuditQuery): boolean {
   return (
-    query.action === null && query.targetId === null && query.actorId === null
+    query.action === null &&
+    query.reason === null &&
+    query.targetId === null &&
+    query.actorId === null
   );
 }
 
@@ -71,6 +84,9 @@ function auditSearch(query: AuditQuery, page: number): string {
   const params = new URLSearchParams();
   if (query.action) {
     params.set("action", query.action);
+  }
+  if (query.reason) {
+    params.set("reason", query.reason);
   }
   if (query.targetId) {
     params.set("target", query.targetId);
@@ -144,7 +160,13 @@ export function auditTargetHref(
 
 // The log narrowed to one actor.
 export function auditActorLogHref(actorId: string): string {
-  return auditHref({ action: null, targetId: null, actorId, page: 1 });
+  return auditHref({
+    action: null,
+    reason: null,
+    targetId: null,
+    actorId,
+    page: 1,
+  });
 }
 
 // Where the ACTOR can be opened. A user has a page of their own; an admin has
