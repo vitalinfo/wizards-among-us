@@ -1,16 +1,19 @@
 // Day-by-day state of one campaign on /admin/campaigns/[id]/analytics: at the
 // end of each Kyiv day, how many children were waiting for a wizard, how many
-// already had one, and how many applications stood rejected.
+// already had one, how many of those had their gift, and how many applications
+// stood rejected.
 //
 // No table holds status history, so it is replayed from audit_logs — every
 // status change in the app writes a row there in the same request. A change
 // made by hand in SQL without an audit row is invisible to this.
 
-export type AnalyticsState = "waiting" | "claimed" | "rejected" | "other";
+export type AnalyticsState =
+  "waiting" | "claimed" | "fulfilled" | "rejected" | "other";
 
 // Each audited action that moves an application, and where it leaves it.
 // «Взяті» includes fulfilled (Vital): a child whose gift arrived still had a
-// wizard, so the line only falls when a claim is released.
+// wizard, so the line only falls when a claim is released. Fulfilled is also
+// counted on its own, as a subset of it.
 export const STATE_EVENTS = {
   "application.submitted": "other",
   "application.rejected": "rejected",
@@ -22,9 +25,10 @@ export const STATE_EVENTS = {
   "claim.assigned_by_admin": "claimed",
   "claim.processed": "claimed",
   "claim.unprocessed": "claimed",
-  "application.fulfilled": "claimed",
+  "application.fulfilled": "fulfilled",
   // Written by hand with the SQL that undoes a parent's mistaken «отримали»
-  // (2026-11-09); the application goes back to claimed or processed.
+  // (2026-11-09); the application goes back to claimed or processed, so it
+  // leaves «Мрію виконано» and stays in «Взяті».
   "application.fulfil_reverted": "claimed",
 } as const satisfies Record<string, AnalyticsState>;
 
@@ -37,7 +41,8 @@ export type StateEvent = {
 export type AnalyticsDay = {
   day: string;
   waiting: number;
-  claimed: number;
+  claimed: number; // fulfilled included
+  fulfilled: number;
   rejected: number;
 };
 
@@ -65,19 +70,23 @@ export function buildAnalyticsDays(
     }
     let waiting = 0;
     let claimed = 0;
+    let fulfilled = 0;
     let rejected = 0;
     for (const state of current.values()) {
       if (state === "waiting") {
         waiting += 1;
       }
-      if (state === "claimed") {
+      if (state === "claimed" || state === "fulfilled") {
         claimed += 1;
+      }
+      if (state === "fulfilled") {
+        fulfilled += 1;
       }
       if (state === "rejected") {
         rejected += 1;
       }
     }
-    rows.push({ day, waiting, claimed, rejected });
+    rows.push({ day, waiting, claimed, fulfilled, rejected });
   }
   return rows;
 }

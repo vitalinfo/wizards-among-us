@@ -23,15 +23,15 @@ describe("buildAnalyticsDays", () => {
       event("b", "2026-11-02", "waiting"),
       event("a", "2026-11-02", "claimed"), // claimed the same day
       event("b", "2026-11-04", "claimed"),
-      event("a", "2026-11-05", "claimed"), // fulfilled: still has a wizard
+      event("a", "2026-11-05", "fulfilled"), // still has a wizard, too
     ]);
 
     expect(days).toEqual([
-      { day: "2026-11-01", waiting: 0, claimed: 0, rejected: 0 },
-      { day: "2026-11-02", waiting: 1, claimed: 1, rejected: 0 },
-      { day: "2026-11-03", waiting: 1, claimed: 1, rejected: 0 },
-      { day: "2026-11-04", waiting: 0, claimed: 2, rejected: 0 },
-      { day: "2026-11-05", waiting: 0, claimed: 2, rejected: 0 },
+      { day: "2026-11-01", waiting: 0, claimed: 0, fulfilled: 0, rejected: 0 },
+      { day: "2026-11-02", waiting: 1, claimed: 1, fulfilled: 0, rejected: 0 },
+      { day: "2026-11-03", waiting: 1, claimed: 1, fulfilled: 0, rejected: 0 },
+      { day: "2026-11-04", waiting: 0, claimed: 2, fulfilled: 0, rejected: 0 },
+      { day: "2026-11-05", waiting: 0, claimed: 2, fulfilled: 1, rejected: 0 },
     ]);
   });
 
@@ -81,13 +81,32 @@ describe("buildAnalyticsDays", () => {
     ]);
   });
 
+  it("takes a reverted «отримали» out of fulfilled but leaves the wizard", () => {
+    const days = buildAnalyticsDays([
+      event("a", "2026-11-01", "claimed"),
+      event("b", "2026-11-01", "claimed"),
+      event("a", "2026-11-02", "fulfilled"),
+      event("b", "2026-11-02", "fulfilled"), // the parent's mistake…
+      event("b", "2026-11-03", "claimed"), // …reverted by hand
+      event("b", "2026-11-05", "fulfilled"), // the real one
+    ]);
+
+    expect(days.map(({ claimed, fulfilled }) => [claimed, fulfilled])).toEqual([
+      [2, 0],
+      [2, 2],
+      [2, 1],
+      [2, 1],
+      [2, 2],
+    ]);
+  });
+
   it("runs on to `through` with the state unchanged, but never cuts the data short", () => {
     const events = [event("a", "2026-11-09", "waiting")];
 
     expect(buildAnalyticsDays(events, "2026-11-11")).toEqual([
-      { day: "2026-11-09", waiting: 1, claimed: 0, rejected: 0 },
-      { day: "2026-11-10", waiting: 1, claimed: 0, rejected: 0 },
-      { day: "2026-11-11", waiting: 1, claimed: 0, rejected: 0 },
+      { day: "2026-11-09", waiting: 1, claimed: 0, fulfilled: 0, rejected: 0 },
+      { day: "2026-11-10", waiting: 1, claimed: 0, fulfilled: 0, rejected: 0 },
+      { day: "2026-11-11", waiting: 1, claimed: 0, fulfilled: 0, rejected: 0 },
     ]);
     expect(buildAnalyticsDays(events, "2026-11-01")).toHaveLength(1);
   });
@@ -103,6 +122,7 @@ describe("buildAnalyticsDays", () => {
       day: "2026-11-01",
       waiting: 0,
       claimed: 1,
+      fulfilled: 0,
       rejected: 0,
     });
   });

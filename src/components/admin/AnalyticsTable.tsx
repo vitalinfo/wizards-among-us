@@ -3,7 +3,7 @@ import type { AnalyticsDay } from "@/features/campaigns/analytics";
 // The day, already formatted: in full for the table, short for the chart axis.
 export type AnalyticsRow = AnalyticsDay & { label: string; shortLabel: string };
 
-const SERIES = ["waiting", "claimed", "rejected"] as const;
+const SERIES = ["waiting", "claimed", "fulfilled", "rejected"] as const;
 
 // The numbers at the end of each day. Also the text equivalent of the chart.
 export function AnalyticsTable({
