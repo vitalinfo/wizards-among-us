@@ -177,13 +177,15 @@ export const TYPE_FIELDS_SCHEMAS = {
 const blankToUndefined = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
 
-const numeric = (schema: z.ZodTypeAny) =>
+// Generic over the inner schema so the field keeps its type. Typed as
+// `z.ZodTypeAny` these inferred `any` under zod 3 and `unknown` under zod 4.
+const numeric = <T extends z.ZodType>(schema: T) =>
   z.preprocess((value) => {
     const cleaned = blankToUndefined(value);
     return typeof cleaned === "string" ? Number(cleaned) : cleaned;
   }, schema.optional());
 
-const text = (schema: z.ZodTypeAny) =>
+const text = <T extends z.ZodType>(schema: T) =>
   z.preprocess(blankToUndefined, schema.optional());
 
 // Per-step partial save. Only the keys present in the payload are validated, so

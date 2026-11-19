@@ -12,7 +12,10 @@ import { z } from "zod";
 // abandoned rejection can't survive on an approved application.
 export const moderationDecisionSchema = z
   .object({
-    applicationId: z.string().uuid(),
+    // guid, not uuid: zod 4's uuid() also demands RFC version/variant bits.
+    // What matters here is that Postgres can parse it — the same shape isUuid
+    // checks.
+    applicationId: z.guid(),
     decision: z.enum(["approved", "rejected"]),
     rejectionNote: z.string().trim().optional().default(""),
   })
