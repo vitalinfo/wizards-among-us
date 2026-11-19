@@ -383,10 +383,17 @@ heroku pg:backups:schedule DATABASE_URL --at '03:00 Europe/Kyiv' -a "$APP"
 ```
 
 ```bash
+heroku pg:backups:schedules -a "$APP"
+```
+
+Expect `DATABASE_URL: daily at 3:00 Europe/Kyiv`. Plain `pg:backups` doesn't show schedules.
+
+```bash
 heroku pg:backups -a "$APP"
 ```
 
-`pg:backups` should list the capture and the schedule.
+Expect the capture as `Completed`. Its Database column may say `NEW_DATABASE`: that's the
+add-on's other attachment name for the same database until Part D detaches it.
 
 ---
 
