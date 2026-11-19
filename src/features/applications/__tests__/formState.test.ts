@@ -7,7 +7,7 @@ import {
   applicationSubmitSchemaForCampaign,
 } from "../validation";
 
-function codesFor(result: z.SafeParseReturnType<unknown, unknown>) {
+function codesFor(result: z.ZodSafeParseResult<unknown>) {
   if (result.success) {
     return {};
   }
@@ -52,7 +52,7 @@ describe("issueCode", () => {
       }),
     );
 
-    // Both are `invalid_string` to zod; only the refined code can say which.
+    // zod says `invalid_format`; only the refined code says which format.
     expect(codes.giftUrls).toBe("invalid_url");
   });
 
