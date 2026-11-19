@@ -141,11 +141,31 @@ describe("canBrowseChildren", () => {
 // quietly returning to the pool.
 describe("canReleaseClaim / canAssignVolunteer", () => {
   it("are admin-only", () => {
-    for (const predicate of [canReleaseClaim, canAssignVolunteer]) {
+    const held = { status: "claimed" } as const;
+    for (const predicate of [
+      (actor: Actor | null) => canReleaseClaim(actor, held),
+      canAssignVolunteer,
+    ]) {
       expect(predicate(admin)).toBe(true);
       expect(predicate(volunteer)).toBe(false);
       expect(predicate(parent)).toBe(false);
       expect(predicate(null)).toBe(false);
+    }
+  });
+
+  // A fulfilled child's claim is the record of who helped; releasing it would
+  // cut that volunteer off from a family they already delivered to.
+  it("releases only while the child is held", () => {
+    expect(canReleaseClaim(admin, { status: "claimed" })).toBe(true);
+    expect(canReleaseClaim(admin, { status: "processed" })).toBe(true);
+    for (const status of [
+      "fulfilled",
+      "approved",
+      "submitted",
+      "rejected",
+      "draft",
+    ] as const) {
+      expect(canReleaseClaim(admin, { status })).toBe(false);
     }
   });
 });

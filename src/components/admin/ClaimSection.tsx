@@ -64,12 +64,16 @@ export async function ClaimSection({
             })}
             {resolveUserContact(holder) === null ? ` · ${t("noContact")}` : ""}
           </p>
-          <Link
-            href={withSearch("release=1")}
-            className="border-border hover:bg-surface-muted focus-visible:outline-ring mt-3 inline-block rounded-md border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
-          >
-            {t("releaseCta")}
-          </Link>
+          {/* A fulfilled child stays with the volunteer who helped — the
+              write path refuses the release, so don't offer it. */}
+          {isHeldStatus(status) ? (
+            <Link
+              href={withSearch("release=1")}
+              className="border-border hover:bg-surface-muted focus-visible:outline-ring mt-3 inline-block rounded-md border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              {t("releaseCta")}
+            </Link>
+          ) : null}
         </div>
       ) : (
         <p className="text-muted-foreground mt-2 text-sm">{t("unclaimed")}</p>

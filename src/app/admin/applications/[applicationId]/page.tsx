@@ -33,6 +33,7 @@ import { getSessionActor } from "@/lib/auth/session";
 import { isUuid } from "@/lib/uuid";
 import {
   canDeleteDraftAsAdmin,
+  canReleaseClaim,
   canReopenApplication,
   isAdmin,
 } from "@/lib/authz";
@@ -143,8 +144,11 @@ export default async function AdminApplicationPage({
         (volunteer) => volunteer.id === query.assign,
       ) ?? null)
     : null;
+  // Same for release: a fulfilled child's claim is not releasable.
   const holder =
-    query.release === "1" ? await getClaimHolder(applicationId) : null;
+    query.release === "1" && canReleaseClaim(actor, application)
+      ? await getClaimHolder(applicationId)
+      : null;
   // Re-derived from the application's own status, never from the url: a
   // crafted ?reopen=1 on a claimed child must not raise a prompt for an action
   // the write path would refuse anyway.
