@@ -23,6 +23,18 @@ describe("auditActionLabel", () => {
     );
   });
 
+  // No code path writes these two: they record admin fixes made by hand in SQL
+  // (undoing a mistaken «отримали», removing the review left behind by it).
+  // `fulfil_reverted` is also an analytics state event.
+  it("names the actions only written by hand", () => {
+    expect(auditActionLabel(t, "application.fulfil_reverted")).toBe(
+      messages.admin.audit.actions.application.fulfil_reverted,
+    );
+    expect(auditActionLabel(t, "review.deleted")).toBe(
+      messages.admin.audit.actions.review.deleted,
+    );
+  });
+
   // The trail outlives the code that wrote it: a code with no copy must still
   // read, as itself.
   it("falls back to the code for an action without a label", () => {
