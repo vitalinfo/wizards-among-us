@@ -127,7 +127,8 @@ async function main() {
   });
   const t: NoticeTranslator = (key, values) => translator(key, values);
 
-  const tally = { sent: 0, blocked: 0, error: 0, skipped: 0 };
+  // Keyed by outcome: "sent", "skipped", or why the send failed.
+  const tally: Record<string, number> = { sent: 0, skipped: 0 };
   console.log("");
   for (const row of pending) {
     if (!row.recipient) {
@@ -145,13 +146,17 @@ async function main() {
     if (outcome === "not_configured") {
       throw new Error("TELEGRAM_BOT_TOKEN disappeared mid-run.");
     }
-    tally[outcome] += 1;
+    tally[outcome] = (tally[outcome] ?? 0) + 1;
     console.log(`${row.id.slice(0, 8)} ${row.notice.padEnd(9)} ${outcome}`);
     await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
   }
 
+  const { sent, skipped, ...failed } = tally;
+  const failures = Object.entries(failed)
+    .map(([reason, n]) => `${reason} ${n}`)
+    .join(", ");
   console.log(
-    `\nSent ${tally.sent}. Blocked the bot (or never allowed it): ${tally.blocked}. Errors: ${tally.error}. No Telegram identity: ${tally.skipped}.`,
+    `\nSent ${sent}. Failed: ${failures || "none"} (blocked = never allowed the bot, or blocked it). No Telegram identity: ${skipped}.`,
   );
 }
 
