@@ -14,9 +14,10 @@ import { applicationFiles, applications, campaigns } from "@/db/schema";
 // photos:normalize all set it). It does not list the bucket, so objects no row
 // points at (e.g. originals kept by photos:normalize) are not counted.
 //
-// Run against another environment the same way as photos:dedupe, passing that
-// app's DATABASE_URL for the one command (README, "Uploaded photos"). It
-// prints the database host first. Output carries no child or family data —
+// Run from a checkout, not on a dyno: it needs tsx, a dev dependency Heroku
+// prunes. Against another environment, pass that app's DATABASE_URL (and
+// PGSSLMODE) for the one command, as photos:dedupe does (README, "Uploaded
+// photos"). It prints the database host first. Output carries no child or family data —
 // campaign titles, file kinds and numbers only.
 loadEnvConfig(process.cwd());
 
