@@ -85,7 +85,9 @@ function parseStatuses(args: string[]): ApplicationStatus[] {
   if (args.length === 0) {
     return [...APPLICATION_STATUSES];
   }
-  const [flag, inline] = args[0].split(/=(.*)/s);
+  const equals = args[0].indexOf("=");
+  const flag = equals === -1 ? args[0] : args[0].slice(0, equals);
+  const inline = equals === -1 ? undefined : args[0].slice(equals + 1);
   const value = inline ?? args[1];
   if (flag !== "--status" || args.length > (inline === undefined ? 2 : 1)) {
     throw new Error(`Unexpected arguments: ${args.join(" ")}`);
