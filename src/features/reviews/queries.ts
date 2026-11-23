@@ -3,6 +3,8 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { applicationFiles, applications, reviews, users } from "@/db/schema";
 
+import type { ReviewStatusFilter } from "./listFilter";
+
 export async function hasReviewed(
   userId: string,
   applicationId: string,
@@ -62,7 +64,9 @@ export async function listPublishedReviews(
 
 // The moderation queue: everything, newest first, with enough context to judge
 // — including the family's photo with the gift, the proof the review is about.
-export async function listReviewsForModeration() {
+export async function listReviewsForModeration(
+  status: ReviewStatusFilter = "all",
+) {
   const rows = await getDb()
     .select({
       id: reviews.id,
@@ -79,6 +83,11 @@ export async function listReviewsForModeration() {
     .from(reviews)
     .innerJoin(users, eq(users.id, reviews.userId))
     .leftJoin(applications, eq(applications.id, reviews.applicationId))
+    .where(
+      status === "all"
+        ? undefined
+        : eq(reviews.isPublished, status === "published"),
+    )
     .orderBy(desc(reviews.createdAt));
 
   const applicationIds = [
