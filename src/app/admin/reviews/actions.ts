@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { recordAuditLog } from "@/features/audit/log";
+import {
+  parseReviewStatusFilter,
+  reviewsHref,
+} from "@/features/reviews/listFilter";
 import { setReviewPublished } from "@/features/reviews/queries";
 import { requireAdmin } from "@/lib/auth/session";
 
@@ -13,6 +17,9 @@ import { requireAdmin } from "@/lib/auth/session";
 export async function setReviewPublishedAction(
   reviewId: string,
   isPublished: boolean,
+  // The list's filter, so the admin lands back on the list they were
+  // working through. Re-parsed: a bound argument arrives from the client.
+  statusFilter?: string,
 ): Promise<void> {
   const admin = await requireAdmin();
   await setReviewPublished(reviewId, isPublished);
@@ -27,5 +34,5 @@ export async function setReviewPublishedAction(
   revalidatePath("/admin/reviews");
   // The landing page renders published reviews.
   revalidatePath("/");
-  redirect("/admin/reviews");
+  redirect(reviewsHref(parseReviewStatusFilter(statusFilter)));
 }

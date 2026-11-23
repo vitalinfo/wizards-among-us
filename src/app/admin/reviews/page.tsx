@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ReviewConfirmationPhoto } from "@/components/admin/ReviewConfirmationPhoto";
+import { ReviewFilterForm } from "@/components/admin/ReviewFilterForm";
+import { parseReviewStatusFilter } from "@/features/reviews/listFilter";
 import { listReviewsForModeration } from "@/features/reviews/queries";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
@@ -12,16 +14,22 @@ import { setReviewPublishedAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminReviewsPage() {
+export default async function AdminReviewsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
   }
 
+  const status = parseReviewStatusFilter((await searchParams).status);
+
   const [t, format, rows] = await Promise.all([
     getTranslations("admin.reviews"),
     getFormatter(),
-    listReviewsForModeration(),
+    listReviewsForModeration(status),
   ]);
 
   return (
@@ -33,8 +41,12 @@ export default async function AdminReviewsPage() {
           <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>
         </div>
 
+        <ReviewFilterForm status={status} />
+
         {rows.length === 0 ? (
-          <p className="text-muted-foreground">{t("empty")}</p>
+          <p className="text-muted-foreground">
+            {status === "all" ? t("empty") : t("emptyFiltered")}
+          </p>
         ) : (
           <ul className="flex flex-col gap-3">
             {rows.map((review) => (
@@ -98,6 +110,7 @@ export default async function AdminReviewsPage() {
                       null,
                       review.id,
                       !review.isPublished,
+                      status,
                     )}
                     className="mt-1"
                   >

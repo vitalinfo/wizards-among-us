@@ -20,9 +20,15 @@ vi.mock("@/lib/auth/session", () => ({
     email: "admin@example.com",
   }),
 }));
-const data = vi.hoisted(() => ({ rows: [] as ReviewRow[] }));
+const data = vi.hoisted(() => ({
+  rows: [] as ReviewRow[],
+  status: undefined as string | undefined,
+}));
 vi.mock("@/features/reviews/queries", () => ({
-  listReviewsForModeration: async () => data.rows,
+  listReviewsForModeration: async (status: string) => {
+    data.status = status;
+    return data.rows;
+  },
 }));
 // The turn buttons refresh the page after a turn; the redirect stays real.
 vi.mock("next/navigation", async (importOriginal) => ({
@@ -61,9 +67,11 @@ function review(overrides: Partial<ReviewRow>): ReviewRow {
   };
 }
 
-async function renderPage(rows: ReviewRow[]) {
+async function renderPage(rows: ReviewRow[], status?: string) {
   data.rows = rows;
-  const ui = await AdminReviewsPage();
+  const ui = await AdminReviewsPage({
+    searchParams: Promise.resolve({ status }),
+  });
   // The photo's lightbox is a client component inside the server tree.
   return render(
     <NextIntlClientProvider locale="uk" messages={messages}>
@@ -90,6 +98,34 @@ describe("AdminReviewsPage", () => {
   it("shows the empty state", async () => {
     await renderPage([]);
     expect(screen.getByText(t.empty)).toBeInTheDocument();
+  });
+
+  it("lists every review by default", async () => {
+    await renderPage([review({})]);
+
+    expect(data.status).toBe("all");
+    expect(screen.getByLabelText(t.filter.status)).toHaveValue("all");
+  });
+
+  it("narrows the list to the status in the url", async () => {
+    await renderPage([review({ isPublished: true })], "published");
+
+    expect(data.status).toBe("published");
+    expect(screen.getByLabelText(t.filter.status)).toHaveValue("published");
+  });
+
+  it("reads an unknown status as all", async () => {
+    await renderPage([review({})], "deleted");
+
+    expect(data.status).toBe("all");
+  });
+
+  // «No reviews yet» over a filtered list would read as if there were none.
+  it("says the filter matched nothing, not that there are no reviews", async () => {
+    await renderPage([], "hidden");
+
+    expect(screen.getByText(t.emptyFiltered)).toBeInTheDocument();
+    expect(screen.queryByText(t.empty)).not.toBeInTheDocument();
   });
 
   it("links the author to their user page and the child to the application", async () => {
