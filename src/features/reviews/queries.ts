@@ -1,7 +1,7 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { applications, reviews, users } from "@/db/schema";
+import { applicationFiles, applications, reviews, users } from "@/db/schema";
 
 export async function hasReviewed(
   userId: string,
@@ -60,9 +60,10 @@ export async function listPublishedReviews(
     .limit(limit);
 }
 
-// The moderation queue: everything, newest first, with enough context to judge.
+// The moderation queue: everything, newest first, with enough context to judge
+// — including the family's photo with the gift, the proof the review is about.
 export async function listReviewsForModeration() {
-  return getDb()
+  const rows = await getDb()
     .select({
       id: reviews.id,
       rating: reviews.rating,
@@ -79,6 +80,42 @@ export async function listReviewsForModeration() {
     .innerJoin(users, eq(users.id, reviews.userId))
     .leftJoin(applications, eq(applications.id, reviews.applicationId))
     .orderBy(desc(reviews.createdAt));
+
+  const applicationIds = [
+    ...new Set(rows.flatMap((row) => row.applicationId ?? [])),
+  ];
+  // Oldest first, so the last write per application is its newest
+  // confirmation — the same rule as latestByKind.
+  const photos = new Map<string, { id: string; version: number }>();
+  if (applicationIds.length > 0) {
+    const files = await getDb()
+      .select({
+        id: applicationFiles.id,
+        applicationId: applicationFiles.applicationId,
+        updatedAt: applicationFiles.updatedAt,
+      })
+      .from(applicationFiles)
+      .where(
+        and(
+          eq(applicationFiles.kind, "confirmation"),
+          inArray(applicationFiles.applicationId, applicationIds),
+        ),
+      )
+      .orderBy(asc(applicationFiles.createdAt), asc(applicationFiles.id));
+    for (const file of files) {
+      photos.set(file.applicationId, {
+        id: file.id,
+        version: file.updatedAt.getTime(),
+      });
+    }
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    confirmationPhoto: row.applicationId
+      ? (photos.get(row.applicationId) ?? null)
+      : null,
+  }));
 }
 
 export async function setReviewPublished(

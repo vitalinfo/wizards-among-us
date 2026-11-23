@@ -1639,7 +1639,9 @@
       "anonymous": "без імені",
       "byline": "<authorLink>{author}</authorLink> · дитина: <childLink>{child}</childLink> · {date}",
       "publishCta": "Опублікувати",
-      "unpublishCta": "Прибрати з сайту"
+      "unpublishCta": "Прибрати з сайту",
+      "photoTitle": "Фото з подарунком — {child}",
+      "photoAlt": "Фото, яке родина надіслала як підтвердження, що подарунок отримано"
     },
     "users": {
       "title": "Користувачі",
