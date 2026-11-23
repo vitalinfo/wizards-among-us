@@ -33,11 +33,11 @@ export function ReviewConfirmationPhoto({
       <img
         src={href}
         alt=""
-        width={96}
-        height={96}
+        width={122}
+        height={122}
         loading="lazy"
         decoding="async"
-        className="border-border size-24 rounded-md border object-cover"
+        className="border-border size-[122px] rounded-md border object-cover"
       />
     </PhotoLightbox>
   );
