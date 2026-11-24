@@ -46,6 +46,14 @@ export async function ApplicationsTable({
   const base = (row: MyApplicationRow) =>
     `/account/parent/applications/${row.id}`;
 
+  // The child's name opens the card, as the eye does: families did not read
+  // the eye as "open", and on a phone its tooltip never shows.
+  const nameLink = (row: MyApplicationRow) => (
+    <Link href={`${base(row)}/view`} className={NAME}>
+      {name(row)}
+    </Link>
+  );
+
   // The one next step a status has: finish a draft, say the gift arrived,
   // and then — until it is left — the review. The last two open in a dialog
   // over the list. The review is offered straight after confirming, but
@@ -71,12 +79,13 @@ export async function ApplicationsTable({
       </Link>
     ) : null;
 
-  // The first icon's label hangs right from it: on a phone the icons start at
-  // the card's left edge, and centred it would run off the screen.
+  // The last icon's label hangs left, flush with its right edge: the icons sit
+  // at the right of the card and of the table, and centred — or hung right —
+  // a label runs off a phone's screen and scrolls the whole page sideways.
   const actions = (row: MyApplicationRow) => (
     <>
       {EDITABLE.includes(row.status) ? (
-        <Tooltip label={t("editShort")} align="start">
+        <Tooltip label={t("editShort")}>
           <Link
             href={base(row)}
             aria-label={t("edit", { name: name(row) })}
@@ -88,7 +97,7 @@ export async function ApplicationsTable({
       ) : null}
       <Tooltip
         label={t("viewShort")}
-        align={EDITABLE.includes(row.status) ? "center" : "start"}
+        align={row.status === "draft" ? "center" : "end"}
       >
         <Link
           href={`${base(row)}/view`}
@@ -99,7 +108,7 @@ export async function ApplicationsTable({
         </Link>
       </Tooltip>
       {row.status === "draft" ? (
-        <Tooltip label={t("deleteShort")}>
+        <Tooltip label={t("deleteShort")} align="end">
           <Link
             href={dialogHref(query, "delete", row.id)}
             aria-label={t("delete", { name: name(row) })}
@@ -165,7 +174,7 @@ export async function ApplicationsTable({
                     <Avatar status={row.status} />
                     <span className="flex min-w-0 flex-col gap-2">
                       <span className="text-lg leading-4 font-medium tracking-[-0.06em]">
-                        {name(row)}
+                        {nameLink(row)}
                       </span>
                       <span className="text-sm font-light tracking-[-0.06em]">
                         {submitted(row)}
@@ -217,21 +226,28 @@ export async function ApplicationsTable({
               </span>
               {nextStep(row)}
             </div>
-            <div className="flex flex-col gap-2">
-              <p className="text-lg leading-[19px] font-medium tracking-[-0.06em]">
-                {name(row)}
-              </p>
-              {row.childAge !== null ? (
-                <p className="text-sm font-light tracking-[-0.06em]">
-                  {t("age", { age: row.childAge })}
+            {/* The icons on the right, centred against the child, as on «Мої
+                підопічні» (Vital) — but under the status row, not beside it:
+                the pill and its link need the card's whole width. */}
+            <div className="flex items-center justify-between gap-4 self-stretch">
+              <div className="flex min-w-0 flex-col gap-2">
+                <p className="text-lg leading-[19px] font-medium tracking-[-0.06em]">
+                  {nameLink(row)}
                 </p>
-              ) : null}
-              <p className="text-sm font-light tracking-[-0.06em]">
-                {t("columns.initiative")}:{" "}
-                <span className="font-medium">{row.campaignTitle}</span>
-              </p>
+                {row.childAge !== null ? (
+                  <p className="text-sm font-light tracking-[-0.06em]">
+                    {t("age", { age: row.childAge })}
+                  </p>
+                ) : null}
+                <p className="text-sm font-light tracking-[-0.06em]">
+                  {t("columns.initiative")}:{" "}
+                  <span className="font-medium">{row.campaignTitle}</span>
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-4">
+                {actions(row)}
+              </div>
             </div>
-            <div className="flex items-center gap-8">{actions(row)}</div>
           </li>
         ))}
       </ul>
@@ -244,6 +260,11 @@ export async function ApplicationsTable({
 // instead, centred on it.
 const STEP =
   "focus-visible:outline-ring rounded text-sm leading-[18px] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 lg:text-base lg:whitespace-nowrap";
+
+// Underlined always, not only on hover: there is no hover on a phone, and the
+// underline is what says "this opens".
+const NAME =
+  "hover:text-primary focus-visible:outline-ring rounded underline decoration-1 underline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
 
 const ICON =
   "text-foreground hover:text-primary focus-visible:outline-ring inline-flex rounded transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";

@@ -39,6 +39,16 @@ export async function ClaimsTable({
   const cell = "px-6 py-8 align-middle";
 
   const name = (row: MyClaimRow) => row.childName ?? t("noName");
+  const href = (row: MyClaimRow) =>
+    `/account/volunteer/claims/${row.applicationId}`;
+
+  // The child's name opens the card, as the eye does: volunteers did not read
+  // the eye as "open", and on a phone its tooltip never shows.
+  const nameLink = (row: MyClaimRow) => (
+    <Link href={href(row)} className={NAME}>
+      {name(row)}
+    </Link>
+  );
   const state = (row: MyClaimRow) =>
     row.status === "fulfilled"
       ? ("completed" as const)
@@ -88,7 +98,7 @@ export async function ClaimsTable({
   const details = (row: MyClaimRow) => (
     <Tooltip label={t("viewShort")} align="end">
       <Link
-        href={`/account/volunteer/claims/${row.applicationId}`}
+        href={href(row)}
         aria-label={t("view", { name: name(row) })}
         className="text-foreground hover:text-primary focus-visible:outline-ring inline-flex items-center gap-2 rounded focus-visible:outline-2 focus-visible:outline-offset-2"
       >
@@ -125,17 +135,26 @@ export async function ClaimsTable({
                 <td className={cell}>
                   <div className="flex items-center gap-6">
                     <Avatar gender={row.childGender} />
-                    <span className="flex flex-col gap-1">
-                      <span className="font-semibold">{name(row)}</span>
+                    <span className="flex min-w-0 flex-col gap-2">
+                      <span className="text-lg leading-4 font-medium tracking-[-0.06em]">
+                        {nameLink(row)}
+                      </span>
                       {row.childAge !== null ? (
-                        <span className="text-muted-foreground">
+                        <span className="text-sm font-light tracking-[-0.06em]">
                           {tCard("age", { age: row.childAge })}
                         </span>
                       ) : null}
                     </span>
                   </div>
                 </td>
-                <td className={cell}>{row.campaignTitle}</td>
+                <td
+                  className={cn(
+                    cell,
+                    "text-lg leading-4 font-medium tracking-[-0.06em]",
+                  )}
+                >
+                  {row.campaignTitle}
+                </td>
                 <td className={cell}>
                   <ClaimStatusBadge state={state(row)} />
                 </td>
@@ -163,17 +182,17 @@ export async function ClaimsTable({
                 the default align-items. */}
             <div className="flex min-w-0 flex-col items-start gap-3">
               <ClaimStatusBadge state={state(row)} />
-              <p className="text-lg font-semibold">{name(row)}</p>
+              <p className="text-lg leading-[19px] font-medium tracking-[-0.06em]">
+                {nameLink(row)}
+              </p>
               {row.childAge !== null ? (
-                <p className="text-muted-foreground text-sm">
+                <p className="text-sm font-light tracking-[-0.06em]">
                   {tCard("age", { age: row.childAge })}
                 </p>
               ) : null}
-              <p className="text-sm">
-                <span className="text-muted-foreground">
-                  {t("columns.initiative")}:{" "}
-                </span>
-                {row.campaignTitle}
+              <p className="text-sm font-light tracking-[-0.06em]">
+                {t("columns.initiative")}:{" "}
+                <span className="font-medium">{row.campaignTitle}</span>
               </p>
             </div>
             {/* On the right of the card and centred against the whole of it
@@ -188,6 +207,11 @@ export async function ClaimsTable({
     </>
   );
 }
+
+// Underlined always, not only on hover: there is no hover on a phone, and the
+// underline is what says "this opens".
+const NAME =
+  "hover:text-primary focus-visible:outline-ring rounded underline decoration-1 underline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
 
 // The child's disc. Decorative — the name is beside it — so the gender it is
 // tinted by is not information anyone depends on this to read: pink for a

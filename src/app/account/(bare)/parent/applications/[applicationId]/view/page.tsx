@@ -5,13 +5,16 @@ import { notFound, redirect } from "next/navigation";
 
 import { ApplicationDetail } from "@/components/applications/ApplicationDetail";
 import { ApplicationPhoto } from "@/components/applications/ApplicationPhoto";
+import { WizardSection } from "@/components/parent/WizardSection";
 import { canRotateApplicationFile } from "@/features/applications/authz";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
 import { latestByKind } from "@/features/applications/files";
 import {
   getMyApplication,
+  getMyApplicationVolunteer,
   getUserContactFields,
 } from "@/features/applications/queries";
+import { recordAuditLog } from "@/features/audit/log";
 import { getCampaignById } from "@/features/campaigns/queries";
 import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
@@ -27,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 // «Картка дитини — повна» for the family that wrote it (Figma 139:4543) — the
-// eye on a row of «Мої заявки». The same card a volunteer holding the child
+// child's name, or the eye, on a row of «Мої заявки». The same card a volunteer holding the child
 // sees, read-only, in every status; editing is the pencil, which goes to the
 // form.
 //
@@ -63,10 +66,11 @@ export default async function ApplicationViewPage({
   const t = await getTranslations("parent.applications");
   const tConfirm = await getTranslations("parent.confirm");
   const tRejected = await getTranslations("parent.applications.rejected");
-  const [files, contactFields, campaign] = await Promise.all([
+  const [files, contactFields, campaign, volunteer] = await Promise.all([
     listApplicationFiles(applicationId),
     getUserContactFields(actor.id),
     getCampaignById(application.campaignId),
+    getMyApplicationVolunteer(applicationId, actor.id),
   ]);
   // The family may turn their own photos here, at any status, while the
   // campaign runs — this page is where they see a sideways letter after
@@ -86,6 +90,18 @@ export default async function ApplicationViewPage({
   ]);
   const gift = latestByKind(files, ["confirmation"])[0];
   const child = application.childName ?? "";
+
+  // The volunteer holding this child, scoped as «Мої Чарівники» is: only while
+  // the campaign runs. A contact reveal like that page's, so logged the same.
+  const wizard = campaign?.status === "active" ? volunteer : null;
+  if (wizard) {
+    await recordAuditLog({
+      actor,
+      action: "volunteer.contact_viewed",
+      targetType: "application",
+      targetId: application.id,
+    });
+  }
 
   return (
     <ApplicationDetail
@@ -138,6 +154,13 @@ export default async function ApplicationViewPage({
           </section>
         ) : null
       }
-    />
+    >
+      {wizard ? (
+        <WizardSection
+          name={wizard.firstName}
+          contact={resolveUserContact(wizard)}
+        />
+      ) : null}
+    </ApplicationDetail>
   );
 }
