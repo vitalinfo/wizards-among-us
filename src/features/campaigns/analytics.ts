@@ -26,9 +26,9 @@ export const STATE_EVENTS = {
   "claim.processed": "claimed",
   "claim.unprocessed": "claimed",
   "application.fulfilled": "fulfilled",
-  // Written by hand with the SQL that undoes a parent's mistaken «отримали»
-  // (2026-11-09); the application goes back to claimed or processed, so it
-  // leaves «Мрію виконано» and stays in «Взяті».
+  // Written by `pnpm fulfilment:revert`, which undoes a parent's mistaken
+  // «отримали» (and once by hand, for 2026-11-09); the application goes back
+  // to claimed or processed, so it leaves «Мрію виконано» and stays in «Взяті».
   "application.fulfil_reverted": "claimed",
 } as const satisfies Record<string, AnalyticsState>;
 

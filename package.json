@@ -28,6 +28,7 @@
     "notify:backfill": "tsx src/scripts/notifyBackfill.ts",
     "drafts:cleanup": "tsx src/scripts/deleteBlankDrafts.ts",
     "files:size": "tsx src/scripts/filesSize.ts",
+    "fulfilment:revert": "tsx src/scripts/revertFulfilment.ts",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f db",
