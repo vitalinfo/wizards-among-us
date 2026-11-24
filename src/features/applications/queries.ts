@@ -517,3 +517,39 @@ export async function listMyVolunteers(
     .limit(page.limit)
     .offset(page.offset);
 }
+
+// The volunteer holding ONE of this parent's applications — the «Чарівник»
+// section of the family's own card. The same disclosure as «Мої Чарівники»,
+// for one row: the current claim only, on a child that is held or fulfilled,
+// and only the name and the two fields resolveUserContact chooses between.
+// The page scopes it to the active campaign, as that list is.
+export async function getMyApplicationVolunteer(
+  applicationId: string,
+  parentId: string,
+): Promise<{
+  firstName: string | null;
+  username: string | null;
+  phone: string | null;
+} | null> {
+  const [row] = await getDb()
+    .select({
+      firstName: users.firstName,
+      username: users.username,
+      phone: users.phone,
+    })
+    .from(applications)
+    .innerJoin(
+      claims,
+      and(eq(claims.applicationId, applications.id), isNull(claims.releasedAt)),
+    )
+    .innerJoin(users, eq(users.id, claims.volunteerId))
+    .where(
+      and(
+        eq(applications.id, applicationId),
+        eq(applications.parentId, parentId),
+        inArray(applications.status, VOLUNTEER_TAB_STATUSES.all),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}

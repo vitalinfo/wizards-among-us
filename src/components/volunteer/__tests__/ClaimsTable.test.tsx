@@ -105,6 +105,22 @@ describe("ClaimsTable", () => {
     }
   });
 
+  // The name is a way in on its own: the eye alone was not read as "open".
+  it("opens each child's card from the child's name", async () => {
+    await renderTable();
+
+    for (const [name, id] of [
+      ["Софійка", "a1"],
+      ["Максим", "a2"],
+    ] as const) {
+      const links = screen.getAllByRole("link", { name });
+      expect(links).toHaveLength(2);
+      for (const link of links) {
+        expect(link).toHaveAttribute("href", `/account/volunteer/claims/${id}`);
+      }
+    }
+  });
+
   // Nothing tier-2 is in the projection, and nothing tier-2 may appear here:
   // the whole point of the redesign is that the address is one click away, on
   // one child, where the read is logged.

@@ -9,6 +9,7 @@ import { giftUrls } from "@/features/applications/mappers";
 import { cn } from "@/lib/utils";
 
 import { ApplicationPhoto } from "./ApplicationPhoto";
+import { ContactLink } from "./ContactLink";
 import { DetailRow } from "./DetailRow";
 import { DetailSection } from "./DetailSection";
 
@@ -199,20 +200,7 @@ export async function ApplicationDetail({
                   phone dials. */}
               {contact ? (
                 <DetailRow label={t("fields.contact")}>
-                  {contact.method === "telegram" ? (
-                    <a
-                      href={`https://t.me/${contact.value}`}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className={CONTACT_LINK}
-                    >
-                      @{contact.value}
-                    </a>
-                  ) : (
-                    <a href={`tel:${contact.value}`} className={CONTACT_LINK}>
-                      {contact.value}
-                    </a>
-                  )}
+                  <ContactLink contact={contact} />
                 </DetailRow>
               ) : null}
             </DetailSection>
@@ -226,6 +214,3 @@ export async function ApplicationDetail({
     </>
   );
 }
-
-const CONTACT_LINK =
-  "text-primary focus-visible:outline-ring underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2";

@@ -254,6 +254,23 @@ describe("ApplicationsTable content", () => {
     ).toBeInTheDocument();
   });
 
+  // The name is a way in on its own, in every status: the eye alone was not
+  // read as "open".
+  it("opens the card from the child's name", async () => {
+    await renderTable([row("draft"), row("claimed")]);
+
+    for (const status of ["draft", "claimed"] as const) {
+      const links = screen.getAllByRole("link", { name: `Дитина-${status}` });
+      expect(links).toHaveLength(2);
+      for (const link of links) {
+        expect(link).toHaveAttribute(
+          "href",
+          `/account/parent/applications/id-${status}/view`,
+        );
+      }
+    }
+  });
+
   it("names a child-less draft rather than leaving the row blank", async () => {
     await renderTable([row("draft", { childName: null })]);
 
