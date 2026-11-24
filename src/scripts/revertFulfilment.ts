@@ -163,5 +163,10 @@ main()
   .then(() => process.exit())
   .catch((err) => {
     console.error(err instanceof Error ? err.message : err);
+    // drizzle wraps a driver error as "Failed query: …"; the reason (a refused
+    // connection, a missing column) is only on its cause.
+    if (err instanceof Error && err.cause instanceof Error) {
+      console.error(`cause: ${err.cause.message}`);
+    }
     process.exit(1);
   });
