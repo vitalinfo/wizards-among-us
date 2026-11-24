@@ -619,6 +619,19 @@ pnpm drafts:cleanup            # dry run — prints what it would remove
 pnpm drafts:cleanup --apply    # deletes them
 ```
 
+A parent who presses «отримали» by mistake can't take it back, and there is no admin screen for
+it. `fulfilment:revert` undoes it for one application: back to `claimed` (or `processed`, if the
+volunteer had marked it so — replayed from the audit log), the confirmation photo removed (row
+and object) and the parent's review of it deleted, in one transaction with its audit rows. It
+refuses anything not `fulfilled` or with no active claim. The volunteer's Telegram notice can't
+be unsent; the real confirmation later sends another. It takes the same environment variables
+as `photos:dedupe`:
+
+```bash
+pnpm fulfilment:revert <application id>                          # dry run — prints the plan
+pnpm fulfilment:revert <application id> --apply --admin <email>  # reverts, logged under that admin
+```
+
 ### Telegram notifications
 
 This environment's bot messages the person on the other side of four moments:
