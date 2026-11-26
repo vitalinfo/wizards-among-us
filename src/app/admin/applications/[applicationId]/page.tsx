@@ -20,6 +20,7 @@ import {
 } from "@/features/applications/moderationFilter";
 import { listCampaigns } from "@/features/campaigns/adminQueries";
 import { listApplicationFiles } from "@/features/applications/fileQueries";
+import { inKindOrder } from "@/features/applications/files";
 import { recordAuditLog } from "@/features/audit/log";
 
 import {
@@ -116,7 +117,7 @@ export default async function AdminApplicationPage({
     getTranslations("regions"),
     getTranslations("genders"),
     getFormatter(),
-    listApplicationFiles(applicationId),
+    listApplicationFiles(applicationId).then(inKindOrder),
     // Attached to the PERSON, not the application: a family that files three
     // applications has one note, and the thing an admin wrote down about how to
     // reach them is true for all three.

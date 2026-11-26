@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   CLAIM_VISIBLE_KINDS,
+  inKindOrder,
   isParentUploadKind,
   latestByKind,
   MAX_UPLOAD_BYTES,
@@ -165,5 +166,34 @@ describe("supersededFiles", () => {
         { id: "letter", applicationId: "a", kind: "letter_photo" },
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("inKindOrder", () => {
+  it("orders certificate, letter, child with letter — whatever the upload order", () => {
+    // The letter was retaken last, so by upload order it would come last.
+    const files = [
+      { id: "child", kind: "child_with_letter_photo" as const },
+      { id: "cert", kind: "idp_certificate" as const },
+      { id: "letter", kind: "letter_photo" as const },
+    ];
+    expect(inKindOrder(files).map((file) => file.id)).toEqual([
+      "cert",
+      "letter",
+      "child",
+    ]);
+  });
+
+  it("keeps files of one kind in the order they came in", () => {
+    const files = [
+      { id: "letter-1", kind: "letter_photo" as const },
+      { id: "cert", kind: "idp_certificate" as const },
+      { id: "letter-2", kind: "letter_photo" as const },
+    ];
+    expect(inKindOrder(files).map((file) => file.id)).toEqual([
+      "cert",
+      "letter-1",
+      "letter-2",
+    ]);
   });
 });
