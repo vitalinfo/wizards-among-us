@@ -1,3 +1,4 @@
+import { FILE_KINDS } from "@/db/enums";
 import type { CampaignType, FileKind } from "@/db/enums";
 
 // What the parent form may upload, per campaign. Kinds differ in WHO MAY SEE
@@ -159,4 +160,16 @@ export function supersededFiles<
   }
   const kept = new Set(newest.values());
   return files.filter((file) => !kept.has(file));
+}
+
+// Files in FILE_KINDS order (certificate, letter, child with letter, …), not
+// upload order. A replaced upload is a new row (recordApplicationFile), so by
+// upload order the photo a parent retook would jump to the end. The sort is
+// stable, so files of one kind keep the order they came in.
+export function inKindOrder<T extends { kind: FileKind }>(
+  files: readonly T[],
+): T[] {
+  return [...files].sort(
+    (a, b) => FILE_KINDS.indexOf(a.kind) - FILE_KINDS.indexOf(b.kind),
+  );
 }
