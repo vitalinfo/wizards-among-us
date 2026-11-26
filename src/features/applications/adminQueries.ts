@@ -8,6 +8,7 @@ import {
   inArray,
   isNull,
   lt,
+  ne,
   or,
   sql,
   type Column,
@@ -230,6 +231,41 @@ export async function getApplicationForAdmin(id: string): Promise<{
       firstName: row.firstName,
     },
   };
+}
+
+export type FamilyApplicationRow = {
+  id: string;
+  childName: string | null;
+  status: Application["status"];
+  createdAt: Date;
+};
+
+// The parent's OTHER applications in the same campaign, for the «Родина» block
+// of the admin detail page — a family filing for three children is context for
+// reviewing any one of them. Drafts included: an admin deciding on a duplicate
+// wants to see the half-finished copy too. Oldest first, the order they were
+// started in.
+export async function listFamilyApplicationsInCampaign(input: {
+  parentId: string;
+  campaignId: string;
+  excludeId: string;
+}): Promise<FamilyApplicationRow[]> {
+  return getDb()
+    .select({
+      id: applications.id,
+      childName: applications.childName,
+      status: applications.status,
+      createdAt: applications.createdAt,
+    })
+    .from(applications)
+    .where(
+      and(
+        eq(applications.parentId, input.parentId),
+        eq(applications.campaignId, input.campaignId),
+        ne(applications.id, input.excludeId),
+      ),
+    )
+    .orderBy(asc(applications.createdAt), asc(applications.id));
 }
 
 // Admin edit (operational override). Writes only the content columns: status,
