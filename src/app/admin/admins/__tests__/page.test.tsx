@@ -77,7 +77,7 @@ describe("the admins list", () => {
       }),
     ).toHaveAttribute(
       "href",
-      "/admin/audit?actor=6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11",
+      "/admin/audit?actorType=admin&actor=6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11",
     );
     expect(
       screen.getByRole("link", {
@@ -85,7 +85,7 @@ describe("the admins list", () => {
       }),
     ).toHaveAttribute(
       "href",
-      "/admin/audit?actor=7a2d1b63-3c8f-4d2b-8b54-1e7c3a9f0d22",
+      "/admin/audit?actorType=admin&actor=7a2d1b63-3c8f-4d2b-8b54-1e7c3a9f0d22",
     );
   });
 

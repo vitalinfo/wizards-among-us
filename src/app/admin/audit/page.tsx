@@ -6,7 +6,6 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { AuditFilterForm } from "@/components/admin/AuditFilterForm";
 import { Pager } from "@/components/ui/Pager";
 import { buttonVariants } from "@/components/ui/buttonStyles";
-import { getAdminById } from "@/features/admins/adminQueries";
 import {
   auditActionLabel,
   auditDetailLabel,
@@ -17,6 +16,7 @@ import {
   listAuditActions,
   listAuditLogs,
 } from "@/features/audit/adminQueries";
+import { findAuditExportSubject } from "@/features/audit/exportSubject";
 import {
   auditActorHref,
   auditExportHref,
@@ -44,7 +44,7 @@ export const dynamic = "force-dynamic";
 // Append-only, and this page never offers a way to change that: no edit, no
 // delete. A trail an admin can tidy is not a trail.
 //
-// Narrowed to one ADMIN (?actor=, from the admins list) it can be exported —
+// Narrowed to one ACTOR (?actor=, an admin or a user) it can be exported —
 // read-only, so it tidies nothing, and logged. Only then: the rest of the trail
 // is volunteers' addresses beside the children they opened (see the route).
 export default async function AdminAuditPage({
@@ -54,6 +54,7 @@ export default async function AdminAuditPage({
     action?: string;
     reason?: string;
     target?: string;
+    actorType?: string;
     actor?: string;
     page?: string;
   }>;
@@ -72,14 +73,13 @@ export default async function AdminAuditPage({
   const page = Math.min(query.page, pageCount);
   const offset = (page - 1) * AUDIT_PAGE_SIZE;
 
-  const [t, format, rows, actions, actorAdmin] = await Promise.all([
+  const [t, format, rows, actions, exportSubject] = await Promise.all([
     getTranslations("admin.audit"),
     getFormatter(),
     listAuditLogs({ filter: query, limit: AUDIT_PAGE_SIZE, offset }),
     listAuditActions(),
-    // Who an ?actor= names, when it is an admin — the only case with an
-    // export. A user's id still filters; their page is one click from a row.
-    query.actorId ? getAdminById(query.actorId) : null,
+    // Who an ?actor= names — the only case with an export.
+    findAuditExportSubject(query),
   ]);
 
   const cell = "border-border border-b px-3 py-2 align-top";
@@ -97,12 +97,8 @@ export default async function AdminAuditPage({
 
         <AuditFilterForm query={query} actions={actions} />
 
-        {actorAdmin ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm">
-              {t("actorFilter.admin")}{" "}
-              <strong className="break-all">{actorAdmin.email}</strong>
-            </p>
+        {exportSubject ? (
+          <div className="flex justify-end">
             {/* A plain anchor: the route answers with a file, which a
                 client-side navigation would try to render. */}
             <a

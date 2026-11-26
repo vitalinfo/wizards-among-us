@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   auditActorHref,
-  auditActorLogHref,
+  auditAdminLogHref,
   auditExportHref,
   auditHref,
   auditPageCount,
@@ -19,6 +19,7 @@ describe("parseAuditQuery", () => {
       action: null,
       reason: null,
       targetId: null,
+      actorType: null,
       actorId: null,
       page: 1,
     });
@@ -34,6 +35,7 @@ describe("parseAuditQuery", () => {
       action: "application.approved",
       reason: null,
       targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
+      actorType: null,
       actorId: null,
       page: 1,
     });
@@ -60,6 +62,20 @@ describe("parseAuditQuery", () => {
     expect(bad.actorId).toBeNull();
     expect(isDefaultAuditQuery(bad)).toBe(true);
     expect(isDefaultAuditQuery(parseAuditQuery({ actor }))).toBe(false);
+  });
+
+  // A type alone is a filter — "everything any admin did".
+  it("reads an actor type, and drops anything but a known one", () => {
+    expect(parseAuditQuery({ actorType: " admin " }).actorType).toBe("admin");
+    expect(parseAuditQuery({ actorType: "user" }).actorType).toBe("user");
+    expect(isDefaultAuditQuery(parseAuditQuery({ actorType: "admin" }))).toBe(
+      false,
+    );
+    for (const actorType of ["", "Admin", "banned", "admins"]) {
+      const query = parseAuditQuery({ actorType });
+      expect(query.actorType).toBeNull();
+      expect(isDefaultAuditQuery(query)).toBe(true);
+    }
   });
 
   // Postgres errors on a malformed uuid, so one in the url must not reach it.
@@ -103,6 +119,7 @@ describe("auditHref", () => {
       action: "application.approved",
       reason: "blocked",
       targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
+      actorType: "user" as const,
       actorId: "6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11",
       page: 1,
     };
@@ -161,7 +178,9 @@ describe("auditTargetHref", () => {
 
   // An export's target is the admin whose activity was taken.
   it("sends an admin to their own log", () => {
-    expect(auditTargetHref("admin", "a1")).toBe("/admin/audit?actor=a1");
+    expect(auditTargetHref("admin", "a1")).toBe(
+      "/admin/audit?actorType=admin&actor=a1",
+    );
   });
 
   it("has nowhere to send a settings row", () => {
@@ -184,8 +203,12 @@ describe("auditActorHref", () => {
 
   // An admin has no page of their own; their log is what there is to open.
   it("opens an admin's own log", () => {
-    expect(auditActorHref("admin", "a1")).toBe("/admin/audit?actor=a1");
-    expect(auditActorLogHref("a1")).toBe("/admin/audit?actor=a1");
+    expect(auditActorHref("admin", "a1")).toBe(
+      "/admin/audit?actorType=admin&actor=a1",
+    );
+    expect(auditAdminLogHref("a1")).toBe(
+      "/admin/audit?actorType=admin&actor=a1",
+    );
   });
 });
 
@@ -198,11 +221,12 @@ describe("auditExportHref", () => {
         action: "application.approved",
         reason: "blocked",
         targetId: null,
+        actorType: "admin",
         actorId: "a1",
         page: 4,
       }),
     ).toBe(
-      "/admin/audit/export?action=application.approved&reason=blocked&actor=a1",
+      "/admin/audit/export?action=application.approved&reason=blocked&actorType=admin&actor=a1",
     );
   });
 });
