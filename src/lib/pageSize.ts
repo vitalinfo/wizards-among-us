@@ -12,11 +12,16 @@ export type PageSize = (typeof PAGE_SIZES)[number];
 
 export const DEFAULT_PAGE_SIZE: PageSize = 10;
 
-export function parsePageSize(value: string | undefined): PageSize {
+// `fallback` is for a list whose rows are tall: «Відгуки» draws 5 per page,
+// where a cabinet table draws 10.
+export function parsePageSize(
+  value: string | undefined,
+  fallback: PageSize = DEFAULT_PAGE_SIZE,
+): PageSize {
   const size = Number(value);
   return (PAGE_SIZES as readonly number[]).includes(size)
     ? (size as PageSize)
-    : DEFAULT_PAGE_SIZE;
+    : fallback;
 }
 
 // Never zero, so «page 1 of 0» cannot be rendered.
