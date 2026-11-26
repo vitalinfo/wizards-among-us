@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   auditActorHref,
   auditAdminLogHref,
+  auditUserLogHref,
   auditExportHref,
   auditHref,
   auditPageCount,
@@ -209,6 +210,14 @@ describe("auditActorHref", () => {
     expect(auditAdminLogHref("a1")).toBe(
       "/admin/audit?actorType=admin&actor=a1",
     );
+  });
+});
+
+describe("auditUserLogHref", () => {
+  // The type with the id, so the filter shows who it is narrowed to — and the
+  // export it offers is that user's.
+  it("narrows the log to one user", () => {
+    expect(auditUserLogHref("u1")).toBe("/admin/audit?actorType=user&actor=u1");
   });
 });
 
