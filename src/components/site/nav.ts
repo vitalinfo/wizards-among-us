@@ -19,4 +19,5 @@ export const SITE_NAV = [
   { key: "volunteers", href: "/volunteer" },
   { key: "initiatives", href: "/initiatives" },
   { key: "partners", href: "/partners" },
+  { key: "reviews", href: "/reviews" },
 ] as const;

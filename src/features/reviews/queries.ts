@@ -1,9 +1,10 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { applicationFiles, applications, reviews, users } from "@/db/schema";
 
 import type { ReviewStatusFilter } from "./listFilter";
+import { type PublicReview, toPublicReview } from "./mappers";
 
 export async function hasReviewed(
   userId: string,
@@ -35,31 +36,134 @@ export async function createReview(values: {
   return row.id;
 }
 
-// What the landing page shows. First name only (Vital, Phase 7) — enough to
-// read as a real person, not enough to tie a review to one family alongside a
-// story and an oblast.
-export type PublishedReview = {
-  id: string;
-  rating: number;
-  body: string | null;
-  authorFirstName: string | null;
-};
+// The public «Відгуки» page (Figma 186:2). The parent's FIRST name only, and
+// never the child's (Vital, 2026-11-27) — the design drew «Олена, дитина
+// Меліса», and the child's name is deliberately not selected here, so no
+// component downstream can print it by accident.
+//
+// The family's photo with the gift rides along only when the application
+// carries `social_media_consent` — see toPublicReview, which is where that
+// rule lives.
+export async function countPublishedReviews(): Promise<number> {
+  const [row] = await getDb()
+    .select({ total: count() })
+    .from(reviews)
+    .where(eq(reviews.isPublished, true));
+  return row?.total ?? 0;
+}
 
-export async function listPublishedReviews(
-  limit = 6,
-): Promise<PublishedReview[]> {
-  return getDb()
+export async function listPublishedReviews({
+  limit,
+  offset,
+}: {
+  limit: number;
+  offset: number;
+}): Promise<PublicReview[]> {
+  const rows = await getDb()
     .select({
       id: reviews.id,
       rating: reviews.rating,
       body: reviews.body,
+      createdAt: reviews.createdAt,
       authorFirstName: users.firstName,
+      applicationId: reviews.applicationId,
+      socialMediaConsent: applications.socialMediaConsent,
     })
     .from(reviews)
     .innerJoin(users, eq(users.id, reviews.userId))
+    .leftJoin(applications, eq(applications.id, reviews.applicationId))
     .where(eq(reviews.isPublished, true))
-    .orderBy(desc(reviews.createdAt))
-    .limit(limit);
+    // The id breaks ties, so a page boundary never shows one review twice
+    // and another not at all.
+    .orderBy(desc(reviews.createdAt), desc(reviews.id))
+    .limit(limit)
+    .offset(offset);
+
+  // Photos are looked up only for the applications that consented: the rest
+  // could not show one anyway, and not reading them is the stronger guarantee.
+  const photos = await latestConfirmationPhotos(
+    rows.flatMap((row) =>
+      row.socialMediaConsent === true && row.applicationId
+        ? [row.applicationId]
+        : [],
+    ),
+  );
+
+  return rows.map((row) =>
+    toPublicReview({
+      ...row,
+      photo: row.applicationId ? (photos.get(row.applicationId) ?? null) : null,
+    }),
+  );
+}
+
+// The object behind a review's public photo — or null, which the route turns
+// into a 404. The SAME three conditions the page applies, in SQL: published,
+// consented, and a confirmation photo (never any other kind of file — the
+// review id must not become a way to read a letter or a certificate).
+export async function getPublicReviewPhoto(reviewId: string): Promise<{
+  storageKey: string;
+  contentType: string;
+  sizeBytes: number;
+} | null> {
+  const [row] = await getDb()
+    .select({
+      storageKey: applicationFiles.storageKey,
+      contentType: applicationFiles.contentType,
+      sizeBytes: applicationFiles.sizeBytes,
+    })
+    .from(reviews)
+    .innerJoin(applications, eq(applications.id, reviews.applicationId))
+    .innerJoin(
+      applicationFiles,
+      eq(applicationFiles.applicationId, applications.id),
+    )
+    .where(
+      and(
+        eq(reviews.id, reviewId),
+        eq(reviews.isPublished, true),
+        eq(applications.socialMediaConsent, true),
+        eq(applicationFiles.kind, "confirmation"),
+      ),
+    )
+    // The newest confirmation — the reverse of latestConfirmationPhotos'
+    // oldest-first-last-wins, so the page and the route agree on which one.
+    .orderBy(desc(applicationFiles.createdAt), desc(applicationFiles.id))
+    .limit(1);
+  return row ?? null;
+}
+
+// Oldest first, so the last write per application is its newest
+// confirmation — the same rule as latestByKind.
+async function latestConfirmationPhotos(
+  applicationIds: string[],
+): Promise<Map<string, { id: string; version: number }>> {
+  const photos = new Map<string, { id: string; version: number }>();
+  const unique = [...new Set(applicationIds)];
+  if (unique.length === 0) {
+    return photos;
+  }
+  const files = await getDb()
+    .select({
+      id: applicationFiles.id,
+      applicationId: applicationFiles.applicationId,
+      updatedAt: applicationFiles.updatedAt,
+    })
+    .from(applicationFiles)
+    .where(
+      and(
+        eq(applicationFiles.kind, "confirmation"),
+        inArray(applicationFiles.applicationId, unique),
+      ),
+    )
+    .orderBy(asc(applicationFiles.createdAt), asc(applicationFiles.id));
+  for (const file of files) {
+    photos.set(file.applicationId, {
+      id: file.id,
+      version: file.updatedAt.getTime(),
+    });
+  }
+  return photos;
 }
 
 // The moderation queue: everything, newest first, with enough context to judge
@@ -90,34 +194,9 @@ export async function listReviewsForModeration(
     )
     .orderBy(desc(reviews.createdAt));
 
-  const applicationIds = [
-    ...new Set(rows.flatMap((row) => row.applicationId ?? [])),
-  ];
-  // Oldest first, so the last write per application is its newest
-  // confirmation — the same rule as latestByKind.
-  const photos = new Map<string, { id: string; version: number }>();
-  if (applicationIds.length > 0) {
-    const files = await getDb()
-      .select({
-        id: applicationFiles.id,
-        applicationId: applicationFiles.applicationId,
-        updatedAt: applicationFiles.updatedAt,
-      })
-      .from(applicationFiles)
-      .where(
-        and(
-          eq(applicationFiles.kind, "confirmation"),
-          inArray(applicationFiles.applicationId, applicationIds),
-        ),
-      )
-      .orderBy(asc(applicationFiles.createdAt), asc(applicationFiles.id));
-    for (const file of files) {
-      photos.set(file.applicationId, {
-        id: file.id,
-        version: file.updatedAt.getTime(),
-      });
-    }
-  }
+  const photos = await latestConfirmationPhotos(
+    rows.flatMap((row) => row.applicationId ?? []),
+  );
 
   return rows.map((row) => ({
     ...row,

@@ -31,6 +31,12 @@ describe("parsePageSize", () => {
     }
     expect(DEFAULT_PAGE_SIZE).toBe(10);
   });
+
+  it("falls back to the list's own default when it has one", () => {
+    expect(parsePageSize(undefined, 5)).toBe(5);
+    expect(parsePageSize("100000", 5)).toBe(5);
+    expect(parsePageSize("20", 5)).toBe(20);
+  });
 });
 
 describe("pageCount", () => {
