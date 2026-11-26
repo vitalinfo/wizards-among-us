@@ -22,10 +22,18 @@ export type AuditQuery = {
   // audit_logs_actor_idx (actor_id first); a type alone is not indexed.
   actorType: ActorType | null;
   actorId: string | null;
+  // Narrow to one client address — "who else came from here". Exact, never a
+  // prefix: `1.2.3.4` must not also match `1.2.3.45`. Lowercased, as IPv6 hex
+  // can arrive in either case. Not indexed.
+  ip: string | null;
   page: number;
 };
 
 const REASON_CODE = /^[a-z_]+$/;
+// The characters of an IPv4 or IPv6 address, at most an IPv6 one's length
+// (45, IPv4-mapped). Not a full parse: the filter only has to refuse what can
+// never match a stored address.
+const IP_TEXT = /^[0-9a-f.:]{1,45}$/;
 
 export function parseAuditQuery(params: {
   action?: string;
@@ -33,6 +41,7 @@ export function parseAuditQuery(params: {
   target?: string;
   actorType?: string;
   actor?: string;
+  ip?: string;
   page?: string;
 }): AuditQuery {
   const page = Number(params.page);
@@ -41,6 +50,7 @@ export function parseAuditQuery(params: {
   const targetId = (params.target ?? "").trim();
   const actorType = (params.actorType ?? "").trim();
   const actorId = (params.actor ?? "").trim();
+  const ip = (params.ip ?? "").trim().toLowerCase();
   return {
     action: action === "" ? null : action,
     // A reason is a bare code; anything else could never match one.
@@ -49,6 +59,7 @@ export function parseAuditQuery(params: {
     targetId: isUuid(targetId) ? targetId : null,
     actorType: isActorType(actorType) ? actorType : null,
     actorId: isUuid(actorId) ? actorId : null,
+    ip: IP_TEXT.test(ip) ? ip : null,
     // Anything unparseable is page 1 rather than an error — a bad page number
     // must never be able to blank the log.
     page: Number.isInteger(page) && page >= 1 ? page : 1,
@@ -71,7 +82,8 @@ export function isDefaultAuditQuery(query: AuditQuery): boolean {
     query.reason === null &&
     query.targetId === null &&
     query.actorType === null &&
-    query.actorId === null
+    query.actorId === null &&
+    query.ip === null
   );
 }
 
@@ -107,6 +119,9 @@ function auditSearch(query: AuditQuery, page: number): string {
   }
   if (query.actorId) {
     params.set("actor", query.actorId);
+  }
+  if (query.ip) {
+    params.set("ip", query.ip);
   }
   if (page > 1) {
     params.set("page", String(page));
@@ -189,6 +204,7 @@ function auditActorLogHref(actorType: ActorType, actorId: string): string {
     targetId: null,
     actorType,
     actorId,
+    ip: null,
     page: 1,
   });
 }

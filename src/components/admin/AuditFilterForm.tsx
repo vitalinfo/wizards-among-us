@@ -20,6 +20,9 @@ import {
 const UUID_PATTERN =
   "\\s*[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\s*";
 
+// Mirrors the parser's IP_TEXT, so the browser refuses what could never match.
+const IP_PATTERN = "\\s*[0-9a-fA-F.:]{1,45}\\s*";
+
 // A plain GET form, like the moderation filters: the browser builds the query
 // string the page already parses, so filtering needs no client JavaScript and
 // every filtered view stays a shareable url.
@@ -144,6 +147,24 @@ export async function AuditFilterForm({
           autoComplete="off"
           spellCheck={false}
           className={`${field} w-full min-w-0 px-3 font-mono sm:w-[calc(36ch+1.5rem+2px)]`}
+        />
+      </div>
+
+      {/* Beside the target id: both are values pasted from a row. One IPv6
+          address does not fit; it scrolls inside the field. */}
+      <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:flex-none">
+        <label htmlFor="ip" className="text-xs font-medium">
+          {t("filter.ip")}
+        </label>
+        <input
+          type="text"
+          id="ip"
+          name="ip"
+          defaultValue={query.ip ?? ""}
+          pattern={IP_PATTERN}
+          autoComplete="off"
+          spellCheck={false}
+          className={`${field} w-full min-w-0 px-3 font-mono sm:w-44`}
         />
       </div>
 

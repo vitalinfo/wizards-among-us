@@ -79,6 +79,7 @@ async function renderPage(
     target?: string;
     actorType?: string;
     actor?: string;
+    ip?: string;
   } = {},
 ) {
   data.filters = [];
@@ -216,6 +217,23 @@ describe("the admin audit log", () => {
       "href",
       `/admin/audit/export?action=application.approved&actor=${admin.id}`,
     );
+  });
+
+  // An address alone is "who else came from here" — not one actor, so no
+  // export.
+  it("narrows to one IP address", async () => {
+    data.rows = [row({ ip: "109.108.250.136" })];
+    await renderPage({ ip: "109.108.250.136" });
+
+    expect(data.filters).toEqual([
+      expect.objectContaining({ ip: "109.108.250.136" }),
+      expect.objectContaining({ ip: "109.108.250.136" }),
+    ]);
+    expect(
+      screen.queryByRole("link", {
+        name: messages.admin.audit.actorFilter.export,
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("narrows to one kind of actor", async () => {

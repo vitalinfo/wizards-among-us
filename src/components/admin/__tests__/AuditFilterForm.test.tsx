@@ -143,6 +143,17 @@ describe("AuditFilterForm", () => {
     expect(pattern.test("admin@example.com")).toBe(false);
   });
 
+  it("takes an IP address, and asks the browser to refuse anything else", async () => {
+    await renderForm({ ip: "109.108.250.136" });
+    const input = screen.getByLabelText(t.ip);
+    const pattern = new RegExp(`^(?:${input.getAttribute("pattern")})$`);
+
+    expect(input).toHaveAttribute("name", "ip");
+    expect(input).toHaveValue("109.108.250.136");
+    expect(pattern.test(" 2a02:2378::1 ")).toBe(true);
+    expect(pattern.test("localhost")).toBe(false);
+  });
+
   // Empty controls over filtered rows would look like the whole log.
   it("shows the filter that is actually applied", async () => {
     await renderForm({
@@ -183,6 +194,7 @@ describe("AuditFilterForm", () => {
       target: TARGET,
       actorType: "admin",
       actor: ACTOR,
+      ip: "10.0.0.1",
     });
     view.rerender(
       <>
@@ -198,6 +210,7 @@ describe("AuditFilterForm", () => {
     expect(screen.getByLabelText(t.targetId)).toHaveValue("");
     expect(screen.getByLabelText(t.actorType)).toHaveValue("");
     expect(screen.getByLabelText(t.actorId)).toHaveValue("");
+    expect(screen.getByLabelText(t.ip)).toHaveValue("");
   });
 
   it("has no accessibility violations", async () => {
@@ -207,6 +220,7 @@ describe("AuditFilterForm", () => {
       target: TARGET,
       actorType: "admin",
       actor: ACTOR,
+      ip: "10.0.0.1",
     });
     expect(await axe(container)).toHaveNoViolations();
   });

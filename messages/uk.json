@@ -1896,6 +1896,7 @@
         "reason": "Причина збою сповіщення",
         "anyReason": "Будь-яка",
         "targetId": "ID обʼєкта",
+        "ip": "IP-адреса",
         "actorType": "Хто діяв",
         "anyActor": "Будь-хто",
         "actorTypes": {
