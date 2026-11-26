@@ -41,6 +41,11 @@ const admin = vi.hoisted(() => ({
 vi.mock("@/features/admins/adminQueries", () => ({
   getAdminById: async (id: string) => (id === admin.id ? admin : null),
 }));
+const USER_ID = vi.hoisted(() => "9b3e2c74-4d9a-4e3c-9c65-2f8d4b0a1e33");
+vi.mock("@/features/users/adminQueries", () => ({
+  getUserForAdmin: async (id: string) =>
+    id === USER_ID ? { id, username: "mykola" } : null,
+}));
 // Async server components nested in the page, which RTL cannot render; they
 // are not what this spec is about (Pager has its own).
 vi.mock("@/components/admin/AdminNav", () => ({ AdminNav: () => null }));
@@ -69,7 +74,12 @@ function row(overrides: Partial<AuditLogRow>): AuditLogRow {
 }
 
 async function renderPage(
-  searchParams: { action?: string; target?: string; actor?: string } = {},
+  searchParams: {
+    action?: string;
+    target?: string;
+    actorType?: string;
+    actor?: string;
+  } = {},
 ) {
   data.filters = [];
   const ui = await AdminAuditPage({
@@ -186,7 +196,7 @@ describe("the admin audit log", () => {
 
     expect(screen.getByRole("link", { name: admin.email })).toHaveAttribute(
       "href",
-      `/admin/audit?actor=${admin.id}`,
+      `/admin/audit?actorType=admin&actor=${admin.id}`,
     );
   });
 
@@ -198,7 +208,6 @@ describe("the admin audit log", () => {
       expect.objectContaining({ actorId: admin.id }),
       expect.objectContaining({ actorId: admin.id }),
     ]);
-    expect(screen.getByText(admin.email)).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
         name: messages.admin.audit.actorFilter.export,
@@ -209,9 +218,39 @@ describe("the admin audit log", () => {
     );
   });
 
+  it("narrows to one kind of actor", async () => {
+    data.rows = [row({})];
+    await renderPage({ actorType: "admin" });
+
+    expect(data.filters).toEqual([
+      expect.objectContaining({ actorType: "admin", actorId: null }),
+      expect.objectContaining({ actorType: "admin", actorId: null }),
+    ]);
+    // A type alone is not one admin: nothing to export.
+    expect(
+      screen.queryByRole("link", {
+        name: messages.admin.audit.actorFilter.export,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers one user's view as CSV too", async () => {
+    data.rows = [row({ actorId: USER_ID, actorType: "user" })];
+    await renderPage({ actorType: "user", actor: USER_ID });
+
+    expect(
+      screen.getByRole("link", {
+        name: messages.admin.audit.actorFilter.export,
+      }),
+    ).toHaveAttribute(
+      "href",
+      `/admin/audit/export?actorType=user&actor=${USER_ID}`,
+    );
+  });
+
   // The whole trail is volunteers' addresses beside the children they opened;
-  // only one admin's activity is exportable.
-  it("offers no export unless narrowed to an admin", async () => {
+  // only one actor's activity is exportable.
+  it("offers no export unless narrowed to one actor", async () => {
     data.rows = [row({})];
     await renderPage();
     expect(
@@ -220,8 +259,16 @@ describe("the admin audit log", () => {
       }),
     ).not.toBeInTheDocument();
 
-    // A user's id still filters, but has no export.
+    // An id that names nobody still filters, but has no export.
     await renderPage({ actor: "11111111-2222-4333-8444-555555555555" });
+    expect(
+      screen.queryByRole("link", {
+        name: messages.admin.audit.actorFilter.export,
+      }),
+    ).not.toBeInTheDocument();
+
+    // Nor does an admin's id under the user type: it matches no row.
+    await renderPage({ actorType: "user", actor: admin.id });
     expect(
       screen.queryByRole("link", {
         name: messages.admin.audit.actorFilter.export,

@@ -11,7 +11,7 @@ export type AuditLogRow = typeof auditLogs.$inferSelect;
 
 export type AuditFilter = Pick<
   AuditQuery,
-  "action" | "reason" | "targetId" | "actorId"
+  "action" | "reason" | "targetId" | "actorType" | "actorId"
 >;
 
 // An action code without its ":detail" suffix — what the filter matches on, so
@@ -36,6 +36,7 @@ function auditWhere(filter: AuditFilter): SQL | undefined {
       ? and(eq(actionEntity, "notification"), eq(actionDetail, filter.reason))
       : undefined,
     filter.targetId ? eq(auditLogs.targetId, filter.targetId) : undefined,
+    filter.actorType ? eq(auditLogs.actorType, filter.actorType) : undefined,
     filter.actorId ? eq(auditLogs.actorId, filter.actorId) : undefined,
   );
 }

@@ -11,6 +11,7 @@ const state = vi.hoisted(() => ({
   logged: [] as unknown[],
 }));
 const ADMIN_ID = "6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11";
+const USER_ID = "9b3e2c74-4d9a-4e3c-9c65-2f8d4b0a1e33";
 vi.mock("next-intl/server", async () =>
   (await import("@/test/serverIntl")).serverIntl(),
 );
@@ -20,6 +21,10 @@ vi.mock("@/lib/auth/session", () => ({
 vi.mock("@/features/admins/adminQueries", () => ({
   getAdminById: async (id: string) =>
     id === ADMIN_ID ? { id, email: "olena@example.com" } : null,
+}));
+vi.mock("@/features/users/adminQueries", () => ({
+  getUserForAdmin: async (id: string) =>
+    id === USER_ID ? { id, username: "mykola" } : null,
 }));
 vi.mock("@/features/audit/adminQueries", () => ({
   listAllAuditLogs: async (filter: unknown): Promise<AuditLogRow[]> => {
@@ -72,19 +77,54 @@ describe("the audit export", () => {
     expect(state.logged).toEqual([]);
   });
 
-  // Never the whole trail, and never a user's: an actor that is not an admin
-  // is the same 404 as a missing one.
-  it("refuses a view that is not one admin's", async () => {
+  // Never the whole trail: a view not narrowed to one actor that exists, or
+  // narrowed by a type that is not theirs, is the same 404 as a missing one.
+  it("refuses a view that is not one actor's", async () => {
     for (const search of [
       "",
       "?action=application.approved",
       "?actor=not-a-uuid",
       "?actor=11111111-2222-4333-8444-555555555555",
+      "?actorType=admin",
+      `?actorType=user&actor=${ADMIN_ID}`,
+      `?actorType=admin&actor=${USER_ID}`,
     ]) {
       expect((await get(search)).status).toBe(404);
     }
     expect(state.filters).toEqual([]);
     expect(state.logged).toEqual([]);
+  });
+
+  // One person's slice — what investigating that volunteer needs — logged
+  // against them.
+  it("exports a user's log, and records the download against them", async () => {
+    const response = await get(`?actorType=user&actor=${USER_ID}`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-disposition")).toBe(
+      `attachment; filename="audit-user-${USER_ID}.csv"`,
+    );
+    expect(state.filters).toEqual([
+      expect.objectContaining({ actorType: "user", actorId: USER_ID }),
+    ]);
+    expect(state.logged).toEqual([
+      {
+        actor: admin,
+        action: "user.audit_exported",
+        targetType: "user",
+        targetId: USER_ID,
+      },
+    ]);
+  });
+
+  // What the admins list links to: the type with the id.
+  it("exports an admin's log narrowed by type too", async () => {
+    const response = await get(`?actorType=admin&actor=${ADMIN_ID}`);
+
+    expect(response.status).toBe(200);
+    expect(state.filters).toEqual([
+      expect.objectContaining({ actorType: "admin", actorId: ADMIN_ID }),
+    ]);
   });
 
   it("exports that admin's filtered rows, and records the download", async () => {
@@ -102,6 +142,7 @@ describe("the audit export", () => {
         action: "notification.approved_failed",
         reason: "blocked",
         targetId: null,
+        actorType: null,
         actorId: ADMIN_ID,
       },
     ]);

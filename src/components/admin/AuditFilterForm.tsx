@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { ChevronRightIcon } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/buttonStyles";
+import { ACTOR_TYPES } from "@/db/enums";
 
 import {
   auditDetailLabel,
@@ -13,6 +14,11 @@ import {
   isDefaultAuditQuery,
   type AuditQuery,
 } from "@/features/audit/listQuery";
+
+// Mirrors isUuid, so the browser refuses a malformed id instead of the server
+// silently dropping it.
+const UUID_PATTERN =
+  "\\s*[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\s*";
 
 // A plain GET form, like the moderation filters: the browser builds the query
 // string the page already parses, so filtering needs no client JavaScript and
@@ -122,52 +128,91 @@ export async function AuditFilterForm({
 
       {/* One row from sm up: the two selects share what is left and shrink
           (their labels truncate), the id field is exactly one uuid wide — 36ch
-          is exact in a monospace font, plus padding and border — and the
-          buttons keep their size. On a phone it is a row of its own: beside
-          the buttons a uuid shows four characters. */}
+          is exact in a monospace font, plus padding and border. On a phone it
+          is a row of its own: beside anything else a uuid shows four
+          characters. */}
       <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:flex-none">
         <label htmlFor="target" className="text-xs font-medium">
           {t("filter.targetId")}
         </label>
-        {/* pattern mirrors isUuid, so the browser refuses a malformed id
-            instead of the server silently dropping it. */}
         <input
           type="text"
           id="target"
           name="target"
           defaultValue={query.targetId ?? ""}
-          pattern="\s*[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\s*"
+          pattern={UUID_PATTERN}
           autoComplete="off"
           spellCheck={false}
           className={`${field} w-full min-w-0 px-3 font-mono sm:w-[calc(36ch+1.5rem+2px)]`}
         />
       </div>
 
-      {/* Set from the admins list (or an actor link), not typed here: kept so
-          narrowing by action stays inside that one person's log. «Скинути»
-          drops it with the rest. */}
-      {query.actorId ? (
-        <input type="hidden" name="actor" value={query.actorId} />
-      ) : null}
+      {/* WHO acted, on a row of its own with the buttons — one line from sm
+          up: the type and the buttons keep their size, and the id field gives
+          up width (never more than one uuid) when the row runs short. */}
+      <div className="flex w-full flex-wrap items-end gap-3 sm:flex-nowrap">
+        <div className="flex w-full min-w-0 flex-col gap-1 sm:w-44 sm:shrink-0">
+          <label htmlFor="actorType" className="text-xs font-medium">
+            {t("filter.actorType")}
+          </label>
+          <div className="relative">
+            <select
+              id="actorType"
+              name="actorType"
+              defaultValue={query.actorType ?? ""}
+              className={`${field} w-full appearance-none truncate pr-9 pl-3`}
+            >
+              <option value="">{t("filter.anyActor")}</option>
+              {ACTOR_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {t(`filter.actorTypes.${type}`)}
+                </option>
+              ))}
+            </select>
+            <ChevronRightIcon
+              aria-hidden="true"
+              className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 rotate-90"
+            />
+          </div>
+        </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          className="bg-primary text-primary-foreground focus-visible:outline-ring rounded-md px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
-          {t("filter.apply")}
-        </button>
+        {/* Also set by the admins list and the actor links, so narrowing by
+            action stays inside that one person's log. */}
+        <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:flex-initial">
+          <label htmlFor="actor" className="text-xs font-medium">
+            {t("filter.actorId")}
+          </label>
+          <input
+            type="text"
+            id="actor"
+            name="actor"
+            defaultValue={query.actorId ?? ""}
+            pattern={UUID_PATTERN}
+            autoComplete="off"
+            spellCheck={false}
+            className={`${field} w-full max-w-full min-w-0 px-3 font-mono sm:w-[calc(36ch+1.5rem+2px)]`}
+          />
+        </div>
 
-        {/* Only once something is actually narrowed — a reset that resets
-            nothing is noise on every page load. */}
-        {isDefaultAuditQuery(query) ? null : (
-          <Link
-            href="/admin/audit"
-            className={`${buttonVariants.outline} focus-visible:outline-ring rounded-md px-4 py-[calc(0.5rem-1.5px)] text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2`}
+        <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="submit"
+            className="bg-primary text-primary-foreground focus-visible:outline-ring rounded-md px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
           >
-            {t("filter.reset")}
-          </Link>
-        )}
+            {t("filter.apply")}
+          </button>
+
+          {/* Only once something is actually narrowed — a reset that resets
+              nothing is noise on every page load. */}
+          {isDefaultAuditQuery(query) ? null : (
+            <Link
+              href="/admin/audit"
+              className={`${buttonVariants.outline} focus-visible:outline-ring rounded-md px-4 py-[calc(0.5rem-1.5px)] text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2`}
+            >
+              {t("filter.reset")}
+            </Link>
+          )}
+        </div>
       </div>
     </form>
   );

@@ -1,3 +1,4 @@
+import { ACTOR_TYPES, type ActorType } from "@/db/enums";
 import { isUuid } from "@/lib/uuid";
 
 // The audit log view, parsed out of the url — same shape as the moderation
@@ -16,8 +17,10 @@ export type AuditQuery = {
   // `blocked` across every notice. Combines with `action` for one notice.
   reason: string | null;
   targetId: string | null;
-  // Narrow to one actor — "everything this admin did". Served by
-  // audit_logs_actor_idx (actor_id first).
+  // Narrow to one kind of actor — "everything any admin did" — and/or to one
+  // actor by id: "everything this admin did". An id is served by
+  // audit_logs_actor_idx (actor_id first); a type alone is not indexed.
+  actorType: ActorType | null;
   actorId: string | null;
   page: number;
 };
@@ -28,6 +31,7 @@ export function parseAuditQuery(params: {
   action?: string;
   reason?: string;
   target?: string;
+  actorType?: string;
   actor?: string;
   page?: string;
 }): AuditQuery {
@@ -35,6 +39,7 @@ export function parseAuditQuery(params: {
   const action = (params.action ?? "").trim();
   const reason = (params.reason ?? "").trim();
   const targetId = (params.target ?? "").trim();
+  const actorType = (params.actorType ?? "").trim();
   const actorId = (params.actor ?? "").trim();
   return {
     action: action === "" ? null : action,
@@ -42,11 +47,16 @@ export function parseAuditQuery(params: {
     reason: REASON_CODE.test(reason) ? reason : null,
     // Anything but a uuid is dropped: Postgres errors on a malformed one.
     targetId: isUuid(targetId) ? targetId : null,
+    actorType: isActorType(actorType) ? actorType : null,
     actorId: isUuid(actorId) ? actorId : null,
     // Anything unparseable is page 1 rather than an error — a bad page number
     // must never be able to blank the log.
     page: Number.isInteger(page) && page >= 1 ? page : 1,
   };
+}
+
+function isActorType(value: string): value is ActorType {
+  return (ACTOR_TYPES as readonly string[]).includes(value);
 }
 
 export function auditPageCount(total: number): number {
@@ -60,6 +70,7 @@ export function isDefaultAuditQuery(query: AuditQuery): boolean {
     query.action === null &&
     query.reason === null &&
     query.targetId === null &&
+    query.actorType === null &&
     query.actorId === null
   );
 }
@@ -90,6 +101,9 @@ function auditSearch(query: AuditQuery, page: number): string {
   }
   if (query.targetId) {
     params.set("target", query.targetId);
+  }
+  if (query.actorType) {
+    params.set("actorType", query.actorType);
   }
   if (query.actorId) {
     params.set("actor", query.actorId);
@@ -150,7 +164,7 @@ export function auditTargetHref(
     case "campaign":
       return `/admin/campaigns/${targetId}/edit`;
     case "admin":
-      return auditActorLogHref(targetId);
+      return auditAdminLogHref(targetId);
     default:
       // An unknown target type is not an error — the trail is append-only and
       // older rows may name things this build has never heard of.
@@ -158,13 +172,15 @@ export function auditTargetHref(
   }
 }
 
-// The log narrowed to one actor.
-export function auditActorLogHref(actorId: string): string {
+// The log narrowed to one admin — the type with the id, so the filter shows
+// who it is narrowed to.
+export function auditAdminLogHref(adminId: string): string {
   return auditHref({
     action: null,
     reason: null,
     targetId: null,
-    actorId,
+    actorType: "admin",
+    actorId: adminId,
     page: 1,
   });
 }
@@ -174,5 +190,5 @@ export function auditActorLogHref(actorId: string): string {
 export function auditActorHref(actorType: string, actorId: string): string {
   return actorType === "user"
     ? `/admin/users/${actorId}`
-    : auditActorLogHref(actorId);
+    : auditAdminLogHref(actorId);
 }

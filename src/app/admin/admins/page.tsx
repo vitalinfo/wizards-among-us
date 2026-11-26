@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { listAdmins } from "@/features/admins/adminQueries";
-import { auditActorLogHref } from "@/features/audit/listQuery";
+import { auditAdminLogHref } from "@/features/audit/listQuery";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
 
@@ -83,7 +83,7 @@ export default async function AdminAdminsPage() {
                       {/* Names the admin: a column of identical «Журнал дій»
                           links tells a screen-reader user nothing. */}
                       <Link
-                        href={auditActorLogHref(admin.id)}
+                        href={auditAdminLogHref(admin.id)}
                         className="text-primary text-xs font-semibold whitespace-nowrap underline underline-offset-4"
                         aria-label={t("logFor", { email: admin.email })}
                       >

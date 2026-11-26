@@ -13,6 +13,7 @@ import { AuditFilterForm } from "../AuditFilterForm";
 
 const t = messages.admin.audit.filter;
 const TARGET = "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da";
+const ACTOR = "6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11";
 const ACTIONS = [
   "application.approved",
   "application.rejected",
@@ -113,18 +114,58 @@ describe("AuditFilterForm", () => {
     ).toBe(false);
   });
 
+  // «Будь-хто» first, then each kind of actor by name.
+  it("offers every kind of actor, by name", async () => {
+    await renderForm({});
+    const select = screen.getByLabelText(t.actorType);
+
+    expect(select).toHaveAttribute("name", "actorType");
+    expect(
+      within(select)
+        .getAllByRole("option")
+        .map((option) => [option.getAttribute("value"), option.textContent]),
+    ).toEqual([
+      ["", t.anyActor],
+      ["user", t.actorTypes.user],
+      ["admin", t.actorTypes.admin],
+    ]);
+  });
+
+  // Typed here now, not only carried over from the admins list.
+  it("takes an actor id, and asks the browser to refuse anything but a uuid", async () => {
+    await renderForm({});
+    const input = screen.getByLabelText(t.actorId);
+    const pattern = new RegExp(`^(?:${input.getAttribute("pattern")})$`);
+
+    expect(input).toHaveAttribute("name", "actor");
+    expect(input).toHaveAttribute("type", "text");
+    expect(pattern.test(` ${ACTOR} `)).toBe(true);
+    expect(pattern.test("admin@example.com")).toBe(false);
+  });
+
   // Empty controls over filtered rows would look like the whole log.
   it("shows the filter that is actually applied", async () => {
-    await renderForm({ action: "application.rejected", target: TARGET });
+    await renderForm({
+      action: "application.rejected",
+      target: TARGET,
+      actorType: "admin",
+      actor: ACTOR,
+    });
 
     expect(screen.getByLabelText(t.action)).toHaveValue("application.rejected");
     expect(screen.getByLabelText(t.targetId)).toHaveValue(TARGET);
+    expect(screen.getByLabelText(t.actorType)).toHaveValue("admin");
+    expect(screen.getByLabelText(t.actorId)).toHaveValue(ACTOR);
   });
 
   it("offers a reset only once something is filtered", async () => {
     const clean = await renderForm({});
     expect(screen.queryByRole("link", { name: t.reset })).toBeNull();
     clean.unmount();
+
+    const byType = await renderForm({ actorType: "user" });
+    expect(screen.getByRole("link", { name: t.reset })).toBeInTheDocument();
+    byType.unmount();
 
     await renderForm({ target: TARGET });
     expect(screen.getByRole("link", { name: t.reset })).toHaveAttribute(
@@ -140,6 +181,8 @@ describe("AuditFilterForm", () => {
       action: "application.approved",
       reason: "blocked",
       target: TARGET,
+      actorType: "admin",
+      actor: ACTOR,
     });
     view.rerender(
       <>
@@ -153,6 +196,8 @@ describe("AuditFilterForm", () => {
     expect(screen.getByLabelText(t.action)).toHaveValue("");
     expect(screen.getByLabelText(t.reason)).toHaveValue("");
     expect(screen.getByLabelText(t.targetId)).toHaveValue("");
+    expect(screen.getByLabelText(t.actorType)).toHaveValue("");
+    expect(screen.getByLabelText(t.actorId)).toHaveValue("");
   });
 
   it("has no accessibility violations", async () => {
@@ -160,6 +205,8 @@ describe("AuditFilterForm", () => {
       action: "application.approved",
       reason: "blocked",
       target: TARGET,
+      actorType: "admin",
+      actor: ACTOR,
     });
     expect(await axe(container)).toHaveNoViolations();
   });
