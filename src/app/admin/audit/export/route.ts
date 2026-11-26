@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
       targetId: query.targetId,
       actorType: query.actorType,
       actorId: subject.id,
+      ip: query.ip,
     }),
   ]);
   const csv = auditLogsToCsv(t, rows);

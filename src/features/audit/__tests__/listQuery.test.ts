@@ -22,6 +22,7 @@ describe("parseAuditQuery", () => {
       targetId: null,
       actorType: null,
       actorId: null,
+      ip: null,
       page: 1,
     });
   });
@@ -38,6 +39,7 @@ describe("parseAuditQuery", () => {
       targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
       actorType: null,
       actorId: null,
+      ip: null,
       page: 1,
     });
   });
@@ -75,6 +77,22 @@ describe("parseAuditQuery", () => {
     for (const actorType of ["", "Admin", "banned", "admins"]) {
       const query = parseAuditQuery({ actorType });
       expect(query.actorType).toBeNull();
+      expect(isDefaultAuditQuery(query)).toBe(true);
+    }
+  });
+
+  // Exact, and lowercased: IPv6 hex can arrive in either case.
+  it("reads an IP address, and drops anything that could never be one", () => {
+    expect(parseAuditQuery({ ip: " 109.108.250.136 " }).ip).toBe(
+      "109.108.250.136",
+    );
+    expect(parseAuditQuery({ ip: "2A02:2378::1" }).ip).toBe("2a02:2378::1");
+    expect(isDefaultAuditQuery(parseAuditQuery({ ip: "10.0.0.1" }))).toBe(
+      false,
+    );
+    for (const ip of ["", "  ", "10.0.0.1/24", "localhost", "1".repeat(46)]) {
+      const query = parseAuditQuery({ ip });
+      expect(query.ip).toBeNull();
       expect(isDefaultAuditQuery(query)).toBe(true);
     }
   });
@@ -122,6 +140,7 @@ describe("auditHref", () => {
       targetId: "d75c6aa0-d3c3-468b-bffa-6ca82a25a1da",
       actorType: "user" as const,
       actorId: "6f1c0a52-2b7e-4c1a-9a43-0d6b2f8e9c11",
+      ip: "109.108.250.136",
       page: 1,
     };
     const href = auditHref(query, 3);
@@ -232,10 +251,11 @@ describe("auditExportHref", () => {
         targetId: null,
         actorType: "admin",
         actorId: "a1",
+        ip: "2a02:2378::1",
         page: 4,
       }),
     ).toBe(
-      "/admin/audit/export?action=application.approved&reason=blocked&actorType=admin&actor=a1",
+      "/admin/audit/export?action=application.approved&reason=blocked&actorType=admin&actor=a1&ip=2a02%3A2378%3A%3A1",
     );
   });
 });

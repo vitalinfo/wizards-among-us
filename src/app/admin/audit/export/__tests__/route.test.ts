@@ -86,6 +86,7 @@ describe("the audit export", () => {
       "?actor=not-a-uuid",
       "?actor=11111111-2222-4333-8444-555555555555",
       "?actorType=admin",
+      "?ip=109.108.250.136",
       `?actorType=user&actor=${ADMIN_ID}`,
       `?actorType=admin&actor=${USER_ID}`,
     ]) {
@@ -117,6 +118,16 @@ describe("the audit export", () => {
     ]);
   });
 
+  // One actor's rows from one address — the view on screen, all of it.
+  it("carries an IP filter into one actor's export", async () => {
+    const response = await get(`?actor=${ADMIN_ID}&ip=109.108.250.136`);
+
+    expect(response.status).toBe(200);
+    expect(state.filters).toEqual([
+      expect.objectContaining({ actorId: ADMIN_ID, ip: "109.108.250.136" }),
+    ]);
+  });
+
   // What the admins list links to: the type with the id.
   it("exports an admin's log narrowed by type too", async () => {
     const response = await get(`?actorType=admin&actor=${ADMIN_ID}`);
@@ -144,6 +155,7 @@ describe("the audit export", () => {
         targetId: null,
         actorType: null,
         actorId: ADMIN_ID,
+        ip: null,
       },
     ]);
     const body = await response.text();
