@@ -610,14 +610,26 @@ pnpm photos:dedupe            # dry run — prints what it would remove
 pnpm photos:dedupe --apply    # deletes those rows, then their objects
 ```
 
+`files:size` reports how much stored file data belongs to applications in the given statuses,
+per status, campaign (with its own status) and file kind, plus a grand total. It sums
+`application_files.size_bytes` rather than listing the bucket, so objects no row points at (the
+originals `photos:normalize` keeps) are not counted. Read-only, and the output carries statuses,
+campaign titles, file kinds and numbers only. It needs the target's `DATABASE_URL` and
+`PGSSLMODE`:
+
+```bash
+env $(heroku config -s -a wau | grep -E '^(DATABASE_URL|PGSSLMODE)=' | tr -d "'") pnpm files:size                          # every status
+env $(heroku config -s -a wau | grep -E '^(DATABASE_URL|PGSSLMODE)=' | tr -d "'") pnpm files:size --status draft,rejected  # those statuses
+```
+
 A parent who opens a new application and leaves gets a draft with nothing in it. Once its
 campaign is no longer active, `drafts:cleanup` removes those — only drafts where every answer,
 consent and photo is empty (`blankDraftCondition` in `features/applications/blankDrafts.ts`);
-anything a parent wrote into stays. It needs only the target's `DATABASE_URL`:
+anything a parent wrote into stays. It needs the target's `DATABASE_URL` and `PGSSLMODE`:
 
 ```bash
-pnpm drafts:cleanup            # dry run — prints what it would remove
-pnpm drafts:cleanup --apply    # deletes them
+env $(heroku config -s -a wau | grep -E '^(DATABASE_URL|PGSSLMODE)=' | tr -d "'") pnpm drafts:cleanup            # dry run — prints what it would remove
+env $(heroku config -s -a wau | grep -E '^(DATABASE_URL|PGSSLMODE)=' | tr -d "'") pnpm drafts:cleanup --apply    # deletes them
 ```
 
 A parent who presses «отримали» by mistake can't take it back, and there is no admin screen for
@@ -631,6 +643,17 @@ as `photos:dedupe`:
 ```bash
 pnpm fulfilment:revert <application id>                          # dry run — prints the plan
 pnpm fulfilment:revert <application id> --apply --admin <email>  # reverts, logged under that admin
+```
+
+A parent can file the same child twice in one campaign. `applications:duplicates` lists those,
+grouped by parent: application ids of one parent, in one campaign, whose child names match after
+trimming, lower-casing and folding apostrophes (`'` `’` `ʼ`). Drafts and rejected applications
+are left out; typos and diminutives are not caught. Read-only, and the output carries ids,
+statuses and campaigns only — never the child's name. It needs the target's `DATABASE_URL`
+and `PGSSLMODE`:
+
+```bash
+env $(heroku config -s -a wau | grep -E '^(DATABASE_URL|PGSSLMODE)=' | tr -d "'") pnpm applications:duplicates
 ```
 
 ### Telegram notifications
