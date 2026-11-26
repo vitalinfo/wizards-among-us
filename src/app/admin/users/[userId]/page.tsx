@@ -10,6 +10,7 @@ import { UserNoteForm } from "@/components/admin/UserNoteForm";
 import { UserRolesForm } from "@/components/admin/UserRolesForm";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { userApplicationsHref } from "@/features/applications/moderationFilter";
+import { auditUserLogHref } from "@/features/audit/listQuery";
 import { getUserForAdmin } from "@/features/users/adminQueries";
 import { resolveUserContact } from "@/features/users/contact";
 import {
@@ -145,6 +146,14 @@ export default async function AdminUserPage({
             </div>
           ))}
         </dl>
+
+        {/* Everything this person did, as the audit trail recorded it. */}
+        <Link
+          href={auditUserLogHref(user.id)}
+          className="text-primary self-start text-sm font-semibold underline underline-offset-4"
+        >
+          {t("log")}
+        </Link>
 
         <UserRolesForm
           userId={user.id}

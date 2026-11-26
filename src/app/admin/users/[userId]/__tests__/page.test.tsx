@@ -119,6 +119,16 @@ describe("the admin user page", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it("links to everything this person did in the audit log", async () => {
+    data.user = user({});
+    await renderPage();
+
+    expect(screen.getByRole("link", { name: t.log })).toHaveAttribute(
+      "href",
+      `/admin/audit?actorType=user&actor=${USER_ID}`,
+    );
+  });
+
   // A link to an empty list is a tab stop that leads nowhere.
   it("leaves a zero count as plain text", async () => {
     data.user = user({ applicationCount: 0, claimCount: 0 });

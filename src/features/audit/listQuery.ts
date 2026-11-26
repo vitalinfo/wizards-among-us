@@ -172,15 +172,23 @@ export function auditTargetHref(
   }
 }
 
-// The log narrowed to one admin — the type with the id, so the filter shows
-// who it is narrowed to.
+// The log narrowed to one admin, or one user — the type with the id, so the
+// filter shows who it is narrowed to.
 export function auditAdminLogHref(adminId: string): string {
+  return auditActorLogHref("admin", adminId);
+}
+
+export function auditUserLogHref(userId: string): string {
+  return auditActorLogHref("user", userId);
+}
+
+function auditActorLogHref(actorType: ActorType, actorId: string): string {
   return auditHref({
     action: null,
     reason: null,
     targetId: null,
-    actorType: "admin",
-    actorId: adminId,
+    actorType,
+    actorId,
     page: 1,
   });
 }

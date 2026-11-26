@@ -8,6 +8,7 @@ import { UserSearchForm } from "@/components/admin/UserSearchForm";
 import { Pager } from "@/components/ui/Pager";
 import { countUsers, listUsers } from "@/features/users/adminQueries";
 import { userApplicationsHref } from "@/features/applications/moderationFilter";
+import { auditUserLogHref } from "@/features/audit/listQuery";
 import { resolveUserContact } from "@/features/users/contact";
 import {
   parseUsersQuery,
@@ -180,18 +181,29 @@ export default async function AdminUsersPage({
                           )}
                         </td>
                         <td className={cell}>
-                          {/* The link names the PERSON, not just the action:
+                          {/* The links name the PERSON, not just the action:
                               fifty identical «Переглянути» links tell a
                               screen-reader user nothing about which is which. */}
-                          <Link
-                            href={userHref(user.id, view)}
-                            className="text-primary text-xs font-semibold whitespace-nowrap underline underline-offset-4"
-                            aria-label={t("viewFor", {
-                              name: name ?? t("unnamed"),
-                            })}
-                          >
-                            {t("view")}
-                          </Link>
+                          <div className="flex flex-col items-start gap-1">
+                            <Link
+                              href={userHref(user.id, view)}
+                              className="text-primary text-xs font-semibold whitespace-nowrap underline underline-offset-4"
+                              aria-label={t("viewFor", {
+                                name: name ?? t("unnamed"),
+                              })}
+                            >
+                              {t("view")}
+                            </Link>
+                            <Link
+                              href={auditUserLogHref(user.id)}
+                              className="text-primary text-xs font-semibold whitespace-nowrap underline underline-offset-4"
+                              aria-label={t("logFor", {
+                                name: name ?? t("unnamed"),
+                              })}
+                            >
+                              {t("log")}
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );
