@@ -5,11 +5,15 @@ import { notFound, redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ClaimSection } from "@/components/admin/ClaimSection";
+import { FamilyApplications } from "@/components/admin/FamilyApplications";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
 import { ModerationDecision } from "@/components/admin/ModerationDecision";
 import { ApplicationStatusBadge } from "@/components/ui/ApplicationStatusBadge";
-import { getApplicationForAdmin } from "@/features/applications/adminQueries";
+import {
+  getApplicationForAdmin,
+  listFamilyApplicationsInCampaign,
+} from "@/features/applications/adminQueries";
 import { getClaimHolder, searchVolunteers } from "@/features/claims/queries";
 import { getParentNote } from "@/features/users/adminQueries";
 import {
@@ -112,17 +116,23 @@ export default async function AdminApplicationPage({
   }
 
   const { application, campaignTitle, parent } = detail;
-  const [t, tRegions, tGender, format, files, parentNote] = await Promise.all([
-    getTranslations("admin.applications"),
-    getTranslations("regions"),
-    getTranslations("genders"),
-    getFormatter(),
-    listApplicationFiles(applicationId).then(inKindOrder),
-    // Attached to the PERSON, not the application: a family that files three
-    // applications has one note, and the thing an admin wrote down about how to
-    // reach them is true for all three.
-    getParentNote(application.parentId),
-  ]);
+  const [t, tRegions, tGender, format, files, parentNote, familyApplications] =
+    await Promise.all([
+      getTranslations("admin.applications"),
+      getTranslations("regions"),
+      getTranslations("genders"),
+      getFormatter(),
+      listApplicationFiles(applicationId).then(inKindOrder),
+      // Attached to the PERSON, not the application: a family that files three
+      // applications has one note, and the thing an admin wrote down about how to
+      // reach them is true for all three.
+      getParentNote(application.parentId),
+      listFamilyApplicationsInCampaign({
+        parentId: application.parentId,
+        campaignId: application.campaignId,
+        excludeId: applicationId,
+      }),
+    ]);
 
   // This page reveals every sensitive field about a child at once — town,
   // delivery address, family contact. The invariant says log every view.
@@ -242,6 +252,19 @@ export default async function AdminApplicationPage({
               ? `@${contact.value}`
               : contact.value,
         ],
+        // Only when there is one: a single-child family gets no empty row.
+        ...(familyApplications.length > 0
+          ? ([
+              [
+                t("fields.familyApplications"),
+                <FamilyApplications
+                  key="familyApplications"
+                  items={familyApplications}
+                  hrefSearch={queueSearch}
+                />,
+              ],
+            ] satisfies [string, ReactNode][])
+          : []),
       ],
     },
     {

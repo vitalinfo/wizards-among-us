@@ -1488,11 +1488,22 @@
         "parentName": "Батько / мати",
         "familyStory": "Історія родини",
         "contact": "Контакт родини",
+        "familyApplications": "Інші анкети в цій кампанії",
         "giftDescription": "Опис подарунка",
         "giftPrice": "Вартість, грн",
         "giftUrls": "Посилання на товар",
         "deliveryInformation": "Куди доставити",
         "socialMediaConsent": "Дозвіл на публікацію фото"
+      },
+      "familyApplications": {
+        "summary": "Показати ({count})",
+        "unnamed": "Імʼя не вказано",
+        "caption": "Інші анкети цієї родини в кампанії",
+        "columns": {
+          "child": "Дитина",
+          "status": "Статус",
+          "createdAt": "Створено"
+        }
       },
       "empty_value": "—",
       "yes": "Так",
