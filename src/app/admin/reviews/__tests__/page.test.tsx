@@ -157,18 +157,18 @@ describe("AdminReviewsPage", () => {
   it("asks for the first page by default", async () => {
     await renderPage([review({})]);
 
-    expect(data.slice).toEqual({ limit: 20, offset: 0 });
+    expect(data.slice).toEqual({ limit: 50, offset: 0 });
     const pager = screen.getByRole("navigation", { name: t.pager.label });
     expect(pager).toHaveTextContent("1–1 / 1, 1 / 1");
   });
 
   it("reads the page from the url and keeps the filter in the pager's links", async () => {
-    await renderPage([review({})], "hidden", { page: "2", total: 45 });
+    await renderPage([review({})], "hidden", { page: "2", total: 120 });
 
     expect(data.status).toBe("hidden");
-    expect(data.slice).toEqual({ limit: 20, offset: 20 });
+    expect(data.slice).toEqual({ limit: 50, offset: 50 });
     const pager = screen.getByRole("navigation", { name: t.pager.label });
-    expect(pager).toHaveTextContent("21–21 / 45, 2 / 3");
+    expect(pager).toHaveTextContent("51–51 / 120, 2 / 3");
     expect(within(pager).getByRole("link", { name: "prev" })).toHaveAttribute(
       "href",
       "/admin/reviews?status=hidden",
@@ -182,15 +182,15 @@ describe("AdminReviewsPage", () => {
   // A stale link, or publishing the last review on a filtered page, must not
   // land on an empty slice that reads as "no reviews".
   it("clamps a page past the end to the last page", async () => {
-    await renderPage([review({})], undefined, { page: "9", total: 25 });
+    await renderPage([review({})], undefined, { page: "9", total: 75 });
 
-    expect(data.slice).toEqual({ limit: 20, offset: 20 });
+    expect(data.slice).toEqual({ limit: 50, offset: 50 });
   });
 
   it("reads a nonsense page as the first", async () => {
-    await renderPage([review({})], undefined, { page: "-3", total: 45 });
+    await renderPage([review({})], undefined, { page: "-3", total: 120 });
 
-    expect(data.slice).toEqual({ limit: 20, offset: 0 });
+    expect(data.slice).toEqual({ limit: 50, offset: 0 });
   });
 
   // «No reviews yet» over a filtered list would read as if there were none.

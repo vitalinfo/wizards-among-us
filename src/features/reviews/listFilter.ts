@@ -10,9 +10,8 @@ export function parseReviewStatusFilter(value: unknown): ReviewStatusFilter {
   return REVIEW_STATUS_FILTERS.find((status) => status === value) ?? "all";
 }
 
-// Fewer than the admin tables' 50: each review is a card with the family's
-// photo beside it, not a row.
-export const REVIEWS_PAGE_SIZE = 20;
+// The same 50 as the other admin lists (Vital).
+export const REVIEWS_PAGE_SIZE = 50;
 
 // Anything unparseable is page 1 rather than an error — a bad page number
 // must never be able to blank the list. Past the last page is clamped by the
