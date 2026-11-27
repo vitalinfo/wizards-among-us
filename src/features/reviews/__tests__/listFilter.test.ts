@@ -70,8 +70,8 @@ describe("reviewsPageCount", () => {
   });
 
   it("rounds a partial page up", () => {
-    expect(reviewsPageCount(20)).toBe(1);
-    expect(reviewsPageCount(21)).toBe(2);
-    expect(reviewsPageCount(45)).toBe(3);
+    expect(reviewsPageCount(50)).toBe(1);
+    expect(reviewsPageCount(51)).toBe(2);
+    expect(reviewsPageCount(120)).toBe(3);
   });
 });
