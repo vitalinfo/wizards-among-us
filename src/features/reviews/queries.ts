@@ -3,7 +3,7 @@ import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import { applicationFiles, applications, reviews, users } from "@/db/schema";
 
-import type { ReviewStatusFilter } from "./listFilter";
+import { REVIEWS_PAGE_SIZE, type ReviewStatusFilter } from "./listFilter";
 import { type PublicReview, toPublicReview } from "./mappers";
 
 export async function hasReviewed(
@@ -166,10 +166,33 @@ async function latestConfirmationPhotos(
   return photos;
 }
 
-// The moderation queue: everything, newest first, with enough context to judge
-// — including the family's photo with the gift, the proof the review is about.
+function moderationStatusWhere(status: ReviewStatusFilter) {
+  return status === "all"
+    ? undefined
+    : eq(reviews.isPublished, status === "published");
+}
+
+// How many reviews the moderation list holds under this filter — the pager's
+// total, read before the page so a stale ?page= can be clamped.
+export async function countReviewsForModeration(
+  status: ReviewStatusFilter = "all",
+): Promise<number> {
+  const [row] = await getDb()
+    .select({ total: count() })
+    .from(reviews)
+    .where(moderationStatusWhere(status));
+  return row?.total ?? 0;
+}
+
+// The moderation queue: newest first, one page at a time, with enough context
+// to judge — including the family's photo with the gift, the proof the review
+// is about.
 export async function listReviewsForModeration(
   status: ReviewStatusFilter = "all",
+  { limit, offset }: { limit: number; offset: number } = {
+    limit: REVIEWS_PAGE_SIZE,
+    offset: 0,
+  },
 ) {
   const rows = await getDb()
     .select({
@@ -187,12 +210,11 @@ export async function listReviewsForModeration(
     .from(reviews)
     .innerJoin(users, eq(users.id, reviews.userId))
     .leftJoin(applications, eq(applications.id, reviews.applicationId))
-    .where(
-      status === "all"
-        ? undefined
-        : eq(reviews.isPublished, status === "published"),
-    )
-    .orderBy(desc(reviews.createdAt));
+    .where(moderationStatusWhere(status))
+    // id breaks ties, so a review can't appear on two pages or on none.
+    .orderBy(desc(reviews.createdAt), desc(reviews.id))
+    .limit(limit)
+    .offset(offset);
 
   const photos = await latestConfirmationPhotos(
     rows.flatMap((row) => row.applicationId ?? []),

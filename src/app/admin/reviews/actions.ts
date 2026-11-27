@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { recordAuditLog } from "@/features/audit/log";
 import {
+  parseReviewsPage,
   parseReviewStatusFilter,
   reviewsHref,
 } from "@/features/reviews/listFilter";
@@ -17,9 +18,10 @@ import { requireAdmin } from "@/lib/auth/session";
 export async function setReviewPublishedAction(
   reviewId: string,
   isPublished: boolean,
-  // The list's filter, so the admin lands back on the list they were
+  // The list's filter and page, so the admin lands back on the list they were
   // working through. Re-parsed: a bound argument arrives from the client.
   statusFilter?: string,
+  page?: number,
 ): Promise<void> {
   const admin = await requireAdmin();
   await setReviewPublished(reviewId, isPublished);
@@ -34,5 +36,7 @@ export async function setReviewPublishedAction(
   revalidatePath("/admin/reviews");
   // The landing page renders published reviews.
   revalidatePath("/");
-  redirect(reviewsHref(parseReviewStatusFilter(statusFilter)));
+  redirect(
+    reviewsHref(parseReviewStatusFilter(statusFilter), parseReviewsPage(page)),
+  );
 }

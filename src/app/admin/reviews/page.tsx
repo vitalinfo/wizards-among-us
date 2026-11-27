@@ -5,8 +5,18 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ReviewConfirmationPhoto } from "@/components/admin/ReviewConfirmationPhoto";
 import { ReviewFilterForm } from "@/components/admin/ReviewFilterForm";
-import { parseReviewStatusFilter } from "@/features/reviews/listFilter";
-import { listReviewsForModeration } from "@/features/reviews/queries";
+import { Pager } from "@/components/ui/Pager";
+import {
+  parseReviewsPage,
+  parseReviewStatusFilter,
+  REVIEWS_PAGE_SIZE,
+  reviewsHref,
+  reviewsPageCount,
+} from "@/features/reviews/listFilter";
+import {
+  countReviewsForModeration,
+  listReviewsForModeration,
+} from "@/features/reviews/queries";
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
 
@@ -17,19 +27,28 @@ export const dynamic = "force-dynamic";
 export default async function AdminReviewsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string }>;
 }) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
     redirect("/admin/login");
   }
 
-  const status = parseReviewStatusFilter((await searchParams).status);
+  const params = await searchParams;
+  const status = parseReviewStatusFilter(params.status);
+
+  // Count before fetching: a stale ?page= (or publishing the last review on a
+  // filtered page) would otherwise render an empty list that reads as "there
+  // are no reviews".
+  const total = await countReviewsForModeration(status);
+  const pageCount = reviewsPageCount(total);
+  const page = Math.min(parseReviewsPage(params.page), pageCount);
+  const offset = (page - 1) * REVIEWS_PAGE_SIZE;
 
   const [t, format, rows] = await Promise.all([
     getTranslations("admin.reviews"),
     getFormatter(),
-    listReviewsForModeration(status),
+    listReviewsForModeration(status, { limit: REVIEWS_PAGE_SIZE, offset }),
   ]);
 
   return (
@@ -111,6 +130,7 @@ export default async function AdminReviewsPage({
                       review.id,
                       !review.isPublished,
                       status,
+                      page,
                     )}
                     className="mt-1"
                   >
@@ -134,6 +154,16 @@ export default async function AdminReviewsPage({
             ))}
           </ul>
         )}
+
+        <Pager
+          label={t("pager.label")}
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          from={offset + 1}
+          to={offset + rows.length}
+          hrefFor={(target) => reviewsHref(status, target)}
+        />
       </main>
     </>
   );

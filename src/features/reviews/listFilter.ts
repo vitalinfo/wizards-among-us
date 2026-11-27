@@ -10,8 +10,38 @@ export function parseReviewStatusFilter(value: unknown): ReviewStatusFilter {
   return REVIEW_STATUS_FILTERS.find((status) => status === value) ?? "all";
 }
 
-export function reviewsHref(status: ReviewStatusFilter): string {
-  return status === "all"
-    ? "/admin/reviews"
-    : `/admin/reviews?status=${status}`;
+// Fewer than the admin tables' 50: each review is a card with the family's
+// photo beside it, not a row.
+export const REVIEWS_PAGE_SIZE = 20;
+
+// Anything unparseable is page 1 rather than an error — a bad page number
+// must never be able to blank the list. Past the last page is clamped by the
+// page once it knows the total.
+export function parseReviewsPage(value: unknown): number {
+  // A repeated ?page= arrives as an array; Number(["2"]) is 2, which is luck,
+  // not parsing.
+  if (typeof value !== "string" && typeof value !== "number") {
+    return 1;
+  }
+  const page = Number(value);
+  return Number.isInteger(page) && page >= 1 ? page : 1;
+}
+
+export function reviewsPageCount(total: number): number {
+  // Always at least one page, so an empty result still renders coherently.
+  return Math.max(1, Math.ceil(total / REVIEWS_PAGE_SIZE));
+}
+
+// Omits what is default, so the plain url stays clean and older links keep
+// working.
+export function reviewsHref(status: ReviewStatusFilter, page = 1): string {
+  const params = new URLSearchParams();
+  if (status !== "all") {
+    params.set("status", status);
+  }
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+  const search = params.toString();
+  return search === "" ? "/admin/reviews" : `/admin/reviews?${search}`;
 }
