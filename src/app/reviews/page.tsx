@@ -14,6 +14,7 @@ import {
 import {
   parsePublicReviewsQuery,
   publicReviewsHref,
+  reviewsOrderSeed,
 } from "@/features/reviews/publicQuery";
 import { pageCount as countPages } from "@/lib/pageSize";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title"), description: t("description") };
 }
 
-// «Відгуки» (Figma 186:2) — the reviews an admin has published, newest first.
+// «Відгуки» (Figma 186:2) — the reviews an admin has published, in an order
+// that changes every hour.
 //
 // Public, and noindex like every page but «/» (§10). What a review shows is
 // decided in toPublicReview: the parent's first name, never the child's; the
@@ -48,7 +50,11 @@ export default async function ReviewsPage({
   const page = Math.min(query.page, pageCount);
   const reviews =
     total > 0
-      ? await listPublishedReviews({ limit: per, offset: (page - 1) * per })
+      ? await listPublishedReviews({
+          orderSeed: reviewsOrderSeed(new Date()),
+          limit: per,
+          offset: (page - 1) * per,
+        })
       : [];
   const from = total === 0 ? 0 : (page - 1) * per + 1;
 

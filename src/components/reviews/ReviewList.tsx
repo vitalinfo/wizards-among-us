@@ -4,7 +4,7 @@ import type { PublicReview } from "@/features/reviews/mappers";
 
 import { ReviewCard } from "./ReviewCard";
 
-// The page's reviews, newest first. The photo zig-zags right, left, right —
+// The page's reviews, in the hour's order. The photo zig-zags right, left, right —
 // counted over the reviews that HAVE a photo, so a text-only card between two
 // photo cards doesn't leave both photos on the same side.
 export function ReviewList({ reviews }: { reviews: PublicReview[] }) {

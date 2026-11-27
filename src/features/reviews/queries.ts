@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { applicationFiles, applications, reviews, users } from "@/db/schema";
@@ -53,9 +53,12 @@ export async function countPublishedReviews(): Promise<number> {
 }
 
 export async function listPublishedReviews({
+  orderSeed,
   limit,
   offset,
 }: {
+  // reviewsOrderSeed(): the current hour.
+  orderSeed: string;
   limit: number;
   offset: number;
 }): Promise<PublicReview[]> {
@@ -73,9 +76,13 @@ export async function listPublishedReviews({
     .innerJoin(users, eq(users.id, reviews.userId))
     .leftJoin(applications, eq(applications.id, reviews.applicationId))
     .where(eq(reviews.isPublished, true))
-    // The id breaks ties, so a page boundary never shows one review twice
-    // and another not at all.
-    .orderBy(desc(reviews.createdAt), desc(reviews.id))
+    // Shuffled hourly, like the volunteer browse list, so the same reviews
+    // are not always the first ones read. The id breaks a hash tie, so the
+    // order stays total and a page boundary never repeats or skips a review.
+    .orderBy(
+      sql`md5(${orderSeed}::text || ${reviews.id}::text)`,
+      asc(reviews.id),
+    )
     .limit(limit)
     .offset(offset);
 
