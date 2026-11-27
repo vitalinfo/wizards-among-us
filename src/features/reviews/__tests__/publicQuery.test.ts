@@ -4,6 +4,7 @@ import {
   parsePublicReviewsQuery,
   publicReviewsHref,
   REVIEWS_PAGE_SIZE,
+  reviewsOrderSeed,
 } from "../publicQuery";
 
 describe("parsePublicReviewsQuery", () => {
@@ -41,6 +42,20 @@ describe("publicReviewsHref", () => {
   it("carries a later page and a chosen size", () => {
     expect(publicReviewsHref({ page: 2, per: 10 })).toBe(
       "/reviews?page=2&per=10",
+    );
+  });
+});
+
+describe("reviewsOrderSeed", () => {
+  it("holds within an hour", () => {
+    expect(reviewsOrderSeed(new Date("2026-11-27T14:00:00.000Z"))).toBe(
+      reviewsOrderSeed(new Date("2026-11-27T14:59:59.999Z")),
+    );
+  });
+
+  it("changes on the hour", () => {
+    expect(reviewsOrderSeed(new Date("2026-11-27T14:59:59.999Z"))).not.toBe(
+      reviewsOrderSeed(new Date("2026-11-27T15:00:00.000Z")),
     );
   });
 });
