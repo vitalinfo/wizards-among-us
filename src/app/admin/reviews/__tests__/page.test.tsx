@@ -22,11 +22,19 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 const data = vi.hoisted(() => ({
   rows: [] as ReviewRow[],
+  // The filter's total; null means "just the rows on this page".
+  total: null as number | null,
   status: undefined as string | undefined,
+  slice: undefined as { limit: number; offset: number } | undefined,
 }));
 vi.mock("@/features/reviews/queries", () => ({
-  listReviewsForModeration: async (status: string) => {
+  countReviewsForModeration: async () => data.total ?? data.rows.length,
+  listReviewsForModeration: async (
+    status: string,
+    slice: { limit: number; offset: number },
+  ) => {
     data.status = status;
+    data.slice = slice;
     return data.rows;
   },
 }));
@@ -37,6 +45,27 @@ vi.mock("next/navigation", async (importOriginal) => ({
 }));
 // AdminNav is async (RTL cannot render it nested).
 vi.mock("@/components/admin/AdminNav", () => ({ AdminNav: () => null }));
+// Pager is async too, and has its own spec. This stand-in draws what the page
+// hands it, so what is under test is the page's arithmetic and its urls.
+vi.mock("@/components/ui/Pager", () => ({
+  Pager: (props: {
+    label: string;
+    page: number;
+    pageCount: number;
+    total: number;
+    from: number;
+    to: number;
+    hrefFor: (page: number) => string;
+  }) => (
+    <nav aria-label={props.label}>
+      <p>{`${props.from}–${props.to} / ${props.total}, ${props.page} / ${props.pageCount}`}</p>
+      {props.page > 1 ? <a href={props.hrefFor(props.page - 1)}>prev</a> : null}
+      {props.page < props.pageCount ? (
+        <a href={props.hrefFor(props.page + 1)}>next</a>
+      ) : null}
+    </nav>
+  ),
+}));
 vi.mock("../actions", () => ({
   setReviewPublishedAction: async () => {},
 }));
@@ -67,10 +96,15 @@ function review(overrides: Partial<ReviewRow>): ReviewRow {
   };
 }
 
-async function renderPage(rows: ReviewRow[], status?: string) {
+async function renderPage(
+  rows: ReviewRow[],
+  status?: string,
+  { page, total = null }: { page?: string; total?: number | null } = {},
+) {
   data.rows = rows;
+  data.total = total;
   const ui = await AdminReviewsPage({
-    searchParams: Promise.resolve({ status }),
+    searchParams: Promise.resolve({ status, page }),
   });
   // The photo's lightbox is a client component inside the server tree.
   return render(
@@ -118,6 +152,45 @@ describe("AdminReviewsPage", () => {
     await renderPage([review({})], "deleted");
 
     expect(data.status).toBe("all");
+  });
+
+  it("asks for the first page by default", async () => {
+    await renderPage([review({})]);
+
+    expect(data.slice).toEqual({ limit: 20, offset: 0 });
+    const pager = screen.getByRole("navigation", { name: t.pager.label });
+    expect(pager).toHaveTextContent("1–1 / 1, 1 / 1");
+  });
+
+  it("reads the page from the url and keeps the filter in the pager's links", async () => {
+    await renderPage([review({})], "hidden", { page: "2", total: 45 });
+
+    expect(data.status).toBe("hidden");
+    expect(data.slice).toEqual({ limit: 20, offset: 20 });
+    const pager = screen.getByRole("navigation", { name: t.pager.label });
+    expect(pager).toHaveTextContent("21–21 / 45, 2 / 3");
+    expect(within(pager).getByRole("link", { name: "prev" })).toHaveAttribute(
+      "href",
+      "/admin/reviews?status=hidden",
+    );
+    expect(within(pager).getByRole("link", { name: "next" })).toHaveAttribute(
+      "href",
+      "/admin/reviews?status=hidden&page=3",
+    );
+  });
+
+  // A stale link, or publishing the last review on a filtered page, must not
+  // land on an empty slice that reads as "no reviews".
+  it("clamps a page past the end to the last page", async () => {
+    await renderPage([review({})], undefined, { page: "9", total: 25 });
+
+    expect(data.slice).toEqual({ limit: 20, offset: 20 });
+  });
+
+  it("reads a nonsense page as the first", async () => {
+    await renderPage([review({})], undefined, { page: "-3", total: 45 });
+
+    expect(data.slice).toEqual({ limit: 20, offset: 0 });
   });
 
   // «No reviews yet» over a filtered list would read as if there were none.
