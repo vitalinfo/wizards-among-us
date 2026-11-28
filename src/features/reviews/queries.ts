@@ -1,9 +1,13 @@
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { applicationFiles, applications, reviews, users } from "@/db/schema";
 
-import { REVIEWS_PAGE_SIZE, type ReviewStatusFilter } from "./listFilter";
+import {
+  ALL_REVIEWS,
+  REVIEWS_PAGE_SIZE,
+  type ReviewListFilter,
+} from "./listFilter";
 import { type PublicReview, toPublicReview } from "./mappers";
 
 export async function hasReviewed(
@@ -173,21 +177,62 @@ async function latestConfirmationPhotos(
   return photos;
 }
 
-function moderationStatusWhere(status: ReviewStatusFilter) {
-  return status === "all"
-    ? undefined
-    : eq(reviews.isPublished, status === "published");
+// Whether a review's gift photo may go in the gallery, as SQL: the
+// application consented (null is not a yes) and has a confirmation photo. The
+// same rule as isGalleryEligible, which the admin button follows; this is the
+// one that counts. Correlated on the outer `reviews` row.
+function galleryEligibleWhere() {
+  const db = getDb();
+  return exists(
+    db
+      .select({ id: applications.id })
+      .from(applications)
+      .where(
+        and(
+          eq(applications.id, reviews.applicationId),
+          eq(applications.socialMediaConsent, true),
+          exists(
+            db
+              .select({ id: applicationFiles.id })
+              .from(applicationFiles)
+              .where(
+                and(
+                  eq(applicationFiles.applicationId, applications.id),
+                  eq(applicationFiles.kind, "confirmation"),
+                ),
+              ),
+          ),
+        ),
+      ),
+  );
+}
+
+// `= true` as a literal, not a bound parameter, so it matches the partial
+// index's predicate (reviews_in_gallery_idx) under any plan.
+const IN_GALLERY = sql`${reviews.inGallery} = true`;
+
+function moderationWhere({ status, gallery }: ReviewListFilter) {
+  return and(
+    status === "all"
+      ? undefined
+      : eq(reviews.isPublished, status === "published"),
+    gallery === "in"
+      ? IN_GALLERY
+      : gallery === "eligible"
+        ? and(eq(reviews.inGallery, false), galleryEligibleWhere())
+        : undefined,
+  );
 }
 
 // How many reviews the moderation list holds under this filter — the pager's
 // total, read before the page so a stale ?page= can be clamped.
 export async function countReviewsForModeration(
-  status: ReviewStatusFilter = "all",
+  filter: ReviewListFilter = ALL_REVIEWS,
 ): Promise<number> {
   const [row] = await getDb()
     .select({ total: count() })
     .from(reviews)
-    .where(moderationStatusWhere(status));
+    .where(moderationWhere(filter));
   return row?.total ?? 0;
 }
 
@@ -195,7 +240,7 @@ export async function countReviewsForModeration(
 // to judge — including the family's photo with the gift, the proof the review
 // is about.
 export async function listReviewsForModeration(
-  status: ReviewStatusFilter = "all",
+  filter: ReviewListFilter = ALL_REVIEWS,
   { limit, offset }: { limit: number; offset: number } = {
     limit: REVIEWS_PAGE_SIZE,
     offset: 0,
@@ -207,17 +252,19 @@ export async function listReviewsForModeration(
       rating: reviews.rating,
       body: reviews.body,
       isPublished: reviews.isPublished,
+      inGallery: reviews.inGallery,
       createdAt: reviews.createdAt,
       authorId: reviews.userId,
       authorFirstName: users.firstName,
       authorUsername: users.username,
       applicationId: applications.id,
       childName: applications.childName,
+      socialMediaConsent: applications.socialMediaConsent,
     })
     .from(reviews)
     .innerJoin(users, eq(users.id, reviews.userId))
     .leftJoin(applications, eq(applications.id, reviews.applicationId))
-    .where(moderationStatusWhere(status))
+    .where(moderationWhere(filter))
     // id breaks ties, so a review can't appear on two pages or on none.
     .orderBy(desc(reviews.createdAt), desc(reviews.id))
     .limit(limit)
@@ -240,4 +287,29 @@ export async function setReviewPublished(
   isPublished: boolean,
 ): Promise<void> {
   await getDb().update(reviews).set({ isPublished }).where(eq(reviews.id, id));
+}
+
+// Puts the family's gift photo in the site gallery, or takes it out. Adding
+// is guarded in SQL by the two things that make the photo publishable — the
+// application's social_media_consent and an actual confirmation photo — so a
+// stale admin page cannot add a review whose family has since withdrawn
+// consent. Removing is always allowed. Returns whether a row changed: false
+// when it was already in that state, missing, or (on an add) not eligible.
+export async function setReviewInGallery(
+  id: string,
+  inGallery: boolean,
+): Promise<boolean> {
+  const rows = await getDb()
+    .update(reviews)
+    .set({ inGallery })
+    .where(
+      and(
+        eq(reviews.id, id),
+        // Only a real change, so a double submit is not logged twice.
+        eq(reviews.inGallery, !inGallery),
+        inGallery ? galleryEligibleWhere() : undefined,
+      ),
+    )
+    .returning({ id: reviews.id });
+  return rows.length > 0;
 }

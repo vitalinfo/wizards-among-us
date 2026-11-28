@@ -1,0 +1,2 @@
+ALTER TABLE "reviews" ADD COLUMN "in_gallery" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE INDEX "reviews_in_gallery_idx" ON "reviews" USING btree ("id") WHERE "reviews"."in_gallery" = true;

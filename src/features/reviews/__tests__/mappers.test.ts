@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { publicReviewPhotoHref, toPublicReview } from "../mappers";
+import {
+  isGalleryEligible,
+  publicReviewPhotoHref,
+  toPublicReview,
+} from "../mappers";
 
 const row = {
   id: "0c9e5c55-6a3f-4a86-9a0e-4f1d2f6b7a10",
@@ -55,5 +59,28 @@ describe("publicReviewPhotoHref", () => {
     expect(publicReviewPhotoHref({ id: row.id, photoVersion: 42 })).toBe(
       `/reviews/${row.id}/photo?v=42`,
     );
+  });
+});
+
+describe("isGalleryEligible", () => {
+  it("allows a consented review with a photo", () => {
+    expect(
+      isGalleryEligible({ socialMediaConsent: true, hasPhoto: true }),
+    ).toBe(true);
+  });
+
+  it("refuses a family that declined, or never answered", () => {
+    expect(
+      isGalleryEligible({ socialMediaConsent: false, hasPhoto: true }),
+    ).toBe(false);
+    expect(
+      isGalleryEligible({ socialMediaConsent: null, hasPhoto: true }),
+    ).toBe(false);
+  });
+
+  it("refuses a review with no photo to show", () => {
+    expect(
+      isGalleryEligible({ socialMediaConsent: true, hasPhoto: false }),
+    ).toBe(false);
   });
 });
