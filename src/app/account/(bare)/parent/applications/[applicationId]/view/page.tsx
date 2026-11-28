@@ -80,7 +80,7 @@ export default async function ApplicationViewPage({
   });
 
   // The two portraits, and — once the family has sent it — the photo of the
-  // gift arriving, under its own heading at the foot of the page, where the
+  // gift arriving, under its own heading below the portraits, where the
   // volunteer's card puts it too. Not the ВПО certificate: it is the family's
   // own as well, but it is a state document and this page is the one most
   // likely to be shown to someone else over a shoulder.
@@ -135,11 +135,11 @@ export default async function ApplicationViewPage({
       }
       after={
         gift ? (
-          <section className="mx-auto mt-12 max-w-[1066px]">
+          <section className="mt-4 lg:mt-12">
             <h2 className="text-xl font-semibold tracking-[-0.03em]">
               {tConfirm("photo.label")}
             </h2>
-            <div className="mt-4 lg:w-[306px]">
+            <div className="mt-4">
               <ApplicationPhoto
                 applicationId={application.id}
                 fileId={gift.id}

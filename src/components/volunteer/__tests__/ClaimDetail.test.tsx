@@ -173,6 +173,60 @@ describe("ClaimDetail", () => {
     expect(screen.getByText(thanks).tagName).toBe("STRONG");
   });
 
+  it("shows the family's review under «Відгук» once they left one", async () => {
+    const { container } = await renderDetail({
+      application: { ...application, status: "fulfilled" },
+      photos: [{ id: "f3", kind: "confirmation" }],
+      review: {
+        rating: 4,
+        body: "Дякуємо!\nДитина в захваті.",
+        createdAt: new Date("2026-11-20T10:00:00Z"),
+      },
+    });
+
+    // Beside «Деталі» in the text column, not under the family photo.
+    const headings = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((heading) => heading.textContent);
+    expect(headings.slice(headings.indexOf(t.sections.details), -1)).toEqual([
+      t.sections.details,
+      t.sections.review,
+    ]);
+    expect(headings.at(-1)).toBe(t.sections.familyPhoto);
+    expect(
+      screen.getByRole("img", {
+        name: t.reviewRating.replace("{rating}", "4"),
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Дитина в захваті\./)).toBeInTheDocument();
+    expect(screen.getByText("20.11.2026")).toHaveAttribute(
+      "datetime",
+      "2026-11-20T10:00:00.000Z",
+    );
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("shows a review that is a rating alone", async () => {
+    await renderDetail({
+      review: { rating: 5, body: null, createdAt: new Date("2026-11-20") },
+    });
+
+    expect(
+      screen.getByRole("img", {
+        name: t.reviewRating.replace("{rating}", "5"),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  // A review is optional, so there is nothing to wait for: no heading at all.
+  it("leaves «Відгук» out when the family has not left a review", async () => {
+    await renderDetail();
+
+    expect(
+      screen.queryByRole("heading", { name: t.sections.review }),
+    ).not.toBeInTheDocument();
+  });
+
   it("goes back to the list, and has no accessibility violations", async () => {
     const { container } = await renderDetail();
 
