@@ -35,8 +35,8 @@ export async function hasReviewed(
   return row !== undefined;
 }
 
-// The family's review of one application, for the volunteer who fulfilled it
-// — published or not. Only the parent's own: the author is matched to the
+// The family's review of one application, published or not — for the
+// volunteer who fulfilled it and for the admin's application page. Only the parent's own: the author is matched to the
 // application's parent, so no other row can ride in. Newest first, though
 // getReviewBlockReason allows only one.
 export async function getApplicationReview(
