@@ -11,6 +11,7 @@ import {
   latestByKind,
 } from "@/features/applications/files";
 import { getMyClaim } from "@/features/claims/queries";
+import { getApplicationReview } from "@/features/reviews/queries";
 import { resolveUserContact } from "@/features/users/contact";
 import { isUser } from "@/lib/actor";
 import { signedOutRedirect } from "@/lib/auth/returnPath";
@@ -69,6 +70,11 @@ export default async function ClaimDetailPage({
     ),
   );
 
+  const review = await getApplicationReview(
+    applicationId,
+    claim.application.parentId,
+  );
+
   await recordAuditLog({
     actor,
     action: "claim.details_viewed",
@@ -80,6 +86,7 @@ export default async function ClaimDetailPage({
     <ClaimDetail
       application={claim.application}
       photos={photos}
+      review={review}
       contact={resolveUserContact({
         username: claim.parentUsername,
         phone: claim.parentPhone,

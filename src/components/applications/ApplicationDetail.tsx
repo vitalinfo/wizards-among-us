@@ -51,7 +51,8 @@ export async function ApplicationDetail({
   notice?: ReactNode;
   // More sections in the text column, after «Доставка».
   children?: ReactNode;
-  // Below the photos and the text, across the page.
+  // Under the photos: on lg in their column, straight after the portraits
+  // however long the text beside them runs; on a phone below everything.
   after?: ReactNode;
   // The family's own card offers the turn buttons (canRotateApplicationFile);
   // the volunteer's never does.
@@ -72,13 +73,16 @@ export async function ApplicationDetail({
         {/* 1066 centred, which is where the design puts the pair: a 306 photo
             column, 32 of gap and a 728 measure, sitting in the middle of the
             page rather than against the gutter the logo uses. */}
-        <div className="mx-auto flex max-w-[1066px] flex-col gap-8 lg:flex-row">
+        {/* From lg a grid rather than a row, so `after` can sit in the photo
+            column under the portraits while the text spans both rows — in a
+            row it could only go below the taller of the two columns. */}
+        <div className="mx-auto flex max-w-[1066px] flex-col gap-8 lg:grid lg:grid-cols-[306px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-y-0">
           {/* The letter and the child. A column of two beside the text from lg;
               on a phone the design puts them BELOW it, side by side — so the
               order flips and the stack becomes a two-column grid. Thumbnails
               open over the page: one is enough to see a letter exists and
               useless for reading it, which is the only reason to show one. */}
-          <div className="order-last grid grid-cols-2 gap-3 lg:order-first lg:flex lg:w-[306px] lg:shrink-0 lg:flex-col lg:gap-6">
+          <div className="order-last grid grid-cols-2 gap-3 lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-6">
             {(["child_with_letter_photo", "letter_photo"] as const).map(
               (kind) => {
                 const photo = byKind.get(kind);
@@ -101,7 +105,7 @@ export async function ApplicationDetail({
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
             <h1 className="font-display text-[40px] leading-10 font-bold tracking-[-0.03em] lg:text-[64px] lg:leading-[66px]">
               {child || t("noName")}
             </h1>
@@ -207,9 +211,13 @@ export async function ApplicationDetail({
 
             {children}
           </div>
-        </div>
 
-        {after}
+          {after ? (
+            <div className="order-last lg:col-start-1 lg:row-start-2">
+              {after}
+            </div>
+          ) : null}
+        </div>
       </div>
     </>
   );

@@ -35,6 +35,32 @@ export async function hasReviewed(
   return row !== undefined;
 }
 
+// The family's review of one application, for the volunteer who fulfilled it
+// — published or not. Only the parent's own: the author is matched to the
+// application's parent, so no other row can ride in. Newest first, though
+// getReviewBlockReason allows only one.
+export async function getApplicationReview(
+  applicationId: string,
+  parentId: string,
+): Promise<{ rating: number; body: string | null; createdAt: Date } | null> {
+  const [row] = await getDb()
+    .select({
+      rating: reviews.rating,
+      body: reviews.body,
+      createdAt: reviews.createdAt,
+    })
+    .from(reviews)
+    .where(
+      and(
+        eq(reviews.applicationId, applicationId),
+        eq(reviews.userId, parentId),
+      ),
+    )
+    .orderBy(desc(reviews.createdAt), desc(reviews.id))
+    .limit(1);
+  return row ?? null;
+}
+
 // Born UNPUBLISHED (the column default): a review is written by a member of the
 // public and appears on the landing page, so an admin decides before anyone
 // sees it.
