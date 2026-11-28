@@ -1,6 +1,7 @@
 import type { ResolvedSettings } from "@/features/campaigns/authz";
 import type { CampaignStates } from "@/features/campaigns/queries";
 import type { PublicFaq } from "@/features/faqs/queries";
+import type { GalleryPhoto } from "@/features/reviews/gallery";
 import { SITE } from "@/lib/site";
 import { yearsSince } from "@/lib/years";
 
@@ -22,6 +23,7 @@ export function Landing({
   campaigns,
   settings,
   faqs,
+  galleryPhotos,
   manifestoHrefs,
 }: {
   // Which initiatives exist as campaigns, and which one is running.
@@ -32,6 +34,8 @@ export function Landing({
   // The active FAQ entries, in display order. Admin-managed, so they are data
   // loaded by the page rather than copy in messages/uk.json.
   faqs: readonly PublicFaq[];
+  // Families' photos with the gift, from reviews an admin put in the gallery.
+  galleryPhotos: readonly GalleryPhoto[];
   // Where the two manifesto calls to action lead. Session-dependent, resolved
   // by the page (see `manifestoHrefs`) — this component stays sync so it can
   // be rendered whole in a test.
@@ -49,7 +53,7 @@ export function Landing({
       <FounderQuote />
       <Initiatives campaigns={campaigns} settings={settings} />
       <Faq items={faqs} />
-      <Gallery />
+      <Gallery photos={galleryPhotos} />
     </main>
   );
 }

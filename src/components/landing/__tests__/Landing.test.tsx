@@ -8,6 +8,7 @@ import type {
   CampaignStates,
 } from "@/features/campaigns/queries";
 import type { PublicFaq } from "@/features/faqs/queries";
+import type { GalleryPhoto } from "@/features/reviews/gallery";
 import { SITE } from "@/lib/site";
 import { axe } from "@/test/axe";
 
@@ -33,6 +34,11 @@ const FAQS: PublicFaq[] = [
   },
 ];
 
+// One photo, so the gallery section renders; Gallery has its own spec.
+const GALLERY: GalleryPhoto[] = [
+  { reviewId: "22222222-2222-4222-8222-222222222222", version: 1 },
+];
+
 // A live campaign with submissions open. The pill and the button follow the
 // full intake gate now, so a test that only says "active" would be asserting
 // against a state no parent could actually use.
@@ -52,6 +58,7 @@ function renderLanding(
         campaigns={campaigns}
         settings={settings}
         faqs={faqs}
+        galleryPhotos={GALLERY}
         manifestoHrefs={HREFS}
       />
     </NextIntlClientProvider>,

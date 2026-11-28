@@ -1,22 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useCallback, useRef, type ReactNode } from "react";
 
 import { ArrowRightIcon } from "@/components/icons";
 import { SITE_CONTAINER } from "@/components/site/layout";
+import {
+  type GalleryPhoto,
+  galleryPhotoHref,
+} from "@/features/reviews/gallery";
 import { cn } from "@/lib/utils";
 
 import { nextScrollLeft } from "./galleryPaging";
 import { SectionLabel } from "./SectionLabel";
-
-// 25 of them, and the count is expected to keep growing — the families keep
-// sending photos. Generated rather than listed, and the alt text is one
-// numbered string rather than 25 written ones, so adding a photo is a file in
-// public/ and a bump here. See the note on the alt below.
-export const PHOTO_COUNT = 25;
-const PHOTOS = Array.from({ length: PHOTO_COUNT }, (_, i) => String(i + 1));
 
 const DURATION = 550;
 
@@ -40,7 +36,18 @@ function easeInOutCubic(t: number): number {
 // ReactNode, not string: the design gives each of those two sentences a line,
 // which is a typed break — at 1000 the text of its own accord breaks after «А
 // сьогодні» and leaves three words below. The caller passes `t.rich`.
-export function Gallery({ title }: { title?: ReactNode } = {}) {
+//
+// `photos` are families' photos with the gift, from reviews an admin put in
+// the gallery (listGalleryPhotos — 20, reshuffled hourly), loaded by the page.
+// None — an empty gallery, or no database — and the section is not drawn at
+// all: a heading over an empty row promises photos that are not there.
+export function Gallery({
+  photos,
+  title,
+}: {
+  photos: readonly GalleryPhoto[];
+  title?: ReactNode;
+}) {
   const t = useTranslations("landing.gallery");
   const row = useRef<HTMLUListElement>(null);
   const frame = useRef(0);
@@ -114,6 +121,10 @@ export function Gallery({ title }: { title?: ReactNode } = {}) {
     [animateTo],
   );
 
+  if (photos.length === 0) {
+    return null;
+  }
+
   return (
     <section className={cn(SITE_CONTAINER, "py-15 lg:py-25")}>
       <div
@@ -140,8 +151,8 @@ export function Gallery({ title }: { title?: ReactNode } = {}) {
         </p>
       </div>
 
-      {/* Photos are sized by HEIGHT, with the width following the picture's
-          own ratio — the opposite of everywhere else on this page, because
+      {/* Photos are sized by HEIGHT, with the width following the 3:4 crop
+          — the opposite of everywhere else on this page, because
           height is the dimension that runs out. The design draws them 502x670
           in a 1920x1424 frame, where 670 is under half the viewport; on a
           laptop window 652px tall it is 103% of it, so you could never see a
@@ -174,24 +185,26 @@ export function Gallery({ title }: { title?: ReactNode } = {}) {
         aria-label={t("region")}
         className="focus-visible:outline-ring -mx-4 mt-8 flex snap-x snap-mandatory scroll-pl-3 gap-3 overflow-x-auto px-4 pb-[15px] focus-visible:outline-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:mt-20 lg:scroll-pl-0 lg:gap-5 lg:px-0"
       >
-        {PHOTOS.map((key) => (
-          <li key={key} className="shrink-0 snap-start">
-            {/* A numbered alt, at Vital's call, because 25 hand-written
-                descriptions would be guesses from thumbnails that nobody can
-                verify or will maintain — and a wrong description of a real
-                child's photo is worse than none. Worth knowing what it costs:
-                "Галерея фото №7" tells a screen-reader user nothing the
-                heading has not already said, so it is noise rather than
-                access. If we are not going to describe them, alt="" is the
-                better of the two — the row is already a labelled group, and
-                the reader would skip the images instead of announcing 25
-                empty labels. One line either way. */}
-            <Image
-              src={`/gallery-${key}.webp`}
-              alt={t("photoAlt", { n: key })}
+        {photos.map((photo, index) => (
+          <li key={photo.reviewId} className="shrink-0 snap-start">
+            {/* A numbered alt, at Vital's call: these are families' own
+                photos, arriving without a description, and a guessed one of
+                a real child is worse than none. The number at least tells
+                the photos apart.
+
+                Cropped to the design's 3:4 (502x670) whatever the family
+                sent: the row is sized by height, and photos of every shape
+                would give it ragged widths — and, since their sizes are not
+                stored, a row that reflows as each one loads. */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- served by the consent-gated gallery photo route, not an optimizable static asset (as ReviewCard) */}
+            <img
+              src={galleryPhotoHref(photo)}
+              alt={t("photoAlt", { n: index + 1 })}
               width={1004}
               height={1340}
-              className="h-[404px] max-h-[max(240px,calc(100svh-160px))] w-auto rounded-[20px] lg:h-[670px]"
+              loading="lazy"
+              decoding="async"
+              className="aspect-[3/4] h-[404px] max-h-[max(240px,calc(100svh-160px))] w-auto rounded-[20px] object-cover lg:h-[670px]"
             />
           </li>
         ))}

@@ -16,6 +16,7 @@ import { SITE_CONTAINER } from "@/components/site/layout";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { getCampaignStates } from "@/features/campaigns/queries";
+import { listGalleryPhotos } from "@/features/reviews/queries";
 import { initiativeStatus } from "@/features/initiatives/catalog";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { cn } from "@/lib/utils";
@@ -44,9 +45,10 @@ const STEPS = [
 // design, which draws it closed: this is the on-demand initiative and we never
 // run it as a campaign.
 export default async function FamilyPage() {
-  const [campaigns, settings] = await Promise.all([
+  const [campaigns, settings, galleryPhotos] = await Promise.all([
     getCampaignStates(),
     getResolvedSettings(),
+    listGalleryPhotos(),
   ]);
   const status = initiativeStatus(campaigns, settings, undefined);
 
@@ -193,7 +195,7 @@ export default async function FamilyPage() {
           })}
         </InitiativeQuote>
 
-        <Gallery />
+        <Gallery photos={galleryPhotos} />
       </main>
 
       <SiteFooter />

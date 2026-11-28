@@ -8,13 +8,14 @@ import { SITE } from "@/lib/site";
 // noindex handle exclusion instead.
 //
 // The one Disallow is for IMAGE files, where that reasoning does not apply:
-// the gallery (public/gallery-N.webp, on the landing and /about) holds real
-// photos of children. Disallowed, they stay out of image search and cannot be
-// picked as the result thumbnail. Not a privacy control — the files are public
-// and the page still shows them.
+// the gallery holds real photos of children — families' photos with the gift,
+// served from /gallery/<review>/photo (and, until they are removed, the old
+// static public/gallery-N.webp). Disallowed, they stay out of image search and
+// cannot be picked as the result thumbnail. Not a privacy control — the photos
+// are public and the pages still show them.
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: "*", allow: "/", disallow: "/gallery-" },
+    rules: { userAgent: "*", allow: "/", disallow: "/gallery" },
     sitemap: `${SITE.url}/sitemap.xml`,
   };
 }
