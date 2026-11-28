@@ -24,16 +24,16 @@ const data = vi.hoisted(() => ({
   rows: [] as ReviewRow[],
   // The filter's total; null means "just the rows on this page".
   total: null as number | null,
-  status: undefined as string | undefined,
+  filter: undefined as { status: string; gallery: string } | undefined,
   slice: undefined as { limit: number; offset: number } | undefined,
 }));
 vi.mock("@/features/reviews/queries", () => ({
   countReviewsForModeration: async () => data.total ?? data.rows.length,
   listReviewsForModeration: async (
-    status: string,
+    filter: { status: string; gallery: string },
     slice: { limit: number; offset: number },
   ) => {
-    data.status = status;
+    data.filter = filter;
     data.slice = slice;
     return data.rows;
   },
@@ -68,6 +68,7 @@ vi.mock("@/components/ui/Pager", () => ({
 }));
 vi.mock("../actions", () => ({
   setReviewPublishedAction: async () => {},
+  setReviewInGalleryAction: async () => {},
 }));
 
 import messages from "../../../../../messages/uk.json";
@@ -85,12 +86,14 @@ function review(overrides: Partial<ReviewRow>): ReviewRow {
     rating: 5,
     body: "Дякуємо!",
     isPublished: false,
+    inGallery: false,
     createdAt: new Date("2026-11-01T10:00:00Z"),
     authorId: USER_ID,
     authorFirstName: "Олена",
     authorUsername: "olena",
     applicationId: APPLICATION_ID,
     childName: "Марко",
+    socialMediaConsent: true,
     confirmationPhoto: null,
     ...overrides,
   };
@@ -99,12 +102,16 @@ function review(overrides: Partial<ReviewRow>): ReviewRow {
 async function renderPage(
   rows: ReviewRow[],
   status?: string,
-  { page, total = null }: { page?: string; total?: number | null } = {},
+  {
+    page,
+    gallery,
+    total = null,
+  }: { page?: string; gallery?: string; total?: number | null } = {},
 ) {
   data.rows = rows;
   data.total = total;
   const ui = await AdminReviewsPage({
-    searchParams: Promise.resolve({ status, page }),
+    searchParams: Promise.resolve({ status, gallery, page }),
   });
   // The photo's lightbox is a client component inside the server tree.
   return render(
@@ -137,21 +144,51 @@ describe("AdminReviewsPage", () => {
   it("lists every review by default", async () => {
     await renderPage([review({})]);
 
-    expect(data.status).toBe("all");
+    expect(data.filter?.status).toBe("all");
     expect(screen.getByLabelText(t.filter.status)).toHaveValue("all");
   });
 
   it("narrows the list to the status in the url", async () => {
     await renderPage([review({ isPublished: true })], "published");
 
-    expect(data.status).toBe("published");
+    expect(data.filter?.status).toBe("published");
     expect(screen.getByLabelText(t.filter.status)).toHaveValue("published");
+  });
+
+  it("narrows the list to the gallery filter in the url, alongside the status", async () => {
+    await renderPage([review({})], "published", { gallery: "eligible" });
+
+    expect(data.filter).toEqual({ status: "published", gallery: "eligible" });
+    expect(screen.getByLabelText(t.filter.gallery.label)).toHaveValue(
+      "eligible",
+    );
+  });
+
+  it("keeps the gallery filter in the pager's links", async () => {
+    await renderPage([review({})], undefined, {
+      gallery: "in",
+      page: "2",
+      total: 120,
+    });
+
+    const pager = screen.getByRole("navigation", { name: t.pager.label });
+    expect(within(pager).getByRole("link", { name: "next" })).toHaveAttribute(
+      "href",
+      "/admin/reviews?gallery=in&page=3",
+    );
+  });
+
+  it("says the filter matched nothing when only the gallery filter narrows", async () => {
+    await renderPage([], undefined, { gallery: "in" });
+
+    expect(screen.getByText(t.emptyFiltered)).toBeInTheDocument();
+    expect(screen.queryByText(t.empty)).not.toBeInTheDocument();
   });
 
   it("reads an unknown status as all", async () => {
     await renderPage([review({})], "deleted");
 
-    expect(data.status).toBe("all");
+    expect(data.filter?.status).toBe("all");
   });
 
   it("asks for the first page by default", async () => {
@@ -165,7 +202,7 @@ describe("AdminReviewsPage", () => {
   it("reads the page from the url and keeps the filter in the pager's links", async () => {
     await renderPage([review({})], "hidden", { page: "2", total: 120 });
 
-    expect(data.status).toBe("hidden");
+    expect(data.filter?.status).toBe("hidden");
     expect(data.slice).toEqual({ limit: 50, offset: 50 });
     const pager = screen.getByRole("navigation", { name: t.pager.label });
     expect(pager).toHaveTextContent("51–51 / 120, 2 / 3");
@@ -291,5 +328,73 @@ describe("AdminReviewsPage", () => {
       `/api/applications/${APPLICATION_ID}/files/${FILE_ID}/rotate`,
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  describe("gallery", () => {
+    const photo = { id: FILE_ID, version: 1700000000000 };
+
+    it("offers to add a consented review's photo to the gallery", async () => {
+      const { container } = await renderPage([
+        review({ confirmationPhoto: photo }),
+      ]);
+
+      expect(
+        screen.getByRole("button", { name: t.addToGalleryCta }),
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByRole("listitem")).queryByText(t.inGallery),
+      ).not.toBeInTheDocument();
+      expect(await axe(container)).toHaveNoViolations();
+    });
+
+    // null is "never answered" — not a yes.
+    it.each([false, null])(
+      "does not offer it when the consent is %s",
+      async (socialMediaConsent) => {
+        await renderPage([
+          review({ confirmationPhoto: photo, socialMediaConsent }),
+        ]);
+
+        expect(
+          screen.queryByRole("button", { name: t.addToGalleryCta }),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it("does not offer it without a gift photo", async () => {
+      await renderPage([review({ confirmationPhoto: null })]);
+
+      expect(
+        screen.queryByRole("button", { name: t.addToGalleryCta }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("says by text that the photo is in the gallery, and offers to remove it", async () => {
+      await renderPage([review({ confirmationPhoto: photo, inGallery: true })]);
+
+      // Scoped to the review: the filter's option reads the same.
+      expect(
+        within(screen.getByRole("listitem")).getByText(t.inGallery),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: t.removeFromGalleryCta }),
+      ).toBeInTheDocument();
+    });
+
+    // A family that withdrew consent after the photo went in: the photo must
+    // still be removable.
+    it("still offers removal once the family is no longer eligible", async () => {
+      await renderPage([
+        review({
+          confirmationPhoto: photo,
+          inGallery: true,
+          socialMediaConsent: false,
+        }),
+      ]);
+
+      expect(
+        screen.getByRole("button", { name: t.removeFromGalleryCta }),
+      ).toBeInTheDocument();
+    });
   });
 });

@@ -48,3 +48,14 @@ export function publicReviewPhotoHref(review: {
 }): string {
   return `/reviews/${review.id}/photo?v=${review.photoVersion}`;
 }
+
+// Whether a review's gift photo may go in the site gallery: the family ticked
+// `social_media_consent` (null is "never answered", not a yes) and there is a
+// photo to show. The admin button follows this; setReviewInGallery applies the
+// same rule in SQL, which is the one that counts.
+export function isGalleryEligible(review: {
+  socialMediaConsent: boolean | null;
+  hasPhoto: boolean;
+}): boolean {
+  return review.socialMediaConsent === true && review.hasPhoto;
+}

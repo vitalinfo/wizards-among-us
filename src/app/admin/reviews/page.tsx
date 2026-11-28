@@ -7,12 +7,14 @@ import { ReviewConfirmationPhoto } from "@/components/admin/ReviewConfirmationPh
 import { ReviewFilterForm } from "@/components/admin/ReviewFilterForm";
 import { Pager } from "@/components/ui/Pager";
 import {
+  parseReviewListFilter,
   parseReviewsPage,
-  parseReviewStatusFilter,
+  isNarrowed,
   REVIEWS_PAGE_SIZE,
   reviewsHref,
   reviewsPageCount,
 } from "@/features/reviews/listFilter";
+import { isGalleryEligible } from "@/features/reviews/mappers";
 import {
   countReviewsForModeration,
   listReviewsForModeration,
@@ -20,14 +22,17 @@ import {
 import { getSessionActor } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/authz";
 
-import { setReviewPublishedAction } from "./actions";
+import { setReviewInGalleryAction, setReviewPublishedAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const ACTION_BUTTON =
+  "border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export default async function AdminReviewsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; gallery?: string; page?: string }>;
 }) {
   const actor = await getSessionActor();
   if (!isAdmin(actor)) {
@@ -35,12 +40,12 @@ export default async function AdminReviewsPage({
   }
 
   const params = await searchParams;
-  const status = parseReviewStatusFilter(params.status);
+  const filter = parseReviewListFilter(params);
 
   // Count before fetching: a stale ?page= (or publishing the last review on a
   // filtered page) would otherwise render an empty list that reads as "there
   // are no reviews".
-  const total = await countReviewsForModeration(status);
+  const total = await countReviewsForModeration(filter);
   const pageCount = reviewsPageCount(total);
   const page = Math.min(parseReviewsPage(params.page), pageCount);
   const offset = (page - 1) * REVIEWS_PAGE_SIZE;
@@ -48,7 +53,7 @@ export default async function AdminReviewsPage({
   const [t, format, rows] = await Promise.all([
     getTranslations("admin.reviews"),
     getFormatter(),
-    listReviewsForModeration(status, { limit: REVIEWS_PAGE_SIZE, offset }),
+    listReviewsForModeration(filter, { limit: REVIEWS_PAGE_SIZE, offset }),
   ]);
 
   return (
@@ -60,11 +65,11 @@ export default async function AdminReviewsPage({
           <p className="text-muted-foreground mt-1 text-sm">{t("intro")}</p>
         </div>
 
-        <ReviewFilterForm status={status} />
+        <ReviewFilterForm filter={filter} />
 
         {rows.length === 0 ? (
           <p className="text-muted-foreground">
-            {status === "all" ? t("empty") : t("emptyFiltered")}
+            {isNarrowed(filter) ? t("emptyFiltered") : t("empty")}
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -82,6 +87,11 @@ export default async function AdminReviewsPage({
                     <span className="border-border text-muted-foreground rounded-full border px-2.5 py-0.5 text-xs font-medium">
                       {review.isPublished ? t("published") : t("hidden")}
                     </span>
+                    {review.inGallery ? (
+                      <span className="border-border text-muted-foreground rounded-full border px-2.5 py-0.5 text-xs font-medium">
+                        {t("inGallery")}
+                      </span>
+                    ) : null}
                   </div>
                   {review.body ? (
                     <p className="text-body text-sm whitespace-pre-wrap">
@@ -124,23 +134,47 @@ export default async function AdminReviewsPage({
                         ),
                     })}
                   </p>
-                  <form
-                    action={setReviewPublishedAction.bind(
-                      null,
-                      review.id,
-                      !review.isPublished,
-                      status,
-                      page,
-                    )}
-                    className="mt-1"
-                  >
-                    <button
-                      type="submit"
-                      className="border-border hover:bg-surface-muted focus-visible:outline-ring rounded-md border px-3 py-1.5 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <form
+                      action={setReviewPublishedAction.bind(
+                        null,
+                        review.id,
+                        !review.isPublished,
+                        filter,
+                        page,
+                      )}
                     >
-                      {review.isPublished ? t("unpublishCta") : t("publishCta")}
-                    </button>
-                  </form>
+                      <button type="submit" className={ACTION_BUTTON}>
+                        {review.isPublished
+                          ? t("unpublishCta")
+                          : t("publishCta")}
+                      </button>
+                    </form>
+                    {/* Removing stays offered even if the family is no longer
+                        eligible, so a photo already in the gallery can always
+                        be taken out. */}
+                    {review.inGallery ||
+                    isGalleryEligible({
+                      socialMediaConsent: review.socialMediaConsent,
+                      hasPhoto: review.confirmationPhoto !== null,
+                    }) ? (
+                      <form
+                        action={setReviewInGalleryAction.bind(
+                          null,
+                          review.id,
+                          !review.inGallery,
+                          filter,
+                          page,
+                        )}
+                      >
+                        <button type="submit" className={ACTION_BUTTON}>
+                          {review.inGallery
+                            ? t("removeFromGalleryCta")
+                            : t("addToGalleryCta")}
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
                 </div>
                 {review.confirmationPhoto && review.applicationId ? (
                   <ReviewConfirmationPhoto
@@ -162,7 +196,7 @@ export default async function AdminReviewsPage({
           total={total}
           from={offset + 1}
           to={offset + rows.length}
-          hrefFor={(target) => reviewsHref(status, target)}
+          hrefFor={(target) => reviewsHref(filter, target)}
         />
       </main>
     </>

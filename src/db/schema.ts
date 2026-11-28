@@ -348,11 +348,20 @@ export const reviews = pgTable(
     rating: integer("rating").notNull(), // range (1–5) validated in zod, not a DB CHECK
     body: text("body"),
     isPublished: boolean("is_published").notNull().default(false), // admin-moderated
+    // The family's gift photo in the site gallery. Separate from isPublished:
+    // the gallery shows the photo alone, never the text. Only meaningful with
+    // the application's social_media_consent — enforced app-side.
+    inGallery: boolean("in_gallery").notNull().default(false),
     ...timestamps(),
   },
   (t) => [
     index("reviews_user_idx").on(t.userId),
     index("reviews_application_idx").on(t.applicationId),
+    // Partial: the gallery reads only the rows that are in it, a small slice
+    // of a table that grows with every fulfilled wish.
+    index("reviews_in_gallery_idx")
+      .on(t.id)
+      .where(sql`${t.inGallery} = true`),
   ],
 );
 

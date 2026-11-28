@@ -1679,15 +1679,24 @@
       "byline": "<authorLink>{author}</authorLink> · дитина: <childLink>{child}</childLink> · {date}",
       "publishCta": "Опублікувати",
       "unpublishCta": "Прибрати з сайту",
+      "inGallery": "У галереї",
+      "addToGalleryCta": "Додати фото в галерею",
+      "removeFromGalleryCta": "Прибрати фото з галереї",
       "photoTitle": "Фото з подарунком — {child}",
       "photoAlt": "Фото, яке родина надіслала як підтвердження, що подарунок отримано",
-      "emptyFiltered": "Немає відгуків із таким статусом.",
+      "emptyFiltered": "Немає відгуків за цим фільтром.",
       "filter": {
         "legend": "Фільтр відгуків",
         "status": "Статус",
         "all": "Усі",
         "published": "Опубліковані",
         "hidden": "Не опубліковані",
+        "gallery": {
+          "label": "Галерея",
+          "all": "Усі",
+          "in": "У галереї",
+          "eligible": "Можна додати"
+        },
         "apply": "Застосувати",
         "reset": "Скинути"
       },
@@ -1892,6 +1901,8 @@
           "created": "Відгук залишено",
           "published": "Відгук опубліковано",
           "unpublished": "Відгук знято з публікації",
+          "added_to_gallery": "Фото з відгуку додано в галерею",
+          "removed_from_gallery": "Фото з відгуку прибрано з галереї",
           "deleted": "Відгук видалено"
         },
         "settings": {
