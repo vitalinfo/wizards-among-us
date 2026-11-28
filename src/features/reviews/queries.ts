@@ -1,4 +1,14 @@
-import { and, asc, count, desc, eq, exists, inArray, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  exists,
+  inArray,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { applicationFiles, applications, reviews, users } from "@/db/schema";
@@ -8,6 +18,7 @@ import {
   REVIEWS_PAGE_SIZE,
   type ReviewListFilter,
 } from "./listFilter";
+import { type GalleryPhoto, galleryOrderSeed, GALLERY_SIZE } from "./gallery";
 import { type PublicReview, toPublicReview } from "./mappers";
 
 export async function hasReviewed(
@@ -108,15 +119,49 @@ export async function listPublishedReviews({
   );
 }
 
-// The object behind a review's public photo — or null, which the route turns
-// into a 404. The SAME three conditions the page applies, in SQL: published,
-// consented, and a confirmation photo (never any other kind of file — the
-// review id must not become a way to read a letter or a certificate).
-export async function getPublicReviewPhoto(reviewId: string): Promise<{
-  storageKey: string;
-  contentType: string;
-  sizeBytes: number;
-} | null> {
+// Whether a review's gift photo may go in the gallery, as SQL: the
+// application consented (null is not a yes) and has a confirmation photo. The
+// same rule as isGalleryEligible, which the admin button follows; this is the
+// one that counts. Correlated on the outer `reviews` row.
+function galleryEligibleWhere() {
+  const db = getDb();
+  return exists(
+    db
+      .select({ id: applications.id })
+      .from(applications)
+      .where(
+        and(
+          eq(applications.id, reviews.applicationId),
+          eq(applications.socialMediaConsent, true),
+          exists(
+            db
+              .select({ id: applicationFiles.id })
+              .from(applicationFiles)
+              .where(
+                and(
+                  eq(applicationFiles.applicationId, applications.id),
+                  eq(applicationFiles.kind, "confirmation"),
+                ),
+              ),
+          ),
+        ),
+      ),
+  );
+}
+
+// `= true` as a literal, not a bound parameter, so it matches the partial
+// index's predicate (reviews_in_gallery_idx) under any plan.
+const IN_GALLERY = sql`${reviews.inGallery} = true`;
+
+// The object behind a review's photo on a public page — or null, which the
+// route turns into a 404. The page's own condition (`visible`: published for
+// «Відгуки», in the gallery for the gallery) plus, always, the consent and the
+// file kind: never any other kind of file, so a review id cannot become a way
+// to read a letter or a certificate.
+async function publicReviewPhoto(
+  reviewId: string,
+  visible: SQL,
+): Promise<PublicPhotoObject | null> {
   const [row] = await getDb()
     .select({
       storageKey: applicationFiles.storageKey,
@@ -132,7 +177,7 @@ export async function getPublicReviewPhoto(reviewId: string): Promise<{
     .where(
       and(
         eq(reviews.id, reviewId),
-        eq(reviews.isPublished, true),
+        visible,
         eq(applications.socialMediaConsent, true),
         eq(applicationFiles.kind, "confirmation"),
       ),
@@ -142,6 +187,64 @@ export async function getPublicReviewPhoto(reviewId: string): Promise<{
     .orderBy(desc(applicationFiles.createdAt), desc(applicationFiles.id))
     .limit(1);
   return row ?? null;
+}
+
+export type PublicPhotoObject = {
+  storageKey: string;
+  contentType: string;
+  sizeBytes: number;
+};
+
+// «Відгуки»: the SAME three conditions the page applies — published,
+// consented, a confirmation photo.
+export function getPublicReviewPhoto(
+  reviewId: string,
+): Promise<PublicPhotoObject | null> {
+  return publicReviewPhoto(reviewId, eq(reviews.isPublished, true));
+}
+
+// The gallery: in the gallery, consented, a confirmation photo. Not
+// "published" — the gallery shows the photo alone, never the review's text.
+export function getGalleryPhoto(
+  reviewId: string,
+): Promise<PublicPhotoObject | null> {
+  return publicReviewPhoto(reviewId, IN_GALLERY);
+}
+
+// The gallery's photos: GALLERY_SIZE of them, picked by the hour's seed.
+//
+// Resilient like listActiveFaqs: every page that shows the gallery must render
+// without a database (CI builds have none), so a failure is an empty list and
+// the section renders nothing. Same for a gallery nobody has filled yet.
+export async function listGalleryPhotos(
+  now: Date = new Date(),
+): Promise<GalleryPhoto[]> {
+  try {
+    const rows = await getDb()
+      .select({ id: reviews.id, applicationId: reviews.applicationId })
+      .from(reviews)
+      // IN_GALLERY for the partial index; the eligibility check again because
+      // a family can withdraw consent after the admin added the photo, and
+      // the gallery must drop it then, not when someone notices.
+      .where(and(IN_GALLERY, galleryEligibleWhere()))
+      // As listPublishedReviews: shuffled by the seed, the id breaking a tie.
+      .orderBy(
+        sql`md5(${galleryOrderSeed(now)}::text || ${reviews.id}::text)`,
+        asc(reviews.id),
+      )
+      .limit(GALLERY_SIZE);
+
+    const photos = await latestConfirmationPhotos(
+      rows.flatMap((row) => row.applicationId ?? []),
+    );
+    return rows.flatMap((row) => {
+      const photo = row.applicationId ? photos.get(row.applicationId) : null;
+      return photo ? [{ reviewId: row.id, version: photo.version }] : [];
+    });
+  } catch (error) {
+    console.error("listGalleryPhotos failed:", error);
+    return [];
+  }
 }
 
 // Oldest first, so the last write per application is its newest
@@ -176,40 +279,6 @@ async function latestConfirmationPhotos(
   }
   return photos;
 }
-
-// Whether a review's gift photo may go in the gallery, as SQL: the
-// application consented (null is not a yes) and has a confirmation photo. The
-// same rule as isGalleryEligible, which the admin button follows; this is the
-// one that counts. Correlated on the outer `reviews` row.
-function galleryEligibleWhere() {
-  const db = getDb();
-  return exists(
-    db
-      .select({ id: applications.id })
-      .from(applications)
-      .where(
-        and(
-          eq(applications.id, reviews.applicationId),
-          eq(applications.socialMediaConsent, true),
-          exists(
-            db
-              .select({ id: applicationFiles.id })
-              .from(applicationFiles)
-              .where(
-                and(
-                  eq(applicationFiles.applicationId, applications.id),
-                  eq(applicationFiles.kind, "confirmation"),
-                ),
-              ),
-          ),
-        ),
-      ),
-  );
-}
-
-// `= true` as a literal, not a bound parameter, so it matches the partial
-// index's predicate (reviews_in_gallery_idx) under any plan.
-const IN_GALLERY = sql`${reviews.inGallery} = true`;
 
 function moderationWhere({ status, gallery }: ReviewListFilter) {
   return and(

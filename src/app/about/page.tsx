@@ -27,6 +27,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SocialLinks } from "@/components/site/SocialLinks";
 import { CtaLink } from "@/components/ui/CtaLink";
 import { ctaShell } from "@/components/ui/ctaStyles";
+import { listGalleryPhotos } from "@/features/reviews/queries";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { yearsSince } from "@/lib/years";
@@ -56,11 +57,18 @@ const BIRTH = [
 // way: this is Олена's story, not the project's prospectus, and switching it
 // to «ми» would cost the page the only thing it has that the landing doesn't.
 //
-// Nothing here reads the database. The four figures in «За кожною цифрою
-// стоять люди» are the landing's own `Stats`, so a correction lands on both
-// pages at once; `years`/`since` are computed the same way the landing
-// computes them.
+// The four figures in «За кожною цифрою стоять люди» are the landing's own
+// `Stats`, so a correction lands on both pages at once; `years`/`since` are
+// computed the same way the landing computes them.
+//
+// The one database read is the gallery's photos — which is also why this page
+// is rendered per request rather than at build: CI builds have no database,
+// and a page frozen at build would show one pick of photos (or none) until the
+// next deploy.
+export const dynamic = "force-dynamic";
+
 export default async function AboutPage() {
+  const galleryPhotos = await listGalleryPhotos();
   const t = await getTranslations("about");
   const tInit = await getTranslations("initiatives");
   const tNav = await getTranslations("common.nav");
@@ -313,7 +321,10 @@ export default async function AboutPage() {
           {t.rich("closing.title", { em })}
         </InitiativeQuote>
 
-        <Gallery title={t.rich("gallery.title", { br })} />
+        <Gallery
+          photos={galleryPhotos}
+          title={t.rich("gallery.title", { br })}
+        />
       </main>
 
       <SiteFooter />

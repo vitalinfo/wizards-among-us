@@ -15,6 +15,7 @@ import { SITE_CONTAINER } from "@/components/site/layout";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { getCampaignStates } from "@/features/campaigns/queries";
+import { listGalleryPhotos } from "@/features/reviews/queries";
 import { initiativeStatus } from "@/features/initiatives/catalog";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { SITE } from "@/lib/site";
@@ -37,9 +38,10 @@ const STEP_KEYS = ["letter", "wish", "read", "gift", "share"] as const;
 // composer: every section is a shared component from components/initiatives,
 // and the only thing particular to this page is the order and the copy.
 export default async function MykolaiPage() {
-  const [campaigns, settings] = await Promise.all([
+  const [campaigns, settings, galleryPhotos] = await Promise.all([
     getCampaignStates(),
     getResolvedSettings(),
+    listGalleryPhotos(),
   ]);
   const status = initiativeStatus(campaigns, settings, "saint_nicholas_day");
 
@@ -178,7 +180,7 @@ export default async function MykolaiPage() {
         {/* The same photographs, label and heading as the landing gallery —
             the designer reuses the section wholesale, so the component is
             dropped in rather than re-cut. */}
-        <Gallery />
+        <Gallery photos={galleryPhotos} />
       </main>
 
       <SiteFooter />

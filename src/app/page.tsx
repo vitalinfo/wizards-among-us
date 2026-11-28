@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { getCampaignStates } from "@/features/campaigns/queries";
 import { listActiveFaqs } from "@/features/faqs/queries";
+import { listGalleryPhotos } from "@/features/reviews/queries";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { getSessionActor } from "@/lib/auth/session";
 import { SITE } from "@/lib/site";
@@ -27,15 +28,17 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // Independent reads — one round trip each, so run them together. All four
+  // Independent reads — one round trip each, so run them together. All five
   // swallow their own failures: the landing renders even with no database.
-  const [campaigns, settings, faqs, actor, t] = await Promise.all([
-    getCampaignStates(),
-    getResolvedSettings(),
-    listActiveFaqs(),
-    currentActor(),
-    getTranslations("meta"),
-  ]);
+  const [campaigns, settings, faqs, galleryPhotos, actor, t] =
+    await Promise.all([
+      getCampaignStates(),
+      getResolvedSettings(),
+      listActiveFaqs(),
+      listGalleryPhotos(),
+      currentActor(),
+      getTranslations("meta"),
+    ]);
 
   return (
     <>
@@ -52,6 +55,7 @@ export default async function HomePage() {
         campaigns={campaigns}
         settings={settings}
         faqs={faqs}
+        galleryPhotos={galleryPhotos}
         manifestoHrefs={manifestoHrefs(actor)}
       />
       <SiteFooter />

@@ -18,6 +18,7 @@ import {
   VolunteerCta,
   volunteerCtaState,
 } from "@/components/volunteer/VolunteerCta";
+import { listGalleryPhotos } from "@/features/reviews/queries";
 import { getSessionActor } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +42,10 @@ const STEPS = [
 // «Волонтерам», from Figma 66:2 — the public explainer someone reads before
 // becoming a Чарівник. Public but noindex, like every page except «/» (§10).
 export default async function VolunteerPage() {
-  const actor = await getSessionActor();
+  const [actor, galleryPhotos] = await Promise.all([
+    getSessionActor(),
+    listGalleryPhotos(),
+  ]);
   const state = volunteerCtaState(actor);
 
   const t = await getTranslations("volunteer.info");
@@ -184,7 +188,7 @@ export default async function VolunteerPage() {
           })}
         </InitiativeQuote>
 
-        <Gallery />
+        <Gallery photos={galleryPhotos} />
       </main>
 
       <SiteFooter />

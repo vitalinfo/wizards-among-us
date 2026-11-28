@@ -18,6 +18,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { CtaLink } from "@/components/ui/CtaLink";
 import { ctaShell } from "@/components/ui/ctaStyles";
 import { getCampaignStates } from "@/features/campaigns/queries";
+import { listGalleryPhotos } from "@/features/reviews/queries";
 import { getResolvedSettings } from "@/features/settings/queries";
 import { isUser } from "@/lib/actor";
 import { loginPathFor } from "@/lib/auth/returnPath";
@@ -72,10 +73,11 @@ const STEPS = [
 // entry point; Vital is placing it elsewhere, and until he does, a parent can
 // only reach «Мій чарівник» by typing the URL.
 export default async function ParentPage() {
-  const [campaigns, settings, actor] = await Promise.all([
+  const [campaigns, settings, actor, galleryPhotos] = await Promise.all([
     getCampaignStates(),
     getResolvedSettings(),
     getSessionActor(),
+    listGalleryPhotos(),
   ]);
   const applyHref = isUser(actor) ? APPLY : loginPathFor(APPLY);
 
@@ -224,7 +226,7 @@ export default async function ParentPage() {
           })}
         </InitiativeQuote>
 
-        <Gallery />
+        <Gallery photos={galleryPhotos} />
       </main>
 
       <SiteFooter />
