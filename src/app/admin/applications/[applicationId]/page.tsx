@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ClaimSection } from "@/components/admin/ClaimSection";
+import { ReviewSummary } from "@/components/reviews/ReviewSummary";
 import { FamilyApplications } from "@/components/admin/FamilyApplications";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { PhotoLightbox } from "@/components/ui/PhotoLightbox";
@@ -15,6 +16,7 @@ import {
   listFamilyApplicationsInCampaign,
 } from "@/features/applications/adminQueries";
 import { getClaimHolder, searchVolunteers } from "@/features/claims/queries";
+import { getApplicationReview } from "@/features/reviews/queries";
 import { getParentNote } from "@/features/users/adminQueries";
 import {
   moderationCampaignScope,
@@ -116,23 +118,33 @@ export default async function AdminApplicationPage({
   }
 
   const { application, campaignTitle, parent } = detail;
-  const [t, tRegions, tGender, format, files, parentNote, familyApplications] =
-    await Promise.all([
-      getTranslations("admin.applications"),
-      getTranslations("regions"),
-      getTranslations("genders"),
-      getFormatter(),
-      listApplicationFiles(applicationId).then(inKindOrder),
-      // Attached to the PERSON, not the application: a family that files three
-      // applications has one note, and the thing an admin wrote down about how to
-      // reach them is true for all three.
-      getParentNote(application.parentId),
-      listFamilyApplicationsInCampaign({
-        parentId: application.parentId,
-        campaignId: application.campaignId,
-        excludeId: applicationId,
-      }),
-    ]);
+  const [
+    t,
+    tRegions,
+    tGender,
+    format,
+    files,
+    parentNote,
+    familyApplications,
+    review,
+  ] = await Promise.all([
+    getTranslations("admin.applications"),
+    getTranslations("regions"),
+    getTranslations("genders"),
+    getFormatter(),
+    listApplicationFiles(applicationId).then(inKindOrder),
+    // Attached to the PERSON, not the application: a family that files three
+    // applications has one note, and the thing an admin wrote down about how to
+    // reach them is true for all three.
+    getParentNote(application.parentId),
+    listFamilyApplicationsInCampaign({
+      parentId: application.parentId,
+      campaignId: application.campaignId,
+      excludeId: applicationId,
+    }),
+    // Published or not: whether it goes public is this admin's call.
+    getApplicationReview(applicationId, application.parentId),
+  ]);
 
   // This page reveals every sensitive field about a child at once — town,
   // delivery address, family contact. The invariant says log every view.
@@ -454,6 +466,18 @@ export default async function AdminApplicationPage({
           search={search}
           assignError={query.assignError ?? null}
         />
+
+        {/* Only when the family left one — most applications never will. */}
+        {review ? (
+          <section>
+            <h2 className="mb-2 text-lg font-semibold">
+              {t("sections.review")}
+            </h2>
+            <div className="border-border bg-surface rounded-lg border p-4">
+              <ReviewSummary review={review} />
+            </div>
+          </section>
+        ) : null}
 
         {/* Outside the branches below: a delete is refused because the parent
             submitted, so by the time this renders the draft branch is gone. */}

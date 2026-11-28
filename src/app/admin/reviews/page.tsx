@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ReviewConfirmationPhoto } from "@/components/admin/ReviewConfirmationPhoto";
 import { ReviewFilterForm } from "@/components/admin/ReviewFilterForm";
+import { ReviewStars } from "@/components/reviews/ReviewStars";
 import { Pager } from "@/components/ui/Pager";
 import {
   parseReviewListFilter,
@@ -80,9 +81,10 @@ export default async function AdminReviewsPage({
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold">
-                      {t("rating", { rating: review.rating })}
-                    </span>
+                    <ReviewStars
+                      rating={review.rating}
+                      label={t("rating", { rating: review.rating })}
+                    />
                     {/* State by text, not colour alone. */}
                     <span className="border-border text-muted-foreground rounded-full border px-2.5 py-0.5 text-xs font-medium">
                       {review.isPublished ? t("published") : t("hidden")}

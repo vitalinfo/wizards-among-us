@@ -148,6 +148,16 @@ describe("AdminReviewsPage", () => {
     expect(screen.getByLabelText(t.filter.status)).toHaveValue("all");
   });
 
+  // Stars, as on the claim card and the application page — one image to
+  // assistive tech, named by the rating.
+  it("shows the rating as stars", async () => {
+    await renderPage([review({ rating: 3 })]);
+
+    expect(
+      screen.getByRole("img", { name: t.rating.replace("{rating}", "3") }),
+    ).toBeInTheDocument();
+  });
+
   it("narrows the list to the status in the url", async () => {
     await renderPage([review({ isPublished: true })], "published");
 
@@ -298,7 +308,10 @@ describe("AdminReviewsPage", () => {
   it("shows no thumbnail when the family has not added a gift photo", async () => {
     await renderPage([review({ confirmationPhoto: null })]);
 
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    // By the photo's name: the rating's stars are an img too.
+    expect(
+      screen.queryByRole("img", { name: t.photoAlt, hidden: true }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: /Фото з подарунком/ }),
     ).not.toBeInTheDocument();

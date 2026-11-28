@@ -1,9 +1,9 @@
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
 import { ApplicationDetail } from "@/components/applications/ApplicationDetail";
 import { ApplicationPhoto } from "@/components/applications/ApplicationPhoto";
 import { DetailSection } from "@/components/applications/DetailSection";
-import { ReviewStars } from "@/components/reviews/ReviewStars";
+import { ReviewSummary } from "@/components/reviews/ReviewSummary";
 import type { ContactMethod } from "@/db/enums";
 import type { applications } from "@/db/schema";
 
@@ -26,7 +26,6 @@ export async function ClaimDetail({
 }) {
   const t = await getTranslations("volunteer.claims.card");
   const tPhotos = await getTranslations("volunteer.claims.photos");
-  const format = await getFormatter();
 
   const child = application.childName ?? "";
   // «Фото від родини» is the confirmation, and it sits under its own heading
@@ -86,30 +85,7 @@ export async function ClaimDetail({
             optional, so there is nothing to tell the volunteer to wait for. */}
         {review ? (
           <DetailSection title={t("sections.review")} list={false}>
-            <div className="flex flex-col gap-4">
-              {/* pre-line: a parent who wrote two paragraphs sees two. */}
-              {review.body ? (
-                <p className="text-sm tracking-[-0.03em] whitespace-pre-line">
-                  {review.body}
-                </p>
-              ) : null}
-              <div className="flex items-center justify-between gap-4">
-                <ReviewStars
-                  rating={review.rating}
-                  label={t("reviewRating", { rating: review.rating })}
-                />
-                <time
-                  dateTime={review.createdAt.toISOString()}
-                  className="text-muted-foreground text-sm"
-                >
-                  {format.dateTime(review.createdAt, {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
-                </time>
-              </div>
-            </div>
+            <ReviewSummary review={review} />
           </DetailSection>
         ) : null}
       </>

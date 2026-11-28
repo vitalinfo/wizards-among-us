@@ -195,7 +195,7 @@ describe("ClaimDetail", () => {
     expect(headings.at(-1)).toBe(t.sections.familyPhoto);
     expect(
       screen.getByRole("img", {
-        name: t.reviewRating.replace("{rating}", "4"),
+        name: messages.reviews.list.rating.replace("{rating}", "4"),
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/Дитина в захваті\./)).toBeInTheDocument();
@@ -213,7 +213,7 @@ describe("ClaimDetail", () => {
 
     expect(
       screen.getByRole("img", {
-        name: t.reviewRating.replace("{rating}", "5"),
+        name: messages.reviews.list.rating.replace("{rating}", "5"),
       }),
     ).toBeInTheDocument();
   });
